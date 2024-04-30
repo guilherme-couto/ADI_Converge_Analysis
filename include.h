@@ -10,6 +10,8 @@
 typedef double real;
 #define REAL_TYPE "double"
 
+#define PARALLEL
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,13 +21,15 @@ typedef double real;
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-int L = 1.0;
-int T = 1.0;    
+int L = 1;
+int T = 1;    
 real G = 1.5;         // omega^-1 * cm^-2
 real sigma = 1.2e-3;  // omega^-1 * cm^-1
 real chi = 1.0e3;     // cm^-1
 real Cm = 1.0e-3;     // mF * cm^-2
 real V_init = 0.0;
+
+real _pi = 3.14159265358979323846;
 
 #define CUDA_CALL(call) \
 do { \

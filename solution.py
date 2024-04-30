@@ -8,7 +8,7 @@ pi = 3.14159265358979323846
 real_type = 'double'
 
 def solution(x, y, t):
-    return np.sin(pi*t) * np.cos(pi*x/L) * np.cos(pi*y/L)
+    return (1.0-np.exp(-t)) * np.cos(pi*x/L) * np.cos(pi*y/L)
 
 def run_all_simulations(method, dts, dxs, thetas):
     
@@ -56,17 +56,16 @@ def read_files(methods, dts, dxs, thetas):
                 for line in open(filename, 'r'):
                     line = line.split()
                     for j in range(len(line)):
-                        # simulation_minus_solution.append(float(line[j]) - solution(j*float(dx), i*float(dx), T))
-                        simulation_minus_solution.append(abs(float(line[j]) - solution(j*float(dx), i*float(dx), T)))
+                        simulation_minus_solution.append(float(line[j]) - solution(j*float(dx), i*float(dx), T))
                     i += 1
                 
                 # Calculate the error with norm 2
                 number_of_points = len(simulation_minus_solution)
-                # error = (np.linalg.norm(np.array(simulation_minus_solution))) / (np.sqrt(number_of_points)) # RMSE
                 aux_sum = 0
                 for element in simulation_minus_solution:
                     aux_sum = aux_sum + (element*element)
-                error = np.sqrt(float(dt)*float(dt)*aux_sum)
+                # error = np.sqrt(aux_sum/number_of_points) # RMSE
+                error = np.sqrt(aux_sum*float(dx)*float(dx))
                 data[method][theta][dt][dx]['error'] = error
                 if method != 'theta-ADI':
                     print(f'Error for method = {method}, dx = {dx} and dt = {dt}: {error}') 
@@ -115,9 +114,9 @@ def calculate_slope(data, alpha, methods, dts, dxs, thetas):
             for dt in dts:
                 errors_2nd.append(data[method][theta][dt][dxs[dts.index(dt)]]['error'])
             for index in range(1, len(errors_2nd)):
-                slopes.append(np.log10(errors_2nd[index] / errors_2nd[index-1]) / np.log10(float(dts[index]) / float(dts[index-1])))
+                slopes.append((np.log10(errors_2nd[index])-np.log10(errors_2nd[index-1])) / (np.log10(float(dts[index]))-np.log10(float(dts[index-1]))))
 
-            slope_2nd = np.log10(errors_2nd[-1] / errors_2nd[0]) / np.log10(float(dts[-1]) / float(dts[0]))
+            slope_2nd = (np.log10(errors_2nd[-1])-np.log10(errors_2nd[0])) / (np.log10(float(dts[-1]))-np.log10(float(dts[0])))
             if method != 'theta-ADI':
                 print(f'For {method}: {slope_2nd} (mean: {np.mean(np.array(slopes))})')
                 analysis_file.write(f'For {method}: {slope_2nd} (mean: {np.mean(np.array(slopes))})\n')
@@ -129,7 +128,7 @@ def calculate_slope(data, alpha, methods, dts, dxs, thetas):
 # 1st order (dt = a*dx²)
 # 2nd order (dt = a*dx)
 thetas = ['0.50']
-methods = ['SSI-ADI']
+methods = ['FE', 'SSI-ADI']
 
 # Create directories
 if not os.path.exists(f'./simulation-files/simulation-graphs'):
@@ -151,7 +150,7 @@ if not os.path.exists(f'./simulation-files/simulation-analysis'):
 #         break
 
 # values = [0.00005, 0.00008, 0.0001, 0.00025, 0.0002, 0.0004, 0.0005, 0.000625]
-values = [0.00005, 0.0001, 0.0002, 0.0004]
+values = [0.00005, 0.0001, 0.0002, 0.0004, 0.0005, 0.000625]
 # values = [0.00001, 0.00005, 0.0001, 0.0005]
 alpha = 0.05
 # alpha = 0.01
