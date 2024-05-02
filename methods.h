@@ -11,7 +11,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 {
     // Number of steps
     int N = round(L / delta_x) + 1;               // Spatial steps (square tissue)
-    int M = round(T / delta_t) + 1;                // Number of time steps
+    int M = round(T / delta_t) + 1;               // Number of time steps
 
     // Allocate and populate time array
     real *time;
@@ -25,15 +25,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // PARALLELL
 
     #ifdef SERIAL
-    real **V, **Vaux, **Rv, **RHS;
+    real **V, **Rv, **RHS;
     V = (real **)malloc(N * sizeof(real *));
-    Vaux = (real **)malloc(N * sizeof(real *));
     Rv = (real **)malloc(N * sizeof(real *));
     RHS = (real **)malloc(N * sizeof(real *));
+    real *c_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
+    real *d_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
-        Vaux[i] = (real *)malloc(N * sizeof(real));
         Rv[i] = (real *)malloc(N * sizeof(real));
         RHS[i] = (real *)malloc(N * sizeof(real));
     }
@@ -172,16 +172,24 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             calculateVApprox(V, Rv, N, delta_x, delta_t, actualTime);
 
             // Prepare RHS for 1st part of ADI
-            prepareRHS(V, RHS, Rv, N, phi, delta_t);
+            // RHS will have the contribution of the diffusion through y (columns of the matrix)
+            prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t);
 
             // Call Thomas
-
-            // Transpose?
+            // The solution of the system will give the diffusion through x (lines of the matrix)
+            const char *line = "line"; 
+            for (int i = 0; i < N; i++)
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, V, line, i);
 
             // Prepare RHS for 2nd part of ADI
+            // RHS will have the contribution of the diffusion through x (lines of the matrix)
+            prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t);
 
             // Call Thomas
-            
+            // The solution of the system will give the diffusion through y (columns of the matrix)
+            const char *column = "column";
+            for (int j = 0; j < N; j++)
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, V, column, j);
             #endif // SERIAL
 
             // Update time step counter
@@ -206,6 +214,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             #endif // PARALLEL
 
             #ifdef SERIAL
+            solveExplicitly(V, RHS, N, delta_x, delta_t, actualTime);
             #endif // SERIAL
 
             // Update time step counter
@@ -262,14 +271,14 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     for (int i = 0; i < N; i++)
     {
         free(V[i]);
-        free(Vaux[i]);
         free(Rv[i]);
         free(RHS[i]);
     }
     free(V);
-    free(Vaux);
     free(Rv);
     free(RHS);
+    free(c_prime);
+    free(d_prime);
     #endif // SERIAL
     free(la);
     free(lb);

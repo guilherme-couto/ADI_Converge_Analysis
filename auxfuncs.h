@@ -8,14 +8,14 @@ void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real p
 {
     // First row
     la[0] = 0.0;
-    real b = 1 + 2 * phi;     // diagonal (1st and last row)
-    real c = - 2 * phi;       // superdiagonal
+    real b = 1.0 + 2.0 * phi;     // diagonal (1st and last row)
+    real c = - 2.0 * phi;       // superdiagonal
     lb[0] = b;
     lc[0] = c;
 
     // Middle rows
     real a = -phi;            // subdiagonal
-    c = -phi;                   // superdiagonal
+    c = -phi;                 // superdiagonal
     for (int i = 1; i < N - 1; ++i)
     {
         la[i] = a;
@@ -24,7 +24,7 @@ void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real p
     }
 
     // Last row
-    a = - 2 * phi;
+    a = - 2.0 * phi;
     la[N - 1] = a;
     lb[N - 1] = b;
     lc[N - 1] = 0.0;
@@ -55,9 +55,7 @@ void createDirectoriesAndFiles(char* method, real theta, char* pathToSaveData, c
 void initializeTimeArray(real* timeArray, int M, real dt)
 {
     for (int i = 0; i < M; ++i)
-    {
         timeArray[i] = i * dt;
-    }
 }
 
 #ifdef PARALLEL
@@ -105,12 +103,8 @@ void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
 void initializeStateVariable(real** V, int N)
 {
     for (int i = 0; i < N; ++i)
-    {
         for (int j = 0; j < N; ++j)
-        {
             V[i][j] = V_init;
-        }
-    }
 }
 
 real forcingTerm(real x, real y, real t)
@@ -168,7 +162,7 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
     }
 }
 
-void prepareRHS(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
+void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
 {
     for (int i = 0; i < N; i++)
     {
@@ -186,6 +180,122 @@ void prepareRHS(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
             RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]);
         }
     }
+}
+
+void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            // Explicit diffusion in y
+            real diffusion = 0.0;
+            if (j > 0 && j < N-1)
+                diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]);
+            else if (j == 0)
+                diffusion = (2.0*V[i][j+1] - 2.0*V[i][j]);
+            else if (j == N-1)
+                diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]);
+
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]);
+        }
+    }
+}
+
+void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real** A, const char* line_or_column, int index)
+{
+    // la -> subdiagonal
+    // lb -> diagonal
+    // lc -> superdiagonal
+
+    if (strcmp(line_or_column, "line") == 0)
+    {
+        // 1st: Forward sweep
+        c_prime[0] = lc[0] / lb[0];
+        d_prime[0] = A[index][0] / lb[0];
+        for (int i = 1, step = 1; i < N; i++, step++)
+        {
+            if (i < N-1)
+                c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
+            
+            d_prime[i] = (A[index][step] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
+        }
+
+        // 2nd: Back substitution
+        A[index][N-1] = d_prime[N-1];
+        for (int i = N-2, step = N-2; i >= 0; i--, step--)
+        {
+            A[index][step] = d_prime[i] - (c_prime[i]*A[index][step+1]);
+        }
+    }
+    else if (strcmp(line_or_column, "column") == 0)
+    {
+        // 1st: Forward sweep
+        c_prime[0] = lc[0] / lb[0];
+        d_prime[0] = A[0][index] / lb[0];
+        for (int i = 1, step = 1; i < N; i++, step++)
+        {
+            if (i < N-1)
+                c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
+            
+            d_prime[i] = (A[step][index] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
+        }
+
+        // 2nd: Back substitution
+        A[N-1][index] = d_prime[N-1];
+        for (int i = N-2, step = N-2; i >= 0; i--, step--)
+        {
+            A[step][index] = d_prime[i] - (c_prime[i]*A[step+1][index]);
+        }
+    }
+
+    // Matrix A now has the result
+}
+
+void solveExplicitly(real** V, real** RHS, int N, real delta_x, real delta_t, real actual_t)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            real actualV = V[i][j];
+
+            // Diffusion component
+            real diffusion = 0.0;
+
+            // Diffusion in x
+            if (j > 0 && j < N-1)
+                diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]) / (delta_x*delta_x);
+            else if (j == 0)
+                diffusion = (2.0*V[i][j+1] - 2.0*V[i][j]) / (delta_x*delta_x);
+            else if (j == N-1)
+                diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]) / (delta_x*delta_x);
+
+            // Diffusion in y
+            if (i > 0 && i < N-1)
+                diffusion += (V[i+1][j] - 2.0*V[i][j] + V[i-1][j]) / (delta_x*delta_x);
+            else if (i == 0)
+                diffusion += (2.0*V[i+1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
+            else if (i == N-1)
+                diffusion += (2.0*V[i-1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
+
+            // Forcing term
+            real x = j * delta_x;
+            real y = i * delta_x;
+            real forcing = forcingTerm(x, y, actual_t);
+
+            // Calculate the "reaction" term with actual values
+            real reaction = (forcing/(chi*Cm)) - (G*actualV/Cm);
+
+            // Calculate new value of V
+            RHS[i][j] = actualV + delta_t * (((sigma/(chi*Cm)) * diffusion) + reaction);
+        }
+    }
+
+    // Copy from RHS to V
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+            V[i][j] = RHS[i][j];
 }
 #endif // SERIAL
 
