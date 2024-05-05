@@ -31,6 +31,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     RHS = (real **)malloc(N * sizeof(real *));
     real *c_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
+    real *d = (real *)malloc(N * sizeof(real));
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
@@ -177,9 +178,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
             // Call Thomas
             // The solution of the system will give the diffusion through x (lines of the matrix)
-            const char *line = "line"; 
             for (int i = 0; i < N; i++)
-                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, V, line, i);
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, V[i]);
 
             // Prepare RHS for 2nd part of ADI
             // RHS will have the contribution of the diffusion through x (lines of the matrix)
@@ -187,9 +187,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
             // Call Thomas
             // The solution of the system will give the diffusion through y (columns of the matrix)
-            const char *column = "column";
             for (int j = 0; j < N; j++)
-                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, V, column, j);
+            {
+                copyColumnToVector(V, d, N, j);
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
+                copyVectorToColumn(V, d, N, j);
+            }
             #endif // SERIAL
 
             // Update time step counter

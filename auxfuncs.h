@@ -149,7 +149,7 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
 
             // Calculate an approx for V
             real Vtilde;
-            Vtilde = actualV + (delta_t/2.0) * (((sigma/(chi*Cm)) * diffusion) + actualRHS);
+            Vtilde = actualV + (0.5 * delta_t) * (((sigma/(chi*Cm)) * diffusion) + actualRHS);
 
             // Recalculate the forcing term at time t+(dt/2) and the RHS with the new values
             real new_t = actual_t + (0.5 * delta_t);
@@ -188,7 +188,7 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
     {
         for (int j = 0; j < N; j++)
         {
-            // Explicit diffusion in y
+            // Explicit diffusion in x
             real diffusion = 0.0;
             if (j > 0 && j < N-1)
                 diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]);
@@ -202,54 +202,48 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
     }
 }
 
-void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real** A, const char* line_or_column, int index)
+void copyColumnToVector(real** V, real* d, int N, int column_id)
+{
+    for (int i = 0; i < N; i++)
+    {
+        d[i] = V[i][column_id];
+    }
+}
+
+void copyVectorToColumn(real** V, real* d, int N, int column_id)
+{
+    for (int i = 0; i < N; i++)
+    {
+        V[i][column_id] = d[i];
+    }
+}
+
+void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real* d)
 {
     // la -> subdiagonal
     // lb -> diagonal
     // lc -> superdiagonal
+    // d -> RHS initially and, in the end, will store the result
 
-    if (strcmp(line_or_column, "line") == 0)
+    // 1st: Forward sweep
+    c_prime[0] = lc[0] / lb[0];
+    d_prime[0] = d[0] / lb[0];
+    for (int i = 1, step = 1; i < N; i++, step++)
     {
-        // 1st: Forward sweep
-        c_prime[0] = lc[0] / lb[0];
-        d_prime[0] = A[index][0] / lb[0];
-        for (int i = 1, step = 1; i < N; i++, step++)
-        {
-            if (i < N-1)
-                c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
-            
-            d_prime[i] = (A[index][step] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
-        }
-
-        // 2nd: Back substitution
-        A[index][N-1] = d_prime[N-1];
-        for (int i = N-2, step = N-2; i >= 0; i--, step--)
-        {
-            A[index][step] = d_prime[i] - (c_prime[i]*A[index][step+1]);
-        }
-    }
-    else if (strcmp(line_or_column, "column") == 0)
-    {
-        // 1st: Forward sweep
-        c_prime[0] = lc[0] / lb[0];
-        d_prime[0] = A[0][index] / lb[0];
-        for (int i = 1, step = 1; i < N; i++, step++)
-        {
-            if (i < N-1)
-                c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
-            
-            d_prime[i] = (A[step][index] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
-        }
-
-        // 2nd: Back substitution
-        A[N-1][index] = d_prime[N-1];
-        for (int i = N-2, step = N-2; i >= 0; i--, step--)
-        {
-            A[step][index] = d_prime[i] - (c_prime[i]*A[step+1][index]);
-        }
+        if (i < N-1)
+            c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
+        
+        d_prime[i] = (d[step] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
     }
 
-    // Matrix A now has the result
+    // 2nd: Back substitution
+    d[N-1] = d_prime[N-1];
+    for (int i = N-2, step = N-2; i >= 0; i--, step--)
+    {
+        d[step] = d_prime[i] - (c_prime[i]*d[step+1]);
+    }
+
+    // Vector d now has the result
 }
 
 void solveExplicitly(real** V, real** RHS, int N, real delta_x, real delta_t, real actual_t)

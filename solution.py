@@ -128,7 +128,7 @@ def calculate_slope(data, alpha, methods, dts, dxs, thetas):
 # 1st order (dt = a*dx²)
 # 2nd order (dt = a*dx)
 thetas = ['0.50']
-methods = ['FE', 'SSI-ADI']
+methods = ['SSI-ADI']
 
 # Create directories
 if not os.path.exists(f'./simulation-files/simulation-graphs'):
