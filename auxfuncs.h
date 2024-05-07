@@ -142,7 +142,7 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
             // Forcing term
             real x = j * delta_x;
             real y = i * delta_x;
-            real forcing = forcingTerm(x, y, actual_t);
+            real forcing = forcingTerm(x, y, actual_t+(delta_t*0.5));
 
             // Calculate the RHS with actual values
             real actualRHS = (forcing/(chi*Cm)) - (G*actualV/Cm);
@@ -152,9 +152,10 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
             Vtilde = actualV + (0.5 * delta_t) * (((sigma/(chi*Cm)) * diffusion) + actualRHS);
 
             // Recalculate the forcing term at time t+(dt/2) and the RHS with the new values
-            real new_t = actual_t + (0.5 * delta_t);
-            forcing = forcingTerm(x, y, new_t);
-            real tildeRHS = (forcing/(chi*Cm)) - (G*Vtilde/Cm);
+            // real new_t = actual_t + (0.5 * delta_t);
+            // forcing = forcingTerm(x, y, new_t);
+            // real tildeRHS = (forcing/(chi*Cm)) - (G*Vtilde/Cm);
+            real tildeRHS = -(G*Vtilde/Cm);
 
             // Update reaction term
             Rv[i][j] = tildeRHS;
@@ -162,7 +163,7 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
     }
 }
 
-void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
+void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, real delta_t, real time, real delta_x)
 {
     for (int i = 0; i < N; i++)
     {
@@ -177,12 +178,14 @@ void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, rea
             else if (i == N-1)
                 diffusion = (2.0*V[i-1][j] - 2.0*V[i][j]);
 
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]);
+            real x = j * delta_x;
+            real y = i * delta_x;
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
         }
     }
 }
 
-void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, real delta_t)
+void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, real delta_t, real time, real delta_x)
 {
     for (int i = 0; i < N; i++)
     {
@@ -197,7 +200,20 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
             else if (j == N-1)
                 diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]);
 
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]);
+            real x = j * delta_x;
+            real y = i * delta_x;
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
+        }
+    }
+}
+
+void copyMatrices(real** in, real** out, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            out[i][j] = in[i][j];
         }
     }
 }

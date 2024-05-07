@@ -10,7 +10,7 @@
 typedef double real;
 #define REAL_TYPE "double"
 
-#define SERIAL
+#define PARALLEL
 
 #include <stdio.h>
 #include <stdlib.h>

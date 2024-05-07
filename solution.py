@@ -56,16 +56,16 @@ def read_files(methods, dts, dxs, thetas):
                 for line in open(filename, 'r'):
                     line = line.split()
                     for j in range(len(line)):
-                        simulation_minus_solution.append(float(line[j]) - solution(j*float(dx), i*float(dx), T))
+                        simulation_minus_solution.append(abs(float(line[j]) - solution(j*float(dx), i*float(dx), T)))
                     i += 1
                 
                 # Calculate the error with norm 2
                 number_of_points = len(simulation_minus_solution)
                 aux_sum = 0
                 for element in simulation_minus_solution:
-                    aux_sum = aux_sum + (element*element)
+                    aux_sum = aux_sum + (element*element*float(dx)*float(dx))
                 # error = np.sqrt(aux_sum/number_of_points) # RMSE
-                error = np.sqrt(aux_sum*float(dx)*float(dx))
+                error = np.sqrt(aux_sum)
                 data[method][theta][dt][dx]['error'] = error
                 if method != 'theta-ADI':
                     print(f'Error for method = {method}, dx = {dx} and dt = {dt}: {error}') 
@@ -172,15 +172,15 @@ dxs = [f'{(value / alpha):.6f}' for value in values]
 #     dxs = [0.01, 0.008, 0.00625, 0.004, 0.002, 0.001, 0.0008, 0.000625, 0.0005, 0.0004, 0.0002, 0.0001, 0.00008, 0.00005]
 
 #     for dx in [f'{value:.6f}' for value in dxs]:
-#         simulation_line = f'./convergence theta-ADI {dt} {dx} 0.50'
-#         # simulation_line = f'./convergence FE {dt} {dx} 0'
+#         # simulation_line = f'./convergence theta-ADI {dt} {dx} 0.50'
+#         simulation_line = f'./convergence SSI-ADI {dt} {dx} 0'
 #         print(f'Executing {simulation_line}...')
 #         os.system(simulation_line)
 #         print('Simulation finished!\n')
 
 #         # Save in the terminal output the value of the first element of the output file
-#         output_file = open(f'./simulation-files/double/AFHN/theta-ADI/0.50/last-{dt}-{dx}.txt', 'r')
-#         # output_file = open(f'./simulation-files/double/AFHN/FE/last-{dt}-{dx}.txt', 'r')
+#         # output_file = open(f'./simulation-files/double/AFHN/theta-ADI/0.50/last-{dt}-{dx}.txt', 'r')
+#         output_file = open(f'./simulation-files/double/AFHN/SSI-ADI/last-{dt}-{dx}.txt', 'r')
 #         first_element = output_file.readline().split()[0]
 #         output = f'For dt = {dt} and dx = {dx}, the first element is {first_element}'
 #         terminal_outputs.append(output)
@@ -188,7 +188,7 @@ dxs = [f'{(value / alpha):.6f}' for value in values]
 #         dt_dx_file.write(f'{output}\n')
 #         output_file.close()
         
-#         os.system('rm -f ./simulation-files/double/AFHN/theta-ADI/0.50/*.txt')
+#         # os.system('rm -f ./simulation-files/double/AFHN/theta-ADI/0.50/*.txt')
 #         # os.system('rm -f ./simulation-files/double/AFHN/FE/*.txt')
 
 

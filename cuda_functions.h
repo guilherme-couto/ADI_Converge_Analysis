@@ -10,6 +10,11 @@ __constant__ real d_sigma = 1.2e-3; // omega^-1 * cm^-1
 __constant__ real d_chi = 1.0e3; // cm^-1
 __constant__ real d_Cm = 1.0e-3; // mF * cm^-2
 
+__device__ real forcingTerm(real x, real y, real t)
+{
+    return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
+}
+
 __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real t, real delta_t, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
@@ -41,13 +46,13 @@ __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real t, rea
             diffusion += (2*d_V[(i-1)*N + j] - 2*d_V[index]) / (delta_x * delta_x);
 
         // Forcing term
-        real forcingTerm = 0.0;
+        real forcing = 0.0;
         real x = j * delta_x;
         real y = i * delta_x;
-        forcingTerm = cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t))); 
+        forcing = forcingTerm(x, y, t); 
         
         // Calculate the RHS with actual values
-        real actualRHS = (forcingTerm/(d_chi*d_Cm)) - (d_G*actualV/d_Cm);
+        real actualRHS = (forcing/(d_chi*d_Cm)) - (d_G*actualV/d_Cm);
         
         // Calculate an approx for V
         real Vtilde;
@@ -55,15 +60,15 @@ __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real t, rea
 
         // Now, recalculate the forcing term at time t+(dt/2) and the RHS with the new values
         real new_t = t + (0.5 * delta_t);
-        forcingTerm = cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-new_t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-new_t)) + (d_chi*d_G)*(1.0-exp(-new_t)));
-        real tildeRHS = (forcingTerm/(d_chi*d_Cm)) - (d_G*Vtilde/d_Cm);
+        forcing = forcingTerm(x, y, new_t);
+        real tildeRHS = (forcing/(d_chi*d_Cm)) - (d_G*Vtilde/d_Cm);
 
         // Update V reaction term
         d_Rv[index] = tildeRHS;
     }
 }
 
-__global__ void prepareRHS(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t)
+__global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -82,6 +87,30 @@ __global__ void prepareRHS(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, 
             diffusion += (2*d_V[(i+1)*N + j] - 2*actualV);
         else if (i == N-1)
             diffusion += (2*d_V[(i-1)*N + j] - 2*actualV);
+
+        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]);
+    }
+}
+
+__global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t)
+{
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (index < N * N)
+    {
+        unsigned int i = index / N;
+        unsigned int j = index % N;
+
+        real actualV = d_V[index];
+        real diffusion = 0.0;
+
+        // Diffusion in y
+        if (j > 0 && j < N-1)
+            diffusion += (d_V[i*N + (j+1)] - 2*actualV + d_V[i*N + (j-1)]);
+        else if (j == 0)
+            diffusion += (2*d_V[i*N + (j+1)] - 2*actualV);
+        else if (j == N-1)
+            diffusion += (2*d_V[i*N + (j-1)] - 2*actualV);
 
         d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]);
     }
