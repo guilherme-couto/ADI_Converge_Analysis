@@ -10,7 +10,23 @@
 typedef double real;
 #define REAL_TYPE "double"
 
+// Define SERIAL or PARALLEL
 #define PARALLEL
+
+// Define problem:
+// LINMONO -> Adapted monodomain with linear reaction (2D)
+//            chi*(Cm*dv/dt + G*v) = sigma*Lap(v) + forcing
+//            v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//
+// DIFFREAC -> Diffusion with linear reaction (2D)
+//             dv/dt + v = sigma*Lap(v) + forcing
+//             v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//
+// DIFF -> Linear diffusion (2D)
+//         dv/dt = sigma*Lap(v) + forcing
+//         v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//
+#define DIFF
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,13 +37,26 @@ typedef double real;
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-int L = 1;
-int T = 1;    
+// Domain
+int L = 1; // space
+int T = 1; // time
+
+// Parameters
+#ifdef LINMONO
 real G = 1.5;         // omega^-1 * cm^-2
 real sigma = 1.2e-3;  // omega^-1 * cm^-1
 real chi = 1.0e3;     // cm^-1
 real Cm = 1.0e-3;     // mF * cm^-2
 real V_init = 0.0;
+#endif // LINMONO
+#ifdef DIFFREAC
+real sigma = 1.0;
+real V_init = 0.0;
+#endif // DIFFREAC
+#ifdef DIFF
+real sigma = 1.0;
+real V_init = 0.0;
+#endif // DIFF
 
 real _pi = 3.14159265358979323846;
 

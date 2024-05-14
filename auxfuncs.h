@@ -107,10 +107,12 @@ void initializeStateVariable(real** V, int N)
             V[i][j] = V_init;
 }
 
+#ifdef LINMONO
 real forcingTerm(real x, real y, real t)
 {
     return cos(_pi*x/L) * cos(_pi*y/L) * (chi*Cm*exp(-t) + ((2.0*_pi*_pi*sigma)/(L*L))*(1.0-exp(-t)) + (chi*G)*(1.0-exp(-t))); 
 }
+#endif // LINMONO
 
 void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, real actual_t)
 {
@@ -144,18 +146,19 @@ void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, re
             real y = i * delta_x;
             real forcing = forcingTerm(x, y, actual_t+(delta_t*0.5));
 
+            // Aux variables
+            real actualRHS, Vtilde, tildeRHS;
+
+            #ifdef LINMONO
             // Calculate the RHS with actual values
-            real actualRHS = (forcing/(chi*Cm)) - (G*actualV/Cm);
+            actualRHS = (forcing/(chi*Cm)) - (G*actualV/Cm);
 
             // Calculate an approx for V
-            real Vtilde;
             Vtilde = actualV + (0.5 * delta_t) * (((sigma/(chi*Cm)) * diffusion) + actualRHS);
 
             // Recalculate the forcing term at time t+(dt/2) and the RHS with the new values
-            // real new_t = actual_t + (0.5 * delta_t);
-            // forcing = forcingTerm(x, y, new_t);
-            // real tildeRHS = (forcing/(chi*Cm)) - (G*Vtilde/Cm);
-            real tildeRHS = -(G*Vtilde/Cm);
+            tildeRHS = -(G*Vtilde/Cm);
+            #endif // LINMONO
 
             // Update reaction term
             Rv[i][j] = tildeRHS;
@@ -180,7 +183,7 @@ void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, rea
 
             real x = j * delta_x;
             real y = i * delta_x;
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time)/(chi*Cm));
         }
     }
 }
@@ -202,7 +205,7 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
 
             real x = j * delta_x;
             real y = i * delta_x;
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time)/(chi*Cm));
         }
     }
 }
@@ -244,22 +247,42 @@ void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime,
     // 1st: Forward sweep
     c_prime[0] = lc[0] / lb[0];
     d_prime[0] = d[0] / lb[0];
-    for (int i = 1, step = 1; i < N; i++, step++)
+    for (int i = 1; i < N; i++)
     {
         if (i < N-1)
             c_prime[i] = lc[i] / (lb[i] - (la[i]*c_prime[i-1]));
         
-        d_prime[i] = (d[step] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
+        d_prime[i] = (d[i] - (la[i]*d_prime[i-1])) / (lb[i] - (la[i]*c_prime[i-1]));
     }
 
     // 2nd: Back substitution
     d[N-1] = d_prime[N-1];
-    for (int i = N-2, step = N-2; i >= 0; i--, step--)
+    for (int i = N-2; i >= 0; i--)
     {
-        d[step] = d_prime[i] - (c_prime[i]*d[step+1]);
+        d[i] = d_prime[i] - (c_prime[i]*d[i+1]);
     }
 
     // Vector d now has the result
+}
+
+// Tridiag Ricardo
+void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real* d, real* result)
+{
+    c_prime[0] = lc[0]/lb[0];
+    for (int i = 1; i < N-1; i++)
+    {
+        c_prime[i] = lc[i] / (lb[i] - c_prime[i-1]*la[i]);
+    }
+    d_prime[0] = d[0]/lb[0];
+    for (int i = 1; i < N; i++)
+    {
+        d_prime[i] = (d[i]-d_prime[i-1]*la[i]) / (lb[i]-c_prime[i-1]*la[i]);
+    }
+    result[N-1] = d_prime[N-1];
+    for (int i = N-2; i >= 0; i--)
+    {
+        result[i] = d_prime[i] - c_prime[i]*result[i+1];
+    }
 }
 
 void solveExplicitly(real** V, real** RHS, int N, real delta_x, real delta_t, real actual_t)

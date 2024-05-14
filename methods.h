@@ -47,7 +47,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real *lc = (real *)malloc(N * sizeof(real));    // superdiagonal
 
     // Populate auxiliary arrays for Thomas algorithm
+    #ifdef LINMONO
     real D = sigma / (chi * Cm);
+    #endif // LINMONO
+    #ifdef DIFF
+    real D = sigma;
+    #endif // DIFF
     real phi = (delta_t / (2 * delta_x * delta_x)) * D;       // For Thomas algorithm
     populateDiagonalThomasAlgorithm(la, lb, lc, N, phi);
 
@@ -137,12 +142,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
             #ifdef PARALLEL
             // Solve the reaction and forcing term part
-            parallelRHSForcing_SSI<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Rv, N, actualTime, delta_t, delta_x);
+            parallelRHSForcing_SSI<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Rv, N, actualTime+(0.5*delta_t), delta_t, delta_x);
             cudaDeviceSynchronize();
 
             // Prepare right side of Thomas algorithm with explicit diffusion on y
             // Call the kernel
-            prepareRHS_diff_i<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t); 
+            prepareRHS_diff_i<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
             cudaDeviceSynchronize();
 
             // Call the transpose kernel
@@ -156,7 +161,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
             // Prepare right side of Thomas algorithm with explicit diffusion on x
             // Call the kernel
-            prepareRHS_diff_j<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t); 
+            prepareRHS_diff_j<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
             cudaDeviceSynchronize();
 
             // 2nd: Implicit y-axis diffusion (columns)                
@@ -174,7 +179,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
             // Prepare RHS for 1st part of ADI
             // RHS will have the contribution of the diffusion through y (columns of the matrix)
-            prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t, actualTime, delta_x);
+            prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
 
             // Call Thomas
             // The solution of the system will give the diffusion through x (lines of the matrix)
@@ -185,7 +190,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             
             // Prepare RHS for 2nd part of ADI
             // RHS will have the contribution of the diffusion through x (lines of the matrix)
-            prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t, actualTime+delta_t, delta_x);
+            prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
 
             // Call Thomas
             // The solution of the system will give the diffusion through y (columns of the matrix)
@@ -227,6 +232,47 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         }
     }
     
+    else if (strcmp(method, "ADI") == 0)
+    {
+        while (timeStepCounter < M)
+        {
+            // Get time step
+            actualTime = time[timeStepCounter];
+
+            #ifdef PARALLEL
+            // Prepare right side of Thomas algorithm with explicit diffusion on y
+            // Call the kernel
+            prepareRHS_diff_i<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
+            cudaDeviceSynchronize();
+
+            // Call the transpose kernel
+            transposeDiagonalCol<<<GRID_SIZE, BLOCK_SIZE>>>(d_RHS, d_V, N);
+            cudaDeviceSynchronize();
+            
+            // 1st: Implicit x-axis diffusion (lines)
+            // Call the kernel
+            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_V, N);
+            cudaDeviceSynchronize();
+
+            // Prepare right side of Thomas algorithm with explicit diffusion on x
+            // Call the kernel
+            prepareRHS_diff_j<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
+            cudaDeviceSynchronize();
+
+            // 2nd: Implicit y-axis diffusion (columns)                
+            // Call the kernel
+            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_RHS, N);
+            cudaDeviceSynchronize();
+
+            // Copy d_RHS to d_V
+            CUDA_CALL(cudaMemcpy(d_V, d_RHS, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
+            #endif // PARALLEL
+
+            // Update time step counter
+            timeStepCounter++;
+        }
+    }
+    
     #ifdef PARALLEL
     //Copy memory of d_V from device to host of the matrices (2D arrays)
     CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
@@ -258,6 +304,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE*BLOCK_SIZE);
     fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
     fprintf(fpInfos, "Total threads: %d\n", numBlocks*blockSize);
+    fprintf(fpInfos, "First element i=j=0: %e\n", V[0]);
     #endif // PARALLEL
     fprintf(fpInfos, "\ntheta = %lf\n", theta);
     fprintf(fpInfos, "L = %lf, T = %lf, N = %d, N*N = %d, M = %d\n", L, T, N, N*N, M);

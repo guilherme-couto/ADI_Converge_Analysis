@@ -3,19 +3,35 @@
 
 #include "include.h"
 
-__constant__ real d_L = 1.0;
+__constant__ int d_L = 1;
 __constant__ real d_pi = 3.14159265358979323846;
+
+#ifdef LINMONO
 __constant__ real d_G = 1.5;
 __constant__ real d_sigma = 1.2e-3; // omega^-1 * cm^-1
 __constant__ real d_chi = 1.0e3; // cm^-1
 __constant__ real d_Cm = 1.0e-3; // mF * cm^-2
+__constant__ real d_V_init = 0.0;
+#endif // LINMONO
+#ifdef DIFF
+__constant__ real d_sigma = 1.0;
+#endif // DIFF
 
-__device__ real forcingTerm(real x, real y, real t)
+#ifdef LINMONO
+__device__ real forcingTerm(real x, real y, real t, real v)
 {
-    return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
+    // return (cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)))) + (d_chi*d_G)*d_V_init;
+    return (cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)))) + d_chi*d_G*v;
 }
+#endif // LINMONO
+#ifdef DIFF
+__device__ real forcingTerm(real x, real y, real t, real v)
+{
+    return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
+}
+#endif // DIFF
 
-__global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real t, real delta_t, real delta_x)
+__global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real time, real delta_t, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -31,44 +47,42 @@ __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real t, rea
 
         // Diffusion in x
         if (j > 0 && j < N-1)
-            diffusion = (d_V[i*N + j+1] - 2*d_V[index] + d_V[i*N + j-1]) / (delta_x * delta_x);
+            diffusion = (d_V[i*N + j+1] - 2*actualV + d_V[i*N + j-1]) / (delta_x * delta_x);
         else if (j == 0)
-            diffusion = (2*d_V[i*N + j+1] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion = (2*d_V[i*N + j+1] - 2*actualV) / (delta_x * delta_x);
         else if (j == N-1)
-            diffusion = (2*d_V[i*N + j-1] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion = (2*d_V[i*N + j-1] - 2*actualV) / (delta_x * delta_x);
 
         // Diffusion in y
         if (i > 0 && i < N-1)
-            diffusion += (d_V[(i+1)*N + j] - 2*d_V[index] + d_V[(i-1)*N + j]) / (delta_x * delta_x);
+            diffusion += (d_V[(i+1)*N + j] - 2*actualV + d_V[(i-1)*N + j]) / (delta_x * delta_x);
         else if (i == 0)
-            diffusion += (2*d_V[(i+1)*N + j] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion += (2*d_V[(i+1)*N + j] - 2*actualV) / (delta_x * delta_x);
         else if (i == N-1)
-            diffusion += (2*d_V[(i-1)*N + j] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion += (2*d_V[(i-1)*N + j] - 2*actualV) / (delta_x * delta_x);
 
-        // Forcing term
-        real forcing = 0.0;
+        // Forcing term at time t+(dt/2)
         real x = j * delta_x;
         real y = i * delta_x;
-        forcing = forcingTerm(x, y, t); 
-        
-        // Calculate the RHS with actual values
-        real actualRHS = (forcing/(d_chi*d_Cm)) - (d_G*actualV/d_Cm);
-        
-        // Calculate an approx for V
-        real Vtilde;
-        Vtilde = actualV + (0.5 * delta_t) * (((d_sigma/(d_chi*d_Cm)) * diffusion) + actualRHS);
+        real forcing = forcingTerm(x, y, time, actualV);
 
-        // Now, recalculate the forcing term at time t+(dt/2) and the RHS with the new values
-        real new_t = t + (0.5 * delta_t);
-        forcing = forcingTerm(x, y, new_t);
-        real tildeRHS = (forcing/(d_chi*d_Cm)) - (d_G*Vtilde/d_Cm);
+        // Aux variables
+        real Vtilde, tildeRHS;
+
+        #ifdef LINMONO        
+        // Calculate an approx for V
+        Vtilde = actualV + (0.5 * delta_t) * (((d_sigma/(d_chi*d_Cm)) * diffusion) + (forcing/(d_chi*d_Cm)) - (d_G*actualV/d_Cm));
+
+        // Now, recalculate the RHS with the approx
+        tildeRHS = -(d_G*Vtilde/d_Cm);
+        #endif // LINMONO
 
         // Update V reaction term
         d_Rv[index] = tildeRHS;
     }
 }
 
-__global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t)
+__global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t, real time, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -87,12 +101,22 @@ __global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, rea
             diffusion += (2*d_V[(i+1)*N + j] - 2*actualV);
         else if (i == N-1)
             diffusion += (2*d_V[(i-1)*N + j] - 2*actualV);
+        
+        real x = j * delta_x;
+        real y = i * delta_x;
+        real forcing = forcingTerm(x, y, time, actualV); 
 
-        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]);
+        #ifdef LINMONO
+        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]) + (0.5*delta_t*forcing/(d_chi*d_Cm));
+        #endif // LINMONO
+        #ifdef DIFF
+        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*forcing);
+        #endif // DIFF
+
     }
 }
 
-__global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t)
+__global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, real phi, real delta_t, real time, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -112,7 +136,16 @@ __global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, rea
         else if (j == N-1)
             diffusion += (2*d_V[i*N + (j-1)] - 2*actualV);
 
-        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]);
+        real x = j * delta_x;
+        real y = i * delta_x;
+        real forcing = forcingTerm(x, y, time, actualV); 
+
+        #ifdef LINMONO
+        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]) + (0.5*delta_t*forcing/(d_chi*d_Cm));
+        #endif // LINMONO
+        #ifdef DIFF
+        d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*forcing);
+        #endif // DIFF
     }
 }
 
@@ -180,29 +213,31 @@ __global__ void solveExplicitly(real *d_V, real *d_Vaux, int N, real t, real del
         // Diffusion component
         // Diffusion in x
         if (j > 0 && j < N-1)
-            diffusion = (d_V[i*N + j+1] - 2*d_V[index] + d_V[i*N + j-1]) / (delta_x * delta_x);
+            diffusion = (d_V[i*N + j+1] - 2*actualV + d_V[i*N + j-1]) / (delta_x * delta_x);
         else if (j == 0)
-            diffusion = (2*d_V[i*N + j+1] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion = (2*d_V[i*N + j+1] - 2*actualV) / (delta_x * delta_x);
         else if (j == N-1)
-            diffusion = (2*d_V[i*N + j-1] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion = (2*d_V[i*N + j-1] - 2*actualV) / (delta_x * delta_x);
 
         // Diffusion in y
         if (i > 0 && i < N-1)
-            diffusion += (d_V[(i+1)*N + j] - 2*d_V[index] + d_V[(i-1)*N + j]) / (delta_x * delta_x);
+            diffusion += (d_V[(i+1)*N + j] - 2*actualV + d_V[(i-1)*N + j]) / (delta_x * delta_x);
         else if (i == 0)
-            diffusion += (2*d_V[(i+1)*N + j] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion += (2*d_V[(i+1)*N + j] - 2*actualV) / (delta_x * delta_x);
         else if (i == N-1)
-            diffusion += (2*d_V[(i-1)*N + j] - 2*d_V[index]) / (delta_x * delta_x);
+            diffusion += (2*d_V[(i-1)*N + j] - 2*actualV) / (delta_x * delta_x);
 
         // Forcing term
-        real forcingTerm = 0.0;
         real x = j * delta_x;
         real y = i * delta_x;
-        forcingTerm = cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
+        real forcing = forcingTerm(x, y, t, actualV);
         
-        real actualRHS = (forcingTerm/(d_chi*d_Cm)) - (d_G*actualV/d_Cm);
-        
-        d_Vaux[index] = actualV + delta_t * (((d_sigma/(d_chi*d_Cm)) * diffusion) + actualRHS);
+        #ifdef LINMONO        
+        d_Vaux[index] = actualV + delta_t * (((d_sigma/(d_chi*d_Cm)) * diffusion) + (forcing/(d_chi*d_Cm)) - (d_G*actualV/d_Cm));
+        #endif // LINMONO
+        #ifdef DIFF
+        d_Vaux[index] = actualV + delta_t * ((d_sigma * diffusion) + forcing);
+        #endif // DIFF
     }
 }
 
