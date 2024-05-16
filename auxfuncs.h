@@ -59,17 +59,6 @@ void initializeTimeArray(real* timeArray, int M, real dt)
 }
 
 #ifdef PARALLEL
-void initializeStateVariable(real* V, int N)
-{
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            V[i * N + j] = V_init;
-        }
-    }
-}
-
 void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
 
 	int rowCurrent;

@@ -18,20 +18,9 @@ __constant__ real d_sigma = 1.0;
 #endif // DIFF
 
 #ifdef LINMONO
-__global__ void exactSolution(real *d_V, int N, real t, real delta_x)
+__device__ real exactSolution(real t, real x, real y)
 {
-    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (index < N*N)
-    {
-        unsigned int i = index / N;
-        unsigned int j = index % N;
-
-        real x = j * delta_x;
-        real y = i * delta_x;
-
-        d_V[index] = (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
-    }
+    return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
 }
 
 __device__ real forcingTerm(real x, real y, real t, real v)
@@ -41,7 +30,19 @@ __device__ real forcingTerm(real x, real y, real t, real v)
 #endif // LINMONO
 
 #ifdef DIFF
-__global__ void exactSolution(real *d_V, int N, real t, real delta_x)
+__device__ real exactSolution(real t, real x, real y)
+{
+    // return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
+    return exp(x+y-t); // Tese Ricardo
+}
+__device__ real forcingTerm(real x, real y, real t, real v)
+{
+    // return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
+    return exp(x+y-t) * (-1.0 - 2.0*d_sigma); // Tese Ricardo
+}
+#endif // DIFF
+
+__global__ void initializeVariable(real *d_V, int N, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -53,14 +54,27 @@ __global__ void exactSolution(real *d_V, int N, real t, real delta_x)
         real x = j * delta_x;
         real y = i * delta_x;
 
-        d_V[index] = (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
+        d_V[index] = exactSolution(0.0, x, y);
     }
 }
-__device__ real forcingTerm(real x, real y, real t, real v)
+
+__global__ void errorXerror(real *d_V, real *d_out, int N, real t, real delta_x)
 {
-    return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (index < N*N)
+    {
+        unsigned int i = index / N;
+        unsigned int j = index % N;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        real solution = exactSolution(t, x, y);
+
+        d_out[index] = (d_V[index] - solution) * (d_V[index] - solution);
+    }
 }
-#endif // DIFF
 
 __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real time, real delta_t, real delta_x)
 {
@@ -98,7 +112,8 @@ __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real time, 
         real forcing = forcingTerm(x, y, time, actualV);
 
         // Aux variables
-        real Vtilde, tildeRHS;
+        real Vtilde = 0.0;
+        real tildeRHS = 0.0;
 
         #ifdef LINMONO        
         // Calculate an approx for V

@@ -107,7 +107,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         GRID_SIZE = 1;
 
     // Initialize state variable with exact solution at t = 0
-    exactSolution<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, N, 0.0, delta_x);
+    initializeVariable<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, N, delta_x);
 
     // Copy memory of diagonals from host to device
     CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
@@ -258,43 +258,56 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
     
     #ifdef PARALLEL
+    // Get (v-solution)²
+    errorXerror<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, N, T*1.0, delta_x);
+    
     // Allocate 2D array for variable
-    real *V = (real *)malloc(N * N * sizeof(real));
+    real *temp = (real *)malloc(N * N * sizeof(real));
 
-    //Copy memory of d_V from device to host of the matrices (2D arrays)
-    CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
+    // Copy memory of d_V from device to host of the matrices (2D arrays)
+    CUDA_CALL(cudaMemcpy(temp, d_RHS, N * N * sizeof(real), cudaMemcpyDeviceToHost));
+
+    // Calculate the sum of errors²
+    real sum = 0.0;
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+            sum += temp[i*N+j];
+    
+    // Calculate norm-2 error
+    real norm2error = sqrt(delta_x*delta_x*sum);
     #endif // PARALLEL
 
     // Save last frame
-    FILE *fpLast;
-    sprintf(aux, "%s/%s", pathToSaveData, lastFrameFileName);
-    fpLast = fopen(aux, "w");
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            #ifdef PARALLEL
-            fprintf(fpLast, "%e ", V[i * N + j]);
-            #endif // PARALLEL
-            #ifdef SERIAL
-            fprintf(fpLast, "%e ", V[i][j]);
-            #endif // SERIAL
-        }
-            
-        fprintf(fpLast, "\n");
-    }
-    fclose(fpLast);
+    // FILE *fpLast;
+    // sprintf(aux, "%s/%s", pathToSaveData, lastFrameFileName);
+    // fpLast = fopen(aux, "w");
+    // for (int i = 0; i < N; i++)
+    // {
+    //     for (int j = 0; j < N; j++)
+    //     {
+    //         #ifdef PARALLEL
+    //         fprintf(fpLast, "%e ", temp[i * N + j]);
+    //         #endif // PARALLEL
+    //         #ifdef SERIAL
+    //         fprintf(fpLast, "%e ", V[i][j]);
+    //         #endif // SERIAL
+    //     }
+    //     fprintf(fpLast, "\n");
+    // }
+    // fclose(fpLast);
 
     // Write infos to file
+    fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
+    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N*N);
+    fprintf(fpInfos, "delta_t = %lf, Time steps = %d\n", delta_t, M);
+    fprintf(fpInfos, "Method %s\n", method);
     #ifdef PARALLEL
-    fprintf(fpInfos, "\nFor 1st Part and Transpose -> Grid size %d, Block size %d \n", GRID_SIZE, BLOCK_SIZE);
+    fprintf(fpInfos, "\nFor 1st Part and Transpose -> Grid size %d, Block size %d\n", GRID_SIZE, BLOCK_SIZE);
     fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE*BLOCK_SIZE);
-    fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d \n", numBlocks, blockSize);
+    fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
     fprintf(fpInfos, "Total threads: %d\n", numBlocks*blockSize);
-    fprintf(fpInfos, "First element i=j=0: %e \n", V[0]);
+    fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
     #endif // PARALLEL
-    fprintf(fpInfos, "\ntheta = %lf\n", theta);
-    fprintf(fpInfos, "L = %lf, T = %lf, N = %d, N*N = %d, M = %d \n", L, T, N, N*N, M);
 
     // Close files
     fclose(fpInfos);
@@ -304,7 +317,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Free memory from host
     #ifdef PARALLEL
-    free(V);
+    free(temp);
     #endif // PARALLEL
     #ifdef SERIAL
     for (int i = 0; i < N; i++)

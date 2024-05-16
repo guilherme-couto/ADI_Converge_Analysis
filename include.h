@@ -24,9 +24,15 @@ typedef double real;
 //
 // DIFF -> Linear diffusion (2D)
 //         dv/dt = sigma*Lap(v) + forcing
-//         v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//         dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
 //
-#define LINMONO
+// SYSDIFFREAC -> System of equations with diffusion with reaction (2D)
+//                du/ht - nu Lap(u) + (u^2 v) = forcing1(x,y,t)
+//                dv/ht - nu Lap(v) + (u v^2) = forcing2(x,y,t)
+//                v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//
+
+#define DIFF
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +45,7 @@ typedef double real;
 
 // Domain
 int L = 1; // space
-int T = 1; // time
+real T = 1; // time
 
 // Parameters
 #ifdef LINMONO
@@ -47,7 +53,6 @@ real G = 1.5;         // omega^-1 * cm^-2
 real sigma = 1.2e-3;  // omega^-1 * cm^-1
 real chi = 1.0e3;     // cm^-1
 real Cm = 1.0e-3;     // mF * cm^-2
-real V_init = 0.0;
 #endif // LINMONO
 #ifdef DIFFREAC
 real sigma = 1.0;
@@ -55,7 +60,6 @@ real V_init = 0.0;
 #endif // DIFFREAC
 #ifdef DIFF
 real sigma = 1.0;
-real V_init = 0.0;
 #endif // DIFF
 
 real _pi = 3.14159265358979323846;
