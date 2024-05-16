@@ -14,17 +14,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     int M = round(T / delta_t) + 1;               // Number of time steps
 
     // Allocate and populate time array
-    real *time;
-    time = (real *)malloc(M * sizeof(real));
+    real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
     
-    // Allocate and initialize the state variable
-    #ifdef PARALLEL
-    real *V;
-    V = (real *)malloc(N * N * sizeof(real));
-    #endif // PARALLELL
-
     #ifdef SERIAL
+    // Allocate 2D arrays for variables
     real **V, **Rv, **RHS;
     V = (real **)malloc(N * sizeof(real *));
     Rv = (real **)malloc(N * sizeof(real *));
@@ -39,7 +33,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         RHS[i] = (real *)malloc(N * sizeof(real));
     }
     #endif // SERIAL
-    initializeStateVariable(V, N);
+
+    // initializeStateVariable(V, N);
 
     // Auxiliary arrays for Thomas algorithm
     real *la = (real *)malloc(N * sizeof(real));    // subdiagonal
@@ -62,9 +57,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // PARALLELL
     
     // Create directories
-    char *pathToSaveData, *aux;
-    pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    aux = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    char *aux = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     createDirectoriesAndFiles(method, theta, pathToSaveData, aux);
 
     // File names
@@ -74,9 +68,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     sprintf(lastFrameFileName, "last-%.8lf-%.6lf.txt", delta_t, delta_x);
 
     // Infos file pointer
-    FILE *fpInfos;
     sprintf(aux, "%s/%s", pathToSaveData, infosFileName);
-    fpInfos = fopen(aux, "w"); 
+    FILE *fpInfos = fopen(aux, "w"); 
 
     // CUDA variables and allocation
     #ifdef PARALLEL
@@ -90,21 +83,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMalloc(&d_lb, N * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_lc, N * sizeof(real)));
 
-    // Copy memory of V from host to device of the matrices
-    CUDA_CALL(cudaMemcpy(d_V, V, N * N * sizeof(real), cudaMemcpyHostToDevice));
-
-    // Copy memory of diagonals from host to device
-    CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
-
     // Block and grid size
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0); // Assuming device 0
     int max_block_dim_x = prop.maxThreadsDim[0];
 
     // Blocks and threads for parallel Thomas (N calls)
-    printf("N = %d\n", N);
     int numBlocks = N / 100;
     if (numBlocks == 0)
         numBlocks = 1;
@@ -122,13 +106,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     if (GRID_SIZE == 0)
         GRID_SIZE = 1;
 
-    printf("For 1st Part and Transpose -> Grid size %d, Block size %d\n", GRID_SIZE, BLOCK_SIZE);
-    printf("Total for 1st Part and Transpose: %d\n", GRID_SIZE*BLOCK_SIZE);
-    printf("For Thomas Algorithm -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
-    printf("Total for Thomas Algorithm: %d\n", numBlocks*blockSize);
-    printf("Spatial discretization N = %d!\n", N);
-    printf("(2D) N * N = %d!\n", N*N);
-    printf("Time discretization M = %d!\n", M);
+    // Initialize state variable with exact solution at t = 0
+    exactSolution<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, N, 0.0, delta_x);
+
+    // Copy memory of diagonals from host to device
+    CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
     #endif // PARALLEL
 
     int timeStepCounter = 0;
@@ -274,6 +258,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
     
     #ifdef PARALLEL
+    // Allocate 2D array for variable
+    real *V = (real *)malloc(N * N * sizeof(real));
+
     //Copy memory of d_V from device to host of the matrices (2D arrays)
     CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
     #endif // PARALLEL
@@ -300,14 +287,14 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Write infos to file
     #ifdef PARALLEL
-    fprintf(fpInfos, "\nFor 1st Part and Transpose -> Grid size %d, Block size %d\n", GRID_SIZE, BLOCK_SIZE);
+    fprintf(fpInfos, "\nFor 1st Part and Transpose -> Grid size %d, Block size %d \n", GRID_SIZE, BLOCK_SIZE);
     fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE*BLOCK_SIZE);
-    fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
+    fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d \n", numBlocks, blockSize);
     fprintf(fpInfos, "Total threads: %d\n", numBlocks*blockSize);
-    fprintf(fpInfos, "First element i=j=0: %e\n", V[0]);
+    fprintf(fpInfos, "First element i=j=0: %e \n", V[0]);
     #endif // PARALLEL
     fprintf(fpInfos, "\ntheta = %lf\n", theta);
-    fprintf(fpInfos, "L = %lf, T = %lf, N = %d, N*N = %d, M = %d\n", L, T, N, N*N, M);
+    fprintf(fpInfos, "L = %lf, T = %lf, N = %d, N*N = %d, M = %d \n", L, T, N, N*N, M);
 
     // Close files
     fclose(fpInfos);

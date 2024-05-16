@@ -59,7 +59,9 @@ def read_files(methods, dts, dxs, thetas, analysis_path):
                     for j in range(len(line)):
                         simulation_minus_solution.append(abs(float(line[j]) - solution(j*float(dx), i*float(dx), T)))
                     i += 1
-                # os.system(f'rm -f {filename}')
+                    
+                # Remove the method directory
+                os.system(f'rm -rf ./simulation-files/{real_type}/AFHN/{method}/')
 
                 # Calculate the error with norm 2
                 number_of_points = len(simulation_minus_solution)
@@ -101,7 +103,6 @@ def plot_convergence(data, plot_path, methods, dts, dxs, thetas, alpha):
     plt.title(f'Convergence Analysis - 2nd Order (a = {(alpha):.3f})')
     plt.legend()
     plt.savefig(plot_path)
-    #plt.show()
     plt.close()
 
 # Function to calculate the slope of the convergence analysis
@@ -134,7 +135,7 @@ def run(alpha):
     # 1st order (dt = a*dx²)
     # 2nd order (dt = a*dx)
     thetas = ['0.50']
-    methods = ['ADI', 'FE']
+    methods = ['SSI-ADI', 'FE']
 
     # Create directories
     if not os.path.exists(f'./simulation-files/simulation-graphs'):
@@ -142,68 +143,11 @@ def run(alpha):
     if not os.path.exists(f'./simulation-files/simulation-analysis'):
         os.makedirs(f'./simulation-files/simulation-analysis')
 
-    # values = np.linspace(0.0001, 0.01, 10)
-
-    # start = 100
-    # end = 1000
-    # values = []
-
-    # for i in np.arange(0.0001, 0.001, 0.00005):
-    #     value = float(f'{i:.5f}')
-    #     if abs(1.0/value - round(1.0/value)) < 1e-9:
-    #         values.append(value)
-    #     if len(values) == 10:
-    #         break
-
     # values = [0.00005, 0.0001, 0.0002, 0.0004, 0.0005, 0.000625]
-    values = [0.0001, 0.0002, 0.0004,0.0005, 0.000625, 0.00125]
-    # alpha = 0.1
-
+    values = [0.0001, 0.0002, 0.0004, 0.0005, 0.000625, 0.00125]
 
     dts = [f'{value:.8f}' for value in values]
     dxs = [f'{(value / alpha):.6f}' for value in values]
-
-
-    #dt_dx_analysis############################################################################################
-    # os.system('nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w')
-
-    # terminal_outputs = []
-    # dt_dx_file = open('dt_dx_analysis.txt', 'w')
-    # # dt_dx_file = open('dt_dx_analysis_exp.txt', 'w')
-    # dts = [0.01, 0.005, 0.001, 0.0005, 0.00025, 0.0001, 0.00008, 0.00005, 0.00001]
-
-    # for dt in [f'{value:.8f}' for value in dts]:
-    #     dxs = [0.01, 0.008, 0.00625, 0.004, 0.002, 0.001, 0.0008, 0.000625, 0.0005, 0.0004, 0.0002, 0.0001, 0.00008, 0.00005]
-
-    #     for dx in [f'{value:.6f}' for value in dxs]:
-    #         # simulation_line = f'./convergence theta-ADI {dt} {dx} 0.50'
-    #         simulation_line = f'./convergence SSI-ADI {dt} {dx} 0'
-    #         print(f'Executing {simulation_line}...')
-    #         os.system(simulation_line)
-    #         print('Simulation finished!\n')
-
-    #         # Save in the terminal output the value of the first element of the output file
-    #         # output_file = open(f'./simulation-files/double/AFHN/theta-ADI/0.50/last-{dt}-{dx}.txt', 'r')
-    #         output_file = open(f'./simulation-files/double/AFHN/SSI-ADI/last-{dt}-{dx}.txt', 'r')
-    #         first_element = output_file.readline().split()[0]
-    #         output = f'For dt = {dt} and dx = {dx}, the first element is {first_element}'
-    #         terminal_outputs.append(output)
-    #         print(output)
-    #         dt_dx_file.write(f'{output}\n')
-    #         output_file.close()
-            
-    #         # os.system('rm -f ./simulation-files/double/AFHN/theta-ADI/0.50/*.txt')
-    #         # os.system('rm -f ./simulation-files/double/AFHN/FE/*.txt')
-
-
-    # # Print the terminal outputs
-    # for output in terminal_outputs:
-    #     print(output)
-
-    # exit() 
-    ##########################################################################################################
-
-
 
     for method in methods:
         run_all_simulations(method, dts, dxs, thetas)
@@ -220,6 +164,46 @@ def run(alpha):
     calculate_slope(data, alpha, methods, dts, dxs, thetas, analysis_path)
     analysis_file.close()
 
-alphas = [0.01, 0.1, 1.0]
+alphas = [0.01]
 for a in alphas:
     run(a)
+
+
+#dt_dx_analysis############################################################################################
+# os.system('nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w')
+
+# terminal_outputs = []
+# dt_dx_file = open('dt_dx_analysis.txt', 'w')
+# # dt_dx_file = open('dt_dx_analysis_exp.txt', 'w')
+# dts = [0.01, 0.005, 0.001, 0.0005, 0.00025, 0.0001, 0.00008, 0.00005, 0.00001]
+
+# for dt in [f'{value:.8f}' for value in dts]:
+#     dxs = [0.01, 0.008, 0.00625, 0.004, 0.002, 0.001, 0.0008, 0.000625, 0.0005, 0.0004, 0.0002, 0.0001, 0.00008, 0.00005]
+
+#     for dx in [f'{value:.6f}' for value in dxs]:
+#         # simulation_line = f'./convergence theta-ADI {dt} {dx} 0.50'
+#         simulation_line = f'./convergence SSI-ADI {dt} {dx} 0'
+#         print(f'Executing {simulation_line}...')
+#         os.system(simulation_line)
+#         print('Simulation finished!\n')
+
+#         # Save in the terminal output the value of the first element of the output file
+#         # output_file = open(f'./simulation-files/double/AFHN/theta-ADI/0.50/last-{dt}-{dx}.txt', 'r')
+#         output_file = open(f'./simulation-files/double/AFHN/SSI-ADI/last-{dt}-{dx}.txt', 'r')
+#         first_element = output_file.readline().split()[0]
+#         output = f'For dt = {dt} and dx = {dx}, the first element is {first_element}'
+#         terminal_outputs.append(output)
+#         print(output)
+#         dt_dx_file.write(f'{output}\n')
+#         output_file.close()
+        
+#         # os.system('rm -f ./simulation-files/double/AFHN/theta-ADI/0.50/*.txt')
+#         # os.system('rm -f ./simulation-files/double/AFHN/FE/*.txt')
+
+
+# # Print the terminal outputs
+# for output in terminal_outputs:
+#     print(output)
+
+# exit() 
+##########################################################################################################

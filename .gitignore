@@ -1,5 +1,6 @@
 execution.py
-*.txt
+infos*.txt
+last*.txt
 *.gif
 *.png
 *.csv

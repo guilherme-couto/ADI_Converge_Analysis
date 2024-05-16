@@ -26,7 +26,7 @@ typedef double real;
 //         dv/dt = sigma*Lap(v) + forcing
 //         v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
 //
-#define DIFF
+#define LINMONO
 
 #include <stdio.h>
 #include <stdlib.h>

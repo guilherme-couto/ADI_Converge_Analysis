@@ -1,0 +1,18 @@
+Error for method = SSI-ADI, dx = 0.010000 and dt = 0.00010000: 1.7998945382481117e-05
+Error for method = SSI-ADI, dx = 0.020000 and dt = 0.00020000: 3.487981005603138e-05
+Error for method = SSI-ADI, dx = 0.040000 and dt = 0.00040000: 6.242238403816607e-05
+Error for method = SSI-ADI, dx = 0.050000 and dt = 0.00050000: 7.079415023447137e-05
+Error for method = SSI-ADI, dx = 0.062500 and dt = 0.00062500: 7.224308037911112e-05
+Error for method = SSI-ADI, dx = 0.125000 and dt = 0.00125000: 0.0018873297285936267
+
+Error for method = FE, dx = 0.010000 and dt = 0.00010000: 1.8766967983044597e-05
+Error for method = FE, dx = 0.020000 and dt = 0.00020000: 3.8271738767560954e-05
+Error for method = FE, dx = 0.040000 and dt = 0.00040000: 7.947557959957465e-05
+Error for method = FE, dx = 0.050000 and dt = 0.00050000: 0.00010117764765530242
+Error for method = FE, dx = 0.062500 and dt = 0.00062500: 0.00012935452768048425
+Error for method = FE, dx = 0.125000 and dt = 0.00125000: 0.00028739870183191145
+
+For SSI-ADI: 1.8420843075143931 (mean: 1.4312572773848822)
+For FE: 1.080390073004134 (mean: 1.0833941300770937)
+
+

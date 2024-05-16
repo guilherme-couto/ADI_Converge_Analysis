@@ -11,20 +11,51 @@ __constant__ real d_G = 1.5;
 __constant__ real d_sigma = 1.2e-3; // omega^-1 * cm^-1
 __constant__ real d_chi = 1.0e3; // cm^-1
 __constant__ real d_Cm = 1.0e-3; // mF * cm^-2
-__constant__ real d_V_init = 0.0;
 #endif // LINMONO
+
 #ifdef DIFF
 __constant__ real d_sigma = 1.0;
 #endif // DIFF
 
 #ifdef LINMONO
+__global__ void exactSolution(real *d_V, int N, real t, real delta_x)
+{
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (index < N*N)
+    {
+        unsigned int i = index / N;
+        unsigned int j = index % N;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        d_V[index] = (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
+    }
+}
+
 __device__ real forcingTerm(real x, real y, real t, real v)
 {
-    // return (cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)))) + (d_chi*d_G)*d_V_init;
-    return (cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)))) + d_chi*d_G*v;
+    return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
 }
 #endif // LINMONO
+
 #ifdef DIFF
+__global__ void exactSolution(real *d_V, int N, real t, real delta_x)
+{
+    unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (index < N*N)
+    {
+        unsigned int i = index / N;
+        unsigned int j = index % N;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        d_V[index] = (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
+    }
+}
 __device__ real forcingTerm(real x, real y, real t, real v)
 {
     return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
