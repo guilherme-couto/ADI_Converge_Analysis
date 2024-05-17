@@ -3,8 +3,8 @@
 
 #include "include.h"
 
-__constant__ int d_L = 1;
-__constant__ real d_pi = 3.14159265358979323846;
+const __constant__ int d_L = 1;
+const __constant__ real d_pi = 3.14159265358979323846;
 
 #ifdef LINMONO
 __constant__ real d_G = 1.5;
@@ -109,7 +109,7 @@ __global__ void parallelRHSForcing_SSI(real *d_V, real *d_Rv, int N, real time, 
         // Forcing term at time t+(dt/2)
         real x = j * delta_x;
         real y = i * delta_x;
-        real forcing = forcingTerm(x, y, time, actualV);
+        real forcing = forcingTerm(x, y, time);
 
         // Aux variables
         real Vtilde = 0.0;
@@ -150,7 +150,7 @@ __global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, rea
         
         real x = j * delta_x;
         real y = i * delta_x;
-        real forcing = forcingTerm(x, y, time, actualV); 
+        real forcing = forcingTerm(x, y, time); 
 
         #ifdef LINMONO
         d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]) + (0.5*delta_t*forcing/(d_chi*d_Cm));
@@ -183,7 +183,7 @@ __global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, rea
 
         real x = j * delta_x;
         real y = i * delta_x;
-        real forcing = forcingTerm(x, y, time, actualV); 
+        real forcing = forcingTerm(x, y, time); 
 
         #ifdef LINMONO
         d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*d_Rv[index]) + (0.5*delta_t*forcing/(d_chi*d_Cm));
@@ -275,7 +275,7 @@ __global__ void solveExplicitly(real *d_V, real *d_Vaux, int N, real t, real del
         // Forcing term
         real x = j * delta_x;
         real y = i * delta_x;
-        real forcing = forcingTerm(x, y, t, actualV);
+        real forcing = forcingTerm(x, y, t);
         
         #ifdef LINMONO        
         d_Vaux[index] = actualV + delta_t * (((d_sigma/(d_chi*d_Cm)) * diffusion) + (forcing/(d_chi*d_Cm)) - (d_G*actualV/d_Cm));

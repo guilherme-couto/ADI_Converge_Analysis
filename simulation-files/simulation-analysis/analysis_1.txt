@@ -1,0 +1,4 @@
+For method FE
+dt 	|	 dx 	|	 N-2 Error 	|	 slope
+
+

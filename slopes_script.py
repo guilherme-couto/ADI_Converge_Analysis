@@ -62,8 +62,9 @@ def run_script(alpha):
         os.makedirs(f'./simulation-files/simulation-analysis')
 
     # dts = [0.00005, 0.0001, 0.0002, 0.0004, 0.0005, 0.000625]
-    dts = [0.0001, 0.0002, 0.0004, 0.0005, 0.000625, 0.00125]
-    # dts = [0.025, 0.0125, 0.00625, 0.00313, 0.00156]
+    dts = [0.0005, 0.000625, 0.00125]
+    # dts = [0.025, 0.0125, 0.00625]
+    # dts = [0.0025, 0.00125, 0.000625]
     dts.sort()
 
     dts = [f'{dt:.8f}' for dt in dts]
@@ -97,7 +98,7 @@ def run_script(alpha):
     plt.close()
 
 
-alphas = [0.01]
+alphas = [0.5]
 for a in alphas:
     run_script(a)
 

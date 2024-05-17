@@ -202,8 +202,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // Copy d_Rv to d_V
             CUDA_CALL(cudaMemcpy(d_V, d_Rv, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
             #endif // PARALLEL
-
+            
             #ifdef SERIAL
+            if (actualTime < delta_t)
+            {
+                printf("%f/%e\n", actualTime, V[0][0]);
+                printf("dx*dx = %e\n", delta_x*delta_x);
+            }
             solveExplicitly(V, RHS, N, delta_x, delta_t, actualTime);
             #endif // SERIAL
 
@@ -248,14 +253,40 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             CUDA_CALL(cudaMemcpy(d_V, d_RHS, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
             #endif // PARALLEL
 
+            #ifdef SERIAL
+            // Prepare RHS for 1st part of ADI
+            // RHS will have the contribution of the diffusion through y (columns of the matrix)
+            prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
+
+            // Call Thomas
+            // The solution of the system will give the diffusion through x (lines of the matrix)
+            for (int i = 0; i < N; i++)
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
+
+            copyMatrices(RHS, V, N);
+            
+            // Prepare RHS for 2nd part of ADI
+            // RHS will have the contribution of the diffusion through x (lines of the matrix)
+            prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
+
+            // Call Thomas
+            // The solution of the system will give the diffusion through y (columns of the matrix)
+            for (int j = 0; j < N; j++)
+            {
+                copyColumnToVector(RHS, d, N, j);
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
+                copyVectorToColumn(V, d, N, j);
+            }
+            #endif // SERIAL
+
             // Update time step counter
             timeStepCounter++;
         }
     }
-    
+
     #ifdef PARALLEL
     // Get (v - solution)²
-    errorXerror<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, N, T, delta_x);
+    errorXerror<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, N, actualTime, delta_x);
     
     // Allocate 2D array for variable
     real *temp = (real *)malloc(N * N * sizeof(real));
@@ -272,25 +303,28 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     // Calculate norm-2 error
     real norm2error = sqrt(delta_x*delta_x*sum);
     #endif // PARALLEL
+    #ifdef SERIAL
+    real norm2error = calculateNorm2Error(V, N, actualTime, delta_x);
+    #endif
 
     // Save last frame
-    // FILE *fpLast;
-    // sprintf(aux, "%s/%s", pathToSaveData, lastFrameFileName);
-    // fpLast = fopen(aux, "w");
-    // for (int i = 0; i < N; i++)
-    // {
-    //     for (int j = 0; j < N; j++)
-    //     {
-    //         #ifdef PARALLEL
-    //         fprintf(fpLast, "%e ", temp[i * N + j]);
-    //         #endif // PARALLEL
-    //         #ifdef SERIAL
-    //         fprintf(fpLast, "%e ", V[i][j]);
-    //         #endif // SERIAL
-    //     }
-    //     fprintf(fpLast, "\n");
-    // }
-    // fclose(fpLast);
+    FILE *fpLast;
+    sprintf(aux, "%s/%s", pathToSaveData, lastFrameFileName);
+    fpLast = fopen(aux, "w");
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            #ifdef PARALLEL
+            fprintf(fpLast, "%e ", temp[i * N + j]);
+            #endif // PARALLEL
+            #ifdef SERIAL
+            fprintf(fpLast, "%e ", V[i][j]);
+            #endif // SERIAL
+        }
+        fprintf(fpLast, "\n");
+    }
+    fclose(fpLast);
 
     // Write infos to file
     fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
@@ -302,8 +336,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE*BLOCK_SIZE);
     fprintf(fpInfos, "\nFor 2nd Part -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
     fprintf(fpInfos, "Total threads: %d\n", numBlocks*blockSize);
-    fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
     #endif // PARALLEL
+    fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
 
     // Close files
     fclose(fpInfos);
