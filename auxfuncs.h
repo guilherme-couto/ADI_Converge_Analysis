@@ -89,19 +89,17 @@ void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
 #endif // PARALLEL
 
 #ifdef SERIAL
-void initializeStateVariable(real** V, int N)
+void initializeStateVariable(real** V, int N, real delta_x)
 {
+    real x, y;
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
-            V[i][j] = V_init;
+        {
+            x = j * delta_x;
+            y = i * delta_x;   
+            V[i][j] = exactSolution(0.0, x, y);
+        }
 }
-
-#ifdef LINMONO
-real forcingTerm(real x, real y, real t)
-{
-    return cos(_pi*x/L) * cos(_pi*y/L) * (chi*Cm*exp(-t) + ((2.0*_pi*_pi*sigma)/(L*L))*(1.0-exp(-t)) + (chi*G)*(1.0-exp(-t))); 
-}
-#endif // LINMONO
 
 void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, real actual_t)
 {
@@ -172,7 +170,13 @@ void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, rea
 
             real x = j * delta_x;
             real y = i * delta_x;
+
+            #ifdef LINMONO
             RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time)/(chi*Cm));
+            #endif // LINMONO
+            #ifdef DIFF
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
+            #endif // DIFF
         }
     }
 }
@@ -194,7 +198,13 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
 
             real x = j * delta_x;
             real y = i * delta_x;
+            
+            #ifdef LINMONO
             RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time)/(chi*Cm));
+            #endif // LINMONO
+            #ifdef DIFF
+            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5*delta_t*Rv[i][j]) + (0.5*delta_t*forcingTerm(x, y, time));
+            #endif // DIFF
         }
     }
 }
@@ -283,34 +293,37 @@ void solveExplicitly(real** V, real** RHS, int N, real delta_x, real delta_t, re
             real actualV = V[i][j];
 
             // Diffusion component
-            real diffusion = 0.0;
+            real diffusion_x = 0.0;
+            real diffusion_y = 0.0;
 
             // Diffusion in x
             if (j > 0 && j < N-1)
-                diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]) / (delta_x*delta_x);
+                diffusion_x = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]) / (delta_x*delta_x);
             else if (j == 0)
-                diffusion = (2.0*V[i][j+1] - 2.0*V[i][j]) / (delta_x*delta_x);
+                diffusion_x = (2.0*V[i][j+1] - 2.0*V[i][j]) / (delta_x*delta_x);
             else if (j == N-1)
-                diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]) / (delta_x*delta_x);
+                diffusion_x = (2.0*V[i][j-1] - 2.0*V[i][j]) / (delta_x*delta_x);
 
             // Diffusion in y
             if (i > 0 && i < N-1)
-                diffusion += (V[i+1][j] - 2.0*V[i][j] + V[i-1][j]) / (delta_x*delta_x);
+                diffusion_y = (V[i+1][j] - 2.0*V[i][j] + V[i-1][j]) / (delta_x*delta_x);
             else if (i == 0)
-                diffusion += (2.0*V[i+1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
+                diffusion_y = (2.0*V[i+1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
             else if (i == N-1)
-                diffusion += (2.0*V[i-1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
+                diffusion_y = (2.0*V[i-1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
 
             // Forcing term
             real x = j * delta_x;
             real y = i * delta_x;
             real forcing = forcingTerm(x, y, actual_t);
 
-            // Calculate the "reaction" term with actual values
-            real reaction = (forcing/(chi*Cm)) - (G*actualV/Cm);
-
             // Calculate new value of V
-            RHS[i][j] = actualV + delta_t * (((sigma/(chi*Cm)) * diffusion) + reaction);
+            #ifdef LINMONO
+            RHS[i][j] = actualV + delta_t * (((sigma/(chi*Cm)) * diffusion) + (forcing/(chi*Cm)) - (G*actualV/Cm));
+            #endif // LINMONO
+            #ifdef DIFF
+            RHS[i][j] = actualV + delta_t * ((sigma * (diffusion_x + diffusion_y)) + forcing);
+            #endif // DIFF
         }
     }
 

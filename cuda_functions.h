@@ -18,24 +18,24 @@ __constant__ real d_sigma = 1.0;
 #endif // DIFF
 
 #ifdef LINMONO
-__device__ real exactSolution(real t, real x, real y)
+__host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
 }
 
-__device__ real forcingTerm(real x, real y, real t, real v)
+__host__ __device__ real forcingTerm(real x, real y, real t, real v)
 {
     return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
 }
 #endif // LINMONO
 
 #ifdef DIFF
-__device__ real exactSolution(real t, real x, real y)
+__host__ __device__ real exactSolution(real t, real x, real y)
 {
     // return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
     return exp(x+y-t); // Tese Ricardo
 }
-__device__ real forcingTerm(real x, real y, real t, real v)
+__host__ __device__ real forcingTerm(real x, real y, real t)
 {
     // return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
     return exp(x+y-t) * (-1.0 - 2.0*d_sigma); // Tese Ricardo
@@ -142,11 +142,11 @@ __global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, rea
 
         // Diffusion in y
         if (i > 0 && i < N-1)
-            diffusion += (d_V[(i+1)*N + j] - 2*actualV + d_V[(i-1)*N + j]);
+            diffusion = (d_V[(i+1)*N + j] - 2*actualV + d_V[(i-1)*N + j]);
         else if (i == 0)
-            diffusion += (2*d_V[(i+1)*N + j] - 2*actualV);
+            diffusion = (2*d_V[(i+1)*N + j] - 2*actualV);
         else if (i == N-1)
-            diffusion += (2*d_V[(i-1)*N + j] - 2*actualV);
+            diffusion = (2*d_V[(i-1)*N + j] - 2*actualV);
         
         real x = j * delta_x;
         real y = i * delta_x;
@@ -158,7 +158,6 @@ __global__ void prepareRHS_diff_i(real *d_V, real *d_RHS, real *d_Rv, int N, rea
         #ifdef DIFF
         d_RHS[index] = actualV + (phi * diffusion) + (0.5*delta_t*forcing);
         #endif // DIFF
-
     }
 }
 
@@ -176,11 +175,11 @@ __global__ void prepareRHS_diff_j(real *d_V, real *d_RHS, real *d_Rv, int N, rea
 
         // Diffusion in y
         if (j > 0 && j < N-1)
-            diffusion += (d_V[i*N + (j+1)] - 2*actualV + d_V[i*N + (j-1)]);
+            diffusion = (d_V[i*N + (j+1)] - 2*actualV + d_V[i*N + (j-1)]);
         else if (j == 0)
-            diffusion += (2*d_V[i*N + (j+1)] - 2*actualV);
+            diffusion = (2*d_V[i*N + (j+1)] - 2*actualV);
         else if (j == N-1)
-            diffusion += (2*d_V[i*N + (j-1)] - 2*actualV);
+            diffusion = (2*d_V[i*N + (j-1)] - 2*actualV);
 
         real x = j * delta_x;
         real y = i * delta_x;

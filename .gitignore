@@ -1,8 +1,6 @@
 execution.py
 infos*.txt
 last*.txt
-*.gif
-*.png
 *.csv
 
 # Prerequisites

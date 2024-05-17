@@ -1,11 +1,8 @@
 #ifndef CONVERGENCE_METHODS_H
 #define CONVERGENCE_METHODS_H
 
-#include "auxfuncs.h"
-
-#ifdef PARALLEL
 #include "cuda_functions.h"
-#endif // PARALLEL
+#include "auxfuncs.h"
 
 void runSimulation(char *method, real delta_t, real delta_x, real theta)
 {
@@ -32,9 +29,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         Rv[i] = (real *)malloc(N * sizeof(real));
         RHS[i] = (real *)malloc(N * sizeof(real));
     }
+    initializeStateVariable(V, N, delta_x);
     #endif // SERIAL
-
-    // initializeStateVariable(V, N);
 
     // Auxiliary arrays for Thomas algorithm
     real *la = (real *)malloc(N * sizeof(real));    // subdiagonal
@@ -48,7 +44,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #ifdef DIFF
     real D = sigma;
     #endif // DIFF
-    real phi = (delta_t / (2 * delta_x * delta_x)) * D;       // For Thomas algorithm
+    real phi = D * (delta_t / (2 * delta_x * delta_x));       // For Thomas algorithm
     populateDiagonalThomasAlgorithm(la, lb, lc, N, phi);
 
     // Prefactorization
@@ -83,6 +79,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMalloc(&d_lb, N * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_lc, N * sizeof(real)));
 
+    // Copy memory of diagonals from host to device
+    CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
+
     // Block and grid size
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0); // Assuming device 0
@@ -108,11 +109,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Initialize state variable with exact solution at t = 0
     initializeVariable<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, N, delta_x);
-
-    // Copy memory of diagonals from host to device
-    CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
     #endif // PARALLEL
 
     int timeStepCounter = 0;
@@ -258,8 +254,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
     
     #ifdef PARALLEL
-    // Get (v-solution)²
-    errorXerror<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, N, T*1.0, delta_x);
+    // Get (v - solution)²
+    errorXerror<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, N, T, delta_x);
     
     // Allocate 2D array for variable
     real *temp = (real *)malloc(N * N * sizeof(real));
