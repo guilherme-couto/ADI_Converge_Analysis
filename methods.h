@@ -16,18 +16,21 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     
     #ifdef SERIAL
     // Allocate 2D arrays for variables
-    real **V, **Rv, **RHS;
+    real **V, **Rv, **RHS, **exact;
     V = (real **)malloc(N * sizeof(real *));
     Rv = (real **)malloc(N * sizeof(real *));
     RHS = (real **)malloc(N * sizeof(real *));
+    exact = (real **)malloc(N * sizeof(real *));
     real *c_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d = (real *)malloc(N * sizeof(real));
+    real *result = (real *)malloc(N * sizeof(real));
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
         Rv[i] = (real *)malloc(N * sizeof(real));
         RHS[i] = (real *)malloc(N * sizeof(real));
+        exact[i] = (real *)malloc(N * sizeof(real));
     }
     initializeStateVariable(V, N, delta_x);
     #endif // SERIAL
@@ -44,7 +47,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #ifdef DIFF
     real D = sigma;
     #endif // DIFF
-    real phi = D * (delta_t / (2 * delta_x * delta_x));       // For Thomas algorithm
+    real phi = (delta_t / (2 * delta_x * delta_x));       // For Thomas algorithm
     populateDiagonalThomasAlgorithm(la, lb, lc, N, phi);
 
     // Prefactorization
@@ -62,6 +65,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     sprintf(infosFileName, "infos-%.8lf-%.6lf.txt", delta_t, delta_x);
     char lastFrameFileName[MAX_STRING_SIZE];
     sprintf(lastFrameFileName, "last-%.8lf-%.6lf.txt", delta_t, delta_x);
+    char exactFileName[MAX_STRING_SIZE];
+    sprintf(exactFileName, "exact-%.8lf-%.6lf.txt", delta_t, delta_x);
+    char errorsFileName[MAX_STRING_SIZE];
+    sprintf(errorsFileName, "errors-%.8lf-%.6lf.txt", delta_t, delta_x);
 
     // Infos file pointer
     sprintf(aux, "%s/%s", pathToSaveData, infosFileName);
@@ -254,29 +261,68 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             #endif // PARALLEL
 
             #ifdef SERIAL
-            // Prepare RHS for 1st part of ADI
-            // RHS will have the contribution of the diffusion through y (columns of the matrix)
-            prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
+            // // Prepare RHS for 1st part of ADI
+            // // RHS will have the contribution of the diffusion through x (lines of the matrix)
+            // prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t, actualTime+(0.0*delta_t), delta_x);
 
-            // Call Thomas
-            // The solution of the system will give the diffusion through x (lines of the matrix)
-            for (int i = 0; i < N; i++)
-                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
+            // // Call Thomas
+            // // The solution of the system will give the diffusion through y (columns of the matrix)
+            // for (int j = 0; j < N; j++)
+            // {
+            //     copyColumnToVector(RHS, d, N, j);
+            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
+            //     copyVectorToColumn(V, d, N, j);
+            // }
 
-            copyMatrices(RHS, V, N);
+            // // Prepare RHS for 2nd part of ADI
+            // // RHS will have the contribution of the diffusion through y (columns of the matrix)
+            // prepareRHS_explicit_y(V, RHS, Rv, N, phi, delta_t, actualTime+(1.0*delta_t), delta_x);
             
-            // Prepare RHS for 2nd part of ADI
-            // RHS will have the contribution of the diffusion through x (lines of the matrix)
-            prepareRHS_explicit_x(V, RHS, Rv, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
+            // // Call Thomas
+            // // The solution of the system will give the diffusion through x (lines of the matrix)
+            // for (int i = 0; i < N; i++)
+            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
 
-            // Call Thomas
-            // The solution of the system will give the diffusion through y (columns of the matrix)
+            // copyMatrices(RHS, V, N);
+
+            // !================================================!
+            // ! Calcula V em n + 1/2 -> Resultado vai para RHS !
+            // !================================================!
             for (int j = 0; j < N; j++)
             {
-                copyColumnToVector(RHS, d, N, j);
-                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
-                copyVectorToColumn(V, d, N, j);
+                for (int i = 0; i < N; i++)
+                {   
+                    real x = i * delta_x;
+                    real y = j * delta_x;
+                    d[i] = phi * V[i][lim(j-1,N)] + (1-2*phi) * V[i][j] + phi * V[i][lim(j+1,N)] + 0.5 * delta_t * forcingTerm(x, y, actualTime);
+                }
+                
+                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
+                for (int i = 0; i < N; i++)
+                {
+                    RHS[i][j] = result[i];
+                }
             }
+
+            // !================================================!
+            // ! Calcula V em n + 1 -> Resultado vai para V     !
+            // !================================================!
+            for (int i = 0; i < N; i++)
+            {
+                for (int j = 0; j < N; j++)
+                {
+                    real x = i * delta_x;
+                    real y = j * delta_x;
+                    d[j] = phi * RHS[lim(i-1,N)][j] + (1-2*phi) * RHS[i][j] + phi * RHS[lim(i+1,N)][j] + 0.5 * delta_t * forcingTerm(x, y, actualTime+delta_t);
+                }
+                
+                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
+                for (int j = 0; j < N; j++)
+                {
+                    V[i][j] = result[j];
+                }
+            }
+
             #endif // SERIAL
 
             // Update time step counter
@@ -304,13 +350,19 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real norm2error = sqrt(delta_x*delta_x*sum);
     #endif // PARALLEL
     #ifdef SERIAL
-    real norm2error = calculateNorm2Error(V, N, actualTime, delta_x);
+    real norm2error = calculateNorm2Error(V, exact, N, actualTime, delta_x);
     #endif
 
     // Save last frame
     FILE *fpLast;
     sprintf(aux, "%s/%s", pathToSaveData, lastFrameFileName);
     fpLast = fopen(aux, "w");
+    FILE *fpExact;
+    sprintf(aux, "%s/%s", pathToSaveData, exactFileName);
+    fpExact = fopen(aux, "w");
+    FILE *fpErrors;
+    sprintf(aux, "%s/%s", pathToSaveData, errorsFileName);
+    fpErrors = fopen(aux, "w");
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
@@ -320,11 +372,17 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             #endif // PARALLEL
             #ifdef SERIAL
             fprintf(fpLast, "%e ", V[i][j]);
+            fprintf(fpExact, "%e ", exact[i][j]);
+            fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
             #endif // SERIAL
         }
         fprintf(fpLast, "\n");
+        fprintf(fpExact, "\n");
+        fprintf(fpErrors, "\n");
     }
     fclose(fpLast);
+    fclose(fpExact);
+    fclose(fpErrors);
 
     // Write infos to file
     fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
@@ -355,12 +413,16 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         free(V[i]);
         free(Rv[i]);
         free(RHS[i]);
+        free(exact[i]);
     }
     free(V);
     free(Rv);
     free(RHS);
+    free(exact);
     free(c_prime);
     free(d_prime);
+    free(d);
+    free(result);
     #endif // SERIAL
     free(la);
     free(lb);

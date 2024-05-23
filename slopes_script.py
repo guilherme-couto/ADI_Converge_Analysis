@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-real_type = 'double'
+real_type = 'float'
 model = 'AFHN'
 
 def run_all_simulations(method, dts, dxs, thetas):
@@ -45,9 +45,94 @@ def calculate_slopes(errors, dts):
     slopes = []
     slopes.append('-----')
     for i in range(1, len(errors)):
-        slope = (np.log10(errors[i])-np.log10(errors[0])) / (np.log10(float(dts[i]))-np.log10(float(dts[0])))
+        # slope = (np.log10(errors[i])-np.log10(errors[0])) / (np.log10(float(dts[i]))-np.log10(float(dts[0])))
+        slope = (np.log10(errors[i-1])-np.log10(errors[i])) / (np.log10(float(dts[i-1]))-np.log10(float(dts[i])))
         slopes.append(f'{(slope):.3f}')
     return slopes
+
+def plot_last_frame_and_exact(method, dts, dxs, alpha):
+    for i in range(len(dts)):
+        dt = dts[i]
+        dx = dxs[i]
+        
+        if method != 'theta-ADI':
+
+            # Read data from the text file
+            data_last = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/last-{dt}-{dx}.txt', dtype=float)
+
+            # Read data from the text file
+            data_exact = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/exact-{dt}-{dx}.txt', dtype=float)
+
+            # Get the greater value to be the vmax
+            max_value = data_last.max()
+            if data_exact.max() > max_value:
+                max_value = data_exact.max()
+
+            # Get the minimum value to be the vmin
+            min_value = data_last.min()
+            if data_exact.min() > min_value:
+                min_value = data_exact.min()
+
+            # Plot the last
+            plt.figure()
+            plt.imshow(data_last, cmap='viridis', vmin=-1.0, vmax=1.0)
+            plt.colorbar(label='Value')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title(f'Last dt={dt} dx={dx}')
+            plt.savefig(f'./simulation-files/simulation-graphs/last-{dt}-{dx}_{alpha}.png')
+            plt.close()
+
+            # Plot the exact
+            plt.figure()
+            plt.imshow(data_exact, cmap='viridis', vmin=-1.0, vmax=1.0)
+            plt.colorbar(label='Value')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title(f'Exact dt={dt} dx={dx}')
+            plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
+            plt.close()
+
+def plot_exact(method, dts, dxs, alpha):
+    for i in range(len(dts)):
+        dt = dts[i]
+        dx = dxs[i]
+        
+        if method != 'theta-ADI':
+
+            # Read data from the text file
+            data = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/exact-{dt}-{dx}.txt', dtype=float)
+
+            # Plot the data
+            plt.figure()
+            plt.imshow(data, cmap='viridis', vmin=0, vmax=5)
+            plt.colorbar(label='Value')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title(f'Exact dt={dt} dx={dx}')
+            plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
+            plt.close()
+
+def plot_errors(method, dts, dxs, alpha):
+    for i in range(len(dts)):
+        dt = dts[i]
+        dx = dxs[i]
+        
+        if method != 'theta-ADI':
+
+            # Read data from the text file
+            data = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/errors-{dt}-{dx}.txt', dtype=float)
+
+            # Plot the data
+            plt.figure()
+            plt.imshow(data, cmap='viridis')
+            plt.colorbar(label='Value')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title(f'Errors dt={dt} dx={dx} (max_error={data.max()})')
+            plt.savefig(f'./simulation-files/simulation-graphs/errors-{dt}-{dx}_{alpha}.png')
+            plt.close()
+    
 
 def run_script(alpha):
     # 1st order approx (dt = a*dx²)
@@ -62,10 +147,11 @@ def run_script(alpha):
         os.makedirs(f'./simulation-files/simulation-analysis')
 
     # dts = [0.00005, 0.0001, 0.0002, 0.0004, 0.0005, 0.000625]
-    dts = [0.0005, 0.000625, 0.00125]
-    # dts = [0.025, 0.0125, 0.00625]
+    # dts = [0.0005, 0.000625, 0.00125]
+    dts = [0.025, 0.0125, 0.00625]
     # dts = [0.0025, 0.00125, 0.000625]
-    dts.sort()
+    # dts.sort()
+    dts[::-1].sort()
 
     dts = [f'{dt:.8f}' for dt in dts]
     dxs = [f'{(float(dt) / alpha):.6f}' for dt in dts]
@@ -76,7 +162,8 @@ def run_script(alpha):
     for method in methods:
         run_all_simulations(method, dts, dxs, thetas)
         errors = read_errors(method, dts, dxs, thetas)
-        slopes = calculate_slopes(errors, dts)
+        # slopes = calculate_slopes(errors, dts)
+        slopes = calculate_slopes(errors, dxs)
 
         analysis_file.write(f'For method {method}\n')
         analysis_file.write(f'dt \t|\t dx \t|\t N-2 Error \t|\t slope\n')
@@ -97,10 +184,18 @@ def run_script(alpha):
     plt.savefig(f'./simulation-files/simulation-graphs/convergence-analysis_{alpha}.png')
     plt.close()
 
+    for method in methods:
+        plot_last_frame_and_exact(method, dts, dxs, alpha)
+        # plot_exact(method, dts, dxs, alpha)
+        plot_errors(method, dts, dxs, alpha)
 
-alphas = [0.5]
-for a in alphas:
-    run_script(a)
+def main():
+    alphas = [0.5]
+    for a in alphas:
+        run_script(a)
+
+if __name__ == "__main__":
+    main()
 
 #dt_dx_analysis############################################################################################
 # os.system('nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w')
@@ -140,3 +235,4 @@ for a in alphas:
 
 # exit() 
 ##########################################################################################################
+

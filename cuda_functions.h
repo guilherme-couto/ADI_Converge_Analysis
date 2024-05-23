@@ -32,16 +32,18 @@ __host__ __device__ real forcingTerm(real x, real y, real t, real v)
 #ifdef DIFF
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
-    // return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
-    return exp(x+y-t); // Tese Ricardo
+    return (exp(-t)) * cos(d_pi*x) * cos(d_pi*y);
+    // return exp(x+y-t); // Tese Ricardo
 }
 __host__ __device__ real forcingTerm(real x, real y, real t)
 {
     // return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
-    return exp(x+y-t) * (-1.0 - 2.0*d_sigma); // Tese Ricardo
+    return exactSolution(t, x, y) * (-1.0+2.0*(d_pi*d_pi));
+    // return exp(x+y-t) * (-1.0 - 2.0*d_sigma); // Tese Ricardo
 }
 #endif // DIFF
 
+#ifdef PARALLEL
 __global__ void initializeVariable(real *d_V, int N, real delta_x)
 {
     unsigned int index = blockDim.x * blockIdx.x + threadIdx.x;
@@ -285,5 +287,6 @@ __global__ void solveExplicitly(real *d_V, real *d_Vaux, int N, real t, real del
         #endif // DIFF
     }
 }
+#endif // PARALLEL
 
 #endif // CUDA_FUNCTIONS_H

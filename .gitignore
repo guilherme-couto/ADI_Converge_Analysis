@@ -1,6 +1,3 @@
-execution.py
-infos*.txt
-last*.txt
 *.csv
 
 # Prerequisites

@@ -8,10 +8,10 @@
 
 // Define real type
 typedef double real;
-#define REAL_TYPE "double"
+#define REAL_TYPE "float"
 
 // Define SERIAL or PARALLEL
-#define PARALLEL
+#define SERIAL
 
 // Define problem:
 // LINMONO -> Adapted monodomain with linear reaction (2D)
@@ -45,7 +45,7 @@ typedef double real;
 
 // Domain
 int L = 1; // space
-real T = 0.1; // time
+real T = 0.5; // time
 
 // Parameters
 #ifdef LINMONO

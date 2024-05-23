@@ -6,28 +6,55 @@
 // Populate diagonals for Thomas algorithm
 void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real phi)
 {
-    // First row
-    la[0] = 0.0;
-    real b = 1.0 + 2.0 * phi;     // diagonal (1st and last row)
-    real c = - 2.0 * phi;       // superdiagonal
-    lb[0] = b;
-    lc[0] = c;
+    // // First row
+    // la[0] = 0.0;
+    // real b = 1.0 + 2.0 * phi;     // diagonal (1st and last row)
+    // // real b = 1.0 + 1.0 * phi;     // diagonal (1st and last row)
+    // real c = - 2.0 * phi;       // superdiagonal
+    // // real c = - 1.0 * phi;       // superdiagonal
+    // lb[0] = b;
+    // lc[0] = c;
 
-    // Middle rows
-    real a = -phi;            // subdiagonal
-    c = -phi;                 // superdiagonal
-    for (int i = 1; i < N - 1; ++i)
+    // // Middle rows
+    // real a = -phi;            // subdiagonal
+    // c = -phi;                 // superdiagonal
+    // // b = 1.0 + 2.0 * phi;
+    // for (int i = 1; i < N - 1; ++i)
+    // {
+    //     la[i] = a;
+    //     lb[i] = b;
+    //     lc[i] = c;
+    // }
+
+    // // Last row
+    // a = - 2.0 * phi;
+    // // a = - phi;
+    // la[N - 1] = a;
+    // // b = 1.0 + 1.0 * phi; 
+    // lb[N - 1] = b;
+    // lc[N - 1] = 0.0;
+
+    // Ricardo
+    // do i = 1, N+1
+    // M(i, 1) = -alpha
+    // M(i, 2) = 1.0 + 2.0*alpha
+    // M(i, 3) = -alpha
+    // end do
+    // M(1,   3) = M(1, 3) + M(1,1)
+    // M(N+1, 1) = M(N+1, 1) + M(N+1,3)
+    // M(1,   1) = 0.0
+    // M(N+1, 3) = 0.0
+
+    for (int i = 0; i < N; i++)
     {
-        la[i] = a;
-        lb[i] = b;
-        lc[i] = c;
+        la[i] = -phi;
+        lb[i] = 1.0 + 2.0*phi;
+        lc[i] = -phi;
     }
-
-    // Last row
-    a = - 2.0 * phi;
-    la[N - 1] = a;
-    lb[N - 1] = b;
-    lc[N - 1] = 0.0;
+    lc[0] = lc[0] + la[0];
+    la[N-1] = la[N-1] + lc[N-1];
+    la[0] = 0.0;
+    lc[N-1] = 0.0; 
 }
 
 void createDirectoriesAndFiles(char* method, real theta, char* pathToSaveData, char* aux)
@@ -98,8 +125,8 @@ void initializeStateVariable(real** V, int N, real delta_x)
     {
         for (int j = 0; j < N; ++j)
         {
-            x = j * delta_x;
-            y = i * delta_x;
+            x = i * delta_x;
+            y = j * delta_x;
             V[i][j] = exactSolution(0.0, x, y);
         }
     }
@@ -169,8 +196,10 @@ void prepareRHS_explicit_y(real** V, real** RHS, real** Rv, int N, real phi, rea
                 diffusion = (V[i+1][j] - 2.0*V[i][j] + V[i-1][j]);
             else if (i == 0)
                 diffusion = (2.0*V[i+1][j] - 2.0*V[i][j]);
+                // diffusion = (V[i+1][j] - V[i][j]);
             else if (i == N-1)
                 diffusion = (2.0*V[i-1][j] - 2.0*V[i][j]);
+                // diffusion = (V[i-1][j] - V[i][j]);
 
             real x = j * delta_x;
             real y = i * delta_x;
@@ -197,8 +226,10 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
                 diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]);
             else if (j == 0)
                 diffusion = (2.0*V[i][j+1] - 2.0*V[i][j]);
+                // diffusion = (V[i][j+1] - V[i][j]);
             else if (j == N-1)
                 diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]);
+                // diffusion = (V[i][j-1] - V[i][j]);
 
             real x = j * delta_x;
             real y = i * delta_x;
@@ -213,7 +244,18 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
     }
 }
 
-real calculateNorm2Error(real**V, int N, real T, real delta_x)
+int lim(int num, int N)
+{
+    if (num == -1)
+        return 1;
+    else if (num == N)
+    {
+        return N-2;
+    }
+    return num;
+}
+
+real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
 {
     real x, y;
     real solution;
@@ -222,13 +264,14 @@ real calculateNorm2Error(real**V, int N, real T, real delta_x)
     {
         for (int j = 0; j < N; j++)
         {
-            x = j * delta_x;
-            y = i * delta_x;
+            x = i * delta_x;
+            y = j * delta_x;
             solution = exactSolution(T, x, y);
-            sum += (V[i][j] - solution) * (V[i][j] - solution);
+            exact[i][j] = solution;
+            sum += ((V[i][j] - solution) * (V[i][j] - solution)) * (delta_x*delta_x);
         }
     }
-    return sqrt(delta_x*delta_x*sum);
+    return sqrt(sum);
 }
 
 void copyMatrices(real** in, real** out, int N)
@@ -287,6 +330,32 @@ void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime,
 }
 
 // Tridiag Ricardo
+// subroutine tridiag(A, D, X, n)
+
+// integer, intent(in) :: n 
+// real*8, intent(in) :: A(:,:), D(:)
+// real*8, intent(out) :: X(:)
+// real*8 :: cc(n), dd(n)
+// integer :: i, j
+
+// da(i) = A(i, 1)
+// db(i) = A(i, 2)
+// dc(i) = A(i, 3)
+
+// cc(1) = dc(1)/db(1)
+// do i=2,n-1
+//    cc(i)=dc(i)/(db(i) - cc(i-1)*da(i))
+// end do
+// dd(1) = D(1)/db(1)
+// do i=2,n
+//    dd(i) = (D(i)-dd(i-1)*da(i)) / &
+//          & (db(i)-cc(i-1)*da(i))
+// end do
+// X(n) = dd(n)
+// do i=n-1, 1, -1
+//     X(i) = dd(i) - cc(i)*X(i+1)
+// end do
+// end subroutine tridiag
 void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real* d, real* result)
 {
     c_prime[0] = lc[0]/lb[0];

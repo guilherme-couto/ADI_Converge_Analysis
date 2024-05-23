@@ -3,6 +3,8 @@
         "cmath": "cpp",
         "complex": "cpp",
         "variant": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "numbers": "cpp",
+        "functional": "cpp"
     }
 }
