@@ -1,6 +1,0 @@
-Domain Length = 1, Time = 0.500000
-delta_x = 1.250000, Space steps N = 2, N*N = 4
-delta_t = 0.062500, Time steps = 9
-Method ADI
-
-Norm-2 Error = 7.048030

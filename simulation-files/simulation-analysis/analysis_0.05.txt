@@ -1,5 +1,0 @@
-For method ADI
-dt 	|	 dx 	|	 N-2 Error 	|	 slope
-0.06250000	|	1.250000	|	7.048030	|	-----
-
-

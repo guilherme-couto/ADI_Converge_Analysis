@@ -226,7 +226,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     
     else if (strcmp(method, "ADI") == 0)
     {
-        while (timeStepCounter < M)
+        while (timeStepCounter < M-1)
         {
             // Get time step
             actualTime = time[timeStepCounter];
@@ -350,7 +350,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real norm2error = sqrt(delta_x*delta_x*sum);
     #endif // PARALLEL
     #ifdef SERIAL
-    real norm2error = calculateNorm2Error(V, exact, N, actualTime, delta_x);
+    real norm2error = calculateNorm2Error(V, exact, N, T, delta_x);
     #endif
 
     // Save last frame

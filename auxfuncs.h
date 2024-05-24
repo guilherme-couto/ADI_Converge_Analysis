@@ -268,10 +268,10 @@ real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
             y = j * delta_x;
             solution = exactSolution(T, x, y);
             exact[i][j] = solution;
-            sum += ((V[i][j] - solution) * (V[i][j] - solution)) * (delta_x*delta_x);
+            sum += ((V[i][j] - solution) * (V[i][j] - solution));
         }
     }
-    return sqrt(sum);
+    return delta_x * sqrt(sum);
 }
 
 void copyMatrices(real** in, real** out, int N)

@@ -8,7 +8,7 @@
 
 // Define real type
 typedef double real;
-#define REAL_TYPE "float"
+#define REAL_TYPE "double"
 
 // Define SERIAL or PARALLEL
 #define SERIAL

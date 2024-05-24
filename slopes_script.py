@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-real_type = 'float'
+real_type = 'double'
 model = 'AFHN'
 
 def run_all_simulations(method, dts, dxs, thetas):
@@ -163,12 +163,14 @@ def run_script(alpha):
         run_all_simulations(method, dts, dxs, thetas)
         errors = read_errors(method, dts, dxs, thetas)
         # slopes = calculate_slopes(errors, dts)
-        slopes = calculate_slopes(errors, dxs)
+        slopes = calculate_slopes(errors, dts)
 
         analysis_file.write(f'For method {method}\n')
-        analysis_file.write(f'dt \t|\t dx \t|\t N-2 Error \t|\t slope\n')
+        analysis_file.write(f'dt \t\t\t|\tdx \t\t\t|\tN-2 Error \t|\tslope\n')
+        analysis_file.write('---------------------------------------------------------\n')
         print(f'For method {method}')
-        print(f'dt \t|\t dx \t|\t N-2 Error \t|\t slope')
+        print(f'dt \t\t|\tdx \t\t|\tN-2 Error \t|\tslope')
+        print('------------------------------------------------------------------------------------')
         for i in range(len(errors)):
             analysis_file.write(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}\n')
             print(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}')
