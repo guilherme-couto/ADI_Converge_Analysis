@@ -10,7 +10,7 @@
 typedef double real;
 #define REAL_TYPE "double"
 
-// Define SERIAL or PARALLEL
+// Define SERIAL or PARALLEL (PARALLEL is not working yet)
 #define SERIAL
 
 // Define problem:
@@ -31,8 +31,7 @@ typedef double real;
 //                dv/ht - nu Lap(v) + (u v^2) = forcing2(x,y,t)
 //                v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
 //
-
-#define DIFF
+#define LINMONO
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,14 +44,23 @@ typedef double real;
 
 // Domain
 int L = 1; // space
+#ifdef DIFF
 real T = 0.5; // time
+#endif // DIFF
+#ifdef LINMONO
+real T = 0.1;
+#endif // LINMONO
 
 // Parameters
 #ifdef LINMONO
-real G = 1.5;         // omega^-1 * cm^-2
-real sigma = 1.2e-3;  // omega^-1 * cm^-1
-real chi = 1.0e3;     // cm^-1
-real Cm = 1.0e-3;     // mF * cm^-2
+// real G = 1.5;         // omega^-1 * cm^-2
+// real sigma = 1.2e-3;  // omega^-1 * cm^-1
+// real chi = 1.0e3;     // cm^-1
+// real Cm = 1.0e-3;     // mF * cm^-2
+real G = 1.0;         // omega^-1 * cm^-2
+real sigma = 1.0;  // omega^-1 * cm^-1
+real chi = 1.0;     // cm^-1
+real Cm = 1.0;     // mF * cm^-2
 #endif // LINMONO
 #ifdef DIFFREAC
 real sigma = 1.0;

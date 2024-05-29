@@ -138,7 +138,7 @@ def run_script(alpha):
     # 1st order approx (dt = a*dx²)
     # 2nd order approx (dt = a*dx)
     thetas = ['0.50']
-    methods = ['ADI']
+    methods = ['SSI-ADI']
 
     # Create directories
     if not os.path.exists(f'./simulation-files/simulation-graphs'):
@@ -146,11 +146,8 @@ def run_script(alpha):
     if not os.path.exists(f'./simulation-files/simulation-analysis'):
         os.makedirs(f'./simulation-files/simulation-analysis')
 
-    # dts = [0.00005, 0.0001, 0.0002, 0.0004, 0.0005, 0.000625]
-    # dts = [0.0005, 0.000625, 0.00125]
-    dts = [0.025, 0.0125, 0.00625]
-    # dts = [0.0025, 0.00125, 0.000625]
-    # dts.sort()
+    # dts = [0.025, 0.0125, 0.00625] # Works for DIFF
+    dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
     dts[::-1].sort()
 
     dts = [f'{dt:.8f}' for dt in dts]
@@ -192,7 +189,8 @@ def run_script(alpha):
         plot_errors(method, dts, dxs, alpha)
 
 def main():
-    alphas = [0.5]
+    # alphas = [0.5] # Works for DIFF
+    alphas = [0.1]
     for a in alphas:
         run_script(a)
 
