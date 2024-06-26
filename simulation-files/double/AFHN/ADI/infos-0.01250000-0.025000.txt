@@ -5,4 +5,4 @@ Method ADI
 
 Norm-2 Error = 0.000114
 
-Total execution time = 0.020625
+Total execution time = 0.017435

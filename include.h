@@ -16,22 +16,20 @@ typedef double real;
 // Define problem:
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*(Cm*dv/dt + G*v) = sigma*Lap(v) + forcing
-//            v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//            Boundaries: Neumann
 //
 // DIFFREAC -> Diffusion with linear reaction (2D)
 //             dv/dt + v = sigma*Lap(v) + forcing
-//             v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//             Boundaries: Neumann
 //
 // DIFF -> Linear diffusion (2D)
 //         dv/dt = sigma*Lap(v) + forcing
-//         dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
+//         Boundaries: Neumann
 //
-// SYSDIFFREAC -> System of equations with diffusion with reaction (2D)
-//                du/ht - nu Lap(u) + (u^2 v) = forcing1(x,y,t)
-//                dv/ht - nu Lap(v) + (u v^2) = forcing2(x,y,t)
-//                v(x,0) = 0; dv(0,t)/dx = dv(L,t)/dx = 0 (Neumann)
-//
-#define LINMONO
+// MONOAFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
+//            chi*(Cm*dv/dt + G*v) = sigma*Lap(v) + forcing
+//            Boundaries: Neumann
+#define NRDSYS
 
 #include <stdio.h>
 #include <stdlib.h>

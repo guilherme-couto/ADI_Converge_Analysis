@@ -123,7 +123,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Measure total execution time
     real startTime = omp_get_wtime();
-    if (strcmp(method, "SSI-ADI") == 0)
+    /* if (strcmp(method, "SSI-ADI") == 0)
     {
         while (timeStepCounter < M)
         {
@@ -249,9 +249,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // Update time step counter
             timeStepCounter++;
         }
-    }
+    } */
 
-    else if (strcmp(method, "FE") == 0)
+    if (strcmp(method, "FE") == 0)
     {
         while (timeStepCounter < M)
         {

@@ -17,9 +17,9 @@ __constant__ real d_chi = 1.0; // cm^-1
 __constant__ real d_Cm = 1.0; // mF * cm^-2
 #endif // LINMONO
 
-#ifdef DIFF
+#if defined DIFF || defined NRDSYS
 __constant__ real d_sigma = 1.0;
-#endif // DIFF
+#endif // DIFF || NRDSYS
 
 #ifdef LINMONO
 __host__ __device__ real exactSolution(real t, real x, real y)
