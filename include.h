@@ -16,6 +16,7 @@ typedef double real;
 // Define problem:
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*(Cm*dv/dt + G*v) = sigma*Lap(v) + forcing
+//            chi*Cm*dv/dt = sigma*Lap(v) - chi*G*v + forcing
 //            Boundaries: Neumann
 //
 // DIFFREAC -> Diffusion with linear reaction (2D)
@@ -29,7 +30,7 @@ typedef double real;
 // MONOAFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
 //            chi*(Cm*dv/dt + G*v) = sigma*Lap(v) + forcing
 //            Boundaries: Neumann
-#define NRDSYS
+#define LINMONO
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +68,9 @@ real V_init = 0.0;
 #ifdef DIFF
 real sigma = 1.0;
 #endif // DIFF
+#ifdef MONOAFHN
+real sigma = 1.0;
+#endif // MONOAFHN
 
 real _pi = 3.14159265358979323846;
 

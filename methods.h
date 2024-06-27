@@ -123,165 +123,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Measure total execution time
     real startTime = omp_get_wtime();
-    /* if (strcmp(method, "SSI-ADI") == 0)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
-
-            #ifdef PARALLEL
-            // Solve the reaction and forcing term part
-            parallelRHSForcing_SSI<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Vtilde, N, actualTime+(0.5*delta_t), delta_t, delta_x);
-            cudaDeviceSynchronize();
-
-            // Prepare right side of Thomas algorithm with explicit diffusion on y
-            // Call the kernel
-            prepareRHS_diff_i<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
-            cudaDeviceSynchronize();
-
-            // Call the transpose kernel
-            transposeDiagonalCol<<<GRID_SIZE, BLOCK_SIZE>>>(d_RHS, d_V, N);
-            cudaDeviceSynchronize();
-            
-            // 1st: Implicit x-axis diffusion (lines)
-            // Call the kernel
-            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_V, N);
-            cudaDeviceSynchronize();
-
-            // Prepare right side of Thomas algorithm with explicit diffusion on x
-            // Call the kernel
-            prepareRHS_diff_j<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
-            cudaDeviceSynchronize();
-
-            // 2nd: Implicit y-axis diffusion (columns)                
-            // Call the kernel
-            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_RHS, N);
-            cudaDeviceSynchronize();
-
-            // Copy d_RHS to d_V
-            CUDA_CALL(cudaMemcpy(d_V, d_RHS, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
-            #endif // PARALLEL
-
-            #ifdef SERIAL
-            // Calculate the approx of V, the forcing term and reaction
-            // calculateVApprox(V, Vtilde, N, delta_x, delta_t, actualTime);
-
-            // // Prepare RHS for 1st part of ADI
-            // // RHS will have the contribution of the diffusion through y (columns of the matrix)
-            // prepareRHS_explicit_y(V, RHS, Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
-
-            // // Call Thomas
-            // // The solution of the system will give the diffusion through x (lines of the matrix)
-            // for (int i = 0; i < N; i++)
-            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
-
-            // copyMatrices(RHS, V, N);
-            
-            // // Prepare RHS for 2nd part of ADI
-            // // RHS will have the contribution of the diffusion through x (lines of the matrix)
-            // prepareRHS_explicit_x(V, RHS, Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x);
-
-            // // Call Thomas
-            // // The solution of the system will give the diffusion through y (columns of the matrix)
-            // for (int j = 0; j < N; j++)
-            // {
-            //     copyColumnToVector(RHS, d, N, j);
-            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
-            //     copyVectorToColumn(V, d, N, j);
-            // }
-            
-            // !================================================!
-            // ! Calcula Approx.                                !
-            // !================================================!
-            real x, y; 
-            for (int i = 0; i < N; i++)
-            {   
-                for (int j = 0; j < N; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
-                    Vtilde[i][j] = phi * (V[i][lim(j-1,N)] + V[lim(i-1,N)][j]) + (1-4*phi) * V[i][j] + phi * (V[i][lim(j+1,N)] + V[lim(i+1,N)][j]) + 0.5 * delta_t * (forcingTerm(x, y, actualTime+(0.5*delta_t)) - (G * V[i][j] / Cm));
-                }
-            }
-            
-            // !================================================!
-            // ! Calcula V em n + 1/2 -> Resultado vai para RHS !
-            // !================================================!
-            for (int j = 0; j < N; j++)
-            {
-                for (int i = 0; i < N; i++)
-                {   
-                    x = j * delta_x;
-                    y = i * delta_x;
-                    d[i] = phi * V[i][lim(j-1,N)] + (1-2*phi) * V[i][j] + phi * V[i][lim(j+1,N)] + 0.5 * delta_t * (forcingTerm(x, y, actualTime+(0.5*delta_t)) - (G * Vtilde[i][j] / Cm));
-
-                }
-                
-                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
-                for (int i = 0; i < N; i++)
-                {
-                    RHS[i][j] = result[i];
-                }
-            }
-
-            // !================================================!
-            // ! Calcula V em n + 1 -> Resultado vai para V     !
-            // !================================================!
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < N; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
-                    d[j] = phi * RHS[lim(i-1,N)][j] + (1-2*phi) * RHS[i][j] + phi * RHS[lim(i+1,N)][j] + 0.5 * delta_t * (forcingTerm(x, y, actualTime+(0.5*delta_t)) - (G * Vtilde[i][j] / Cm));
-                }
-                
-                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
-                for (int j = 0; j < N; j++)
-                {
-                    V[i][j] = result[j];
-                }
-            }
-
-            #endif // SERIAL
-
-            // Update time step counter
-            timeStepCounter++;
-        }
-    } */
-
-    if (strcmp(method, "FE") == 0)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
-
-            #ifdef PARALLEL
-            // Solve the reaction and forcing term part
-            solveExplicitly<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Vtilde, N, actualTime, delta_t, delta_x);
-            cudaDeviceSynchronize();
-
-            // Copy d_Vtilde to d_V
-            CUDA_CALL(cudaMemcpy(d_V, d_Vtilde, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
-            #endif // PARALLEL
-            
-            #ifdef SERIAL
-            if (actualTime < delta_t)
-            {
-                printf("%f/%e\n", actualTime, V[0][0]);
-                printf("dx*dx = %e\n", delta_x*delta_x);
-            }
-            solveExplicitly(V, RHS, N, delta_x, delta_t, actualTime);
-            #endif // SERIAL
-
-            // Update time step counter
-            timeStepCounter++;
-        }
-    }
-    
-    else if (strcmp(method, "ADI") == 0)
+    if (strcmp(method, "ADI") == 0)
     {
         while (timeStepCounter < M)
         {
@@ -318,30 +160,29 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             #endif // PARALLEL
 
             #ifdef SERIAL
-            // Prepare RHS for 1st part of ADI
+            /* // Prepare RHS for 1st part of ADI
             // RHS will have the contribution of the diffusion through x (lines of the matrix)
             // prepareRHS_explicit_x(V, RHS, Vtilde, N, phi, delta_t, actualTime+(0.0*delta_t), delta_x);
 
-            // // Call Thomas
-            // // The solution of the system will give the diffusion through y (columns of the matrix)
-            // for (int j = 0; j < N; j++)
-            // {
-            //     copyColumnToVector(RHS, d, N, j);
-            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
-            //     copyVectorToColumn(V, d, N, j);
-            // }
+            // Call Thomas
+            // The solution of the system will give the diffusion through y (columns of the matrix)
+            for (int j = 0; j < N; j++)
+            {
+                copyColumnToVector(RHS, d, N, j);
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, d);
+                copyVectorToColumn(V, d, N, j);
+            }
 
-            // // Prepare RHS for 2nd part of ADI
-            // // RHS will have the contribution of the diffusion through y (columns of the matrix)
-            // prepareRHS_explicit_y(V, RHS, Vtilde, N, phi, delta_t, actualTime+(1.0*delta_t), delta_x);
+            // Prepare RHS for 2nd part of ADI
+            // RHS will have the contribution of the diffusion through y (columns of the matrix)
+            prepareRHS_explicit_y(V, RHS, Vtilde, N, phi, delta_t, actualTime+(1.0*delta_t), delta_x);
             
-            // // Call Thomas
-            // // The solution of the system will give the diffusion through x (lines of the matrix)
-            // for (int i = 0; i < N; i++)
-            //     thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
+            // Call Thomas
+            // The solution of the system will give the diffusion through x (lines of the matrix)
+            for (int i = 0; i < N; i++)
+                thomasAlgorithm(la, lb, lc, c_prime, d_prime, N, RHS[i]);
 
-            // copyMatrices(RHS, V, N);
-
+            copyMatrices(RHS, V, N); */
 
             // RICARDO
             // !================================================!
@@ -382,6 +223,112 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     V[i][j] = result[j];
                 }
             }
+            #endif // SERIAL
+
+            // Update time step counter
+            timeStepCounter++;
+        }
+    }
+
+    else if (strcmp(method, "FE") == 0)
+    {
+        while (timeStepCounter < M)
+        {
+            // Get time step
+            actualTime = time[timeStepCounter];
+
+            #ifdef PARALLEL
+            // Solve the reaction and forcing term part
+            solveExplicitly<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Vtilde, N, actualTime, delta_t, delta_x);
+            cudaDeviceSynchronize();
+
+            // Copy d_Vtilde to d_V
+            CUDA_CALL(cudaMemcpy(d_V, d_Vtilde, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
+            #endif // PARALLEL
+            
+            #ifdef SERIAL
+            if (actualTime < delta_t)
+            {
+                printf("%f/%e\n", actualTime, V[0][0]);
+                printf("dx*dx = %e\n", delta_x*delta_x);
+            }
+            solveExplicitly(V, RHS, N, delta_x, delta_t, actualTime);
+            #endif // SERIAL
+
+            // Update time step counter
+            timeStepCounter++;
+        }
+    }
+    
+    #ifdef LINMONO
+    else if (strcmp(method, "SSI-ADI") == 0)
+    {
+        while (timeStepCounter < M)
+        {
+            // Get time step
+            actualTime = time[timeStepCounter];
+            #ifdef SERIAL
+            // !================================================!
+            // ! Calcula Approx.                                !
+            // !================================================!
+            real x, y; 
+            for (int i = 0; i < N; i++)
+            {   
+                for (int j = 0; j < N; j++)
+                {
+                    x = j * delta_x;
+                    y = i * delta_x;
+                    real diff_term = V[i][j] + (sigma/(chi*Cm))*(phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j]) - 4*phi*V[i][j] + phi*(V[i][lim(j+1,N)] + V[lim(i+1,N)][j]));
+                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
+                    real reac_term = G*V[i][j]/Cm;
+                    Vtilde[i][j] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+                }
+            }
+            
+            // !================================================!
+            // ! Calcula V em n + 1/2 -> Resultado vai para RHS !
+            // !================================================!
+            for (int j = 0; j < N; j++)
+            {
+                for (int i = 0; i < N; i++)
+                {   
+                    x = j * delta_x;
+                    y = i * delta_x;
+                    real diff_term = V[i][j] + (sigma/(chi*Cm))*(phi*V[i][lim(j-1,N)] - 2*phi*V[i][j] + phi*V[i][lim(j+1,N)]);
+                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
+                    real reac_term = G*Vtilde[i][j]/Cm;
+                    d[i] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+                }
+                
+                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
+                for (int i = 0; i < N; i++)
+                {
+                    RHS[i][j] = result[i];
+                }
+            }
+
+            // !================================================!
+            // ! Calcula V em n + 1 -> Resultado vai para V     !
+            // !================================================!
+            for (int i = 0; i < N; i++)
+            {
+                for (int j = 0; j < N; j++)
+                {
+                    x = j * delta_x;
+                    y = i * delta_x;
+                    real diff_term = RHS[i][j] + (sigma/(chi*Cm))*(phi*RHS[lim(i-1,N)][j] - 2*phi*RHS[i][j] + phi*RHS[lim(i+1,N)][j]);
+                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
+                    real reac_term = G*Vtilde[i][j]/Cm;
+                    d[j] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+                }
+                
+                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
+                for (int j = 0; j < N; j++)
+                {
+                    V[i][j] = result[j];
+                }
+            }
+
 
             #endif // SERIAL
 
@@ -389,6 +336,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             timeStepCounter++;
         }
     }
+    #endif // LINMONO
+
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
 

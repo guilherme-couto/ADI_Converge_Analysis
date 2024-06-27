@@ -7,32 +7,29 @@ const __constant__ int d_L = 1;
 const __constant__ real d_pi = 3.14159265358979323846;
 
 #ifdef LINMONO
-// __constant__ real d_G = 1.5;
-// __constant__ real d_sigma = 1.2e-3; // omega^-1 * cm^-1
-// __constant__ real d_chi = 1.0e3; // cm^-1
-// __constant__ real d_Cm = 1.0e-3; // mF * cm^-2
-__constant__ real d_G = 1.0;
-__constant__ real d_sigma = 1.0; // omega^-1 * cm^-1
-__constant__ real d_chi = 1.0; // cm^-1
-__constant__ real d_Cm = 1.0; // mF * cm^-2
+// const __constant__ real d_G = 1.5;
+// const __constant__ real d_sigma = 1.2e-3; // omega^-1 * cm^-1
+// const __constant__ real d_chi = 1.0e3; // cm^-1
+// const __constant__ real d_Cm = 1.0e-3; // mF * cm^-2
+const __constant__ real d_G = 1.0;
+const __constant__ real d_sigma = 1.0; // omega^-1 * cm^-1
+const __constant__ real d_chi = 1.0; // cm^-1
+const __constant__ real d_Cm = 1.0; // mF * cm^-2
 #endif // LINMONO
 
 #if defined DIFF || defined NRDSYS
-__constant__ real d_sigma = 1.0;
+const __constant__ real d_sigma = 1.0;
 #endif // DIFF || NRDSYS
 
 #ifdef LINMONO
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
-    return (1.0-exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
-    // return (exp(-t)) * cos(d_pi*x) * cos(d_pi*y);
+    return (exp(-t)) * cos(d_pi*x/d_L) * cos(d_pi*y/d_L);
 }
 
 __host__ __device__ real forcingTerm(real x, real y, real t)
 {
-    // return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (d_chi*d_Cm*exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)) + (d_chi*d_G)*(1.0-exp(-t)));
-    // return exactSolution(t, x, y) * (d_chi*d_Cm + d_chi*d_G + 2.0*d_sigma*d_pi*d_pi/(d_L*d_L));
-    return exactSolution(t, x, y) * (-1.0 + d_chi*d_G + 2.0*d_sigma*d_pi*d_pi/(d_L*d_L));
+    return exactSolution(t, x, y) * (-(d_chi*d_Cm) + d_chi*d_G + 2.0*(d_sigma/(d_chi*d_Cm))*d_pi*d_pi/(d_L*d_L));
 }
 #endif // LINMONO
 
@@ -40,13 +37,10 @@ __host__ __device__ real forcingTerm(real x, real y, real t)
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(d_pi*x) * cos(d_pi*y);
-    // return exp(x+y-t); // Tese Ricardo
 }
 __host__ __device__ real forcingTerm(real x, real y, real t)
 {
-    // return cos(d_pi*x/d_L) * cos(d_pi*y/d_L) * (exp(-t) + ((2.0*d_pi*d_pi*d_sigma)/(d_L*d_L))*(1.0-exp(-t)));
     return exactSolution(t, x, y) * (-1.0+2.0*(d_pi*d_pi));
-    // return exp(x+y-t) * (-1.0 - 2.0*d_sigma); // Tese Ricardo
 }
 #endif // DIFF
 
