@@ -182,8 +182,8 @@ def main():
     thetas = ['0.50']
     methods = ['SSI-ADI']
 
-    # dts = [0.025, 0.0125, 0.00625] # Works for DIFF
-    dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
+    dts = [0.025, 0.0125, 0.00625] # Works for DIFF
+    # dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
     dts[::-1].sort()
     dts = [f'{dt:.8f}' for dt in dts]
     

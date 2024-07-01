@@ -1,4 +1,4 @@
-#include "./methods.h"
+#include "./src/methods.h"
 
 int main(int argc, char *argv[])
 {

@@ -2,49 +2,11 @@
 #define AUXFUNCS_H
 
 #include "include.h"
+#include "functions.h"
 
 // Populate diagonals for Thomas algorithm
 void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real phi)
 {
-    // // First row
-    // la[0] = 0.0;
-    // real b = 1.0 + 2.0 * phi;     // diagonal (1st and last row)
-    // // real b = 1.0 + 1.0 * phi;     // diagonal (1st and last row)
-    // real c = - 2.0 * phi;       // superdiagonal
-    // // real c = - 1.0 * phi;       // superdiagonal
-    // lb[0] = b;
-    // lc[0] = c;
-
-    // // Middle rows
-    // real a = -phi;            // subdiagonal
-    // c = -phi;                 // superdiagonal
-    // // b = 1.0 + 2.0 * phi;
-    // for (int i = 1; i < N - 1; ++i)
-    // {
-    //     la[i] = a;
-    //     lb[i] = b;
-    //     lc[i] = c;
-    // }
-
-    // // Last row
-    // a = - 2.0 * phi;
-    // // a = - phi;
-    // la[N - 1] = a;
-    // // b = 1.0 + 1.0 * phi; 
-    // lb[N - 1] = b;
-    // lc[N - 1] = 0.0;
-
-    // Ricardo
-    // do i = 1, N+1
-    // M(i, 1) = -alpha
-    // M(i, 2) = 1.0 + 2.0*alpha
-    // M(i, 3) = -alpha
-    // end do
-    // M(1,   3) = M(1, 3) + M(1,1)
-    // M(N+1, 1) = M(N+1, 1) + M(N+1,3)
-    // M(1,   1) = 0.0
-    // M(N+1, 3) = 0.0
-
     for (int i = 0; i < N; i++)
     {
         la[i] = -phi;
@@ -118,7 +80,7 @@ void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
 #endif // PARALLEL
 
 #ifdef SERIAL
-void initializeStateVariable(real** V, int N, real delta_x)
+void initializeVariableWithExactSolution(real** Var, int N, real delta_x)
 {
     real x, y;
     for (int i = 0; i < N; ++i)
@@ -127,59 +89,21 @@ void initializeStateVariable(real** V, int N, real delta_x)
         {
             x = i * delta_x;
             y = j * delta_x;
-            V[i][j] = exactSolution(0.0, x, y);
+            Var[i][j] = exactSolution(0.0, x, y);
         }
     }
 }
 
-void calculateVApprox(real** V, real** Rv, int N, real delta_x, real delta_t, real actual_t)
+void initializeVariableWithValue(real** Var, int N, real delta_x, real value)
 {
-    for (int i = 0; i < N; i++)
+    real x, y;
+    for (int i = 0; i < N; ++i)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < N; ++j)
         {
-            real actualV = V[i][j];
-
-            // Diffusion component
-            real diffusion = 0.0;
-
-            // Diffusion in x
-            if (j > 0 && j < N-1)
-                diffusion = (V[i][j+1] - 2.0*V[i][j] + V[i][j-1]) / (delta_x*delta_x);
-            else if (j == 0)
-                diffusion = (2.0*V[i][j+1] - 2.0*V[i][j]) / (delta_x*delta_x);
-            else if (j == N-1)
-                diffusion = (2.0*V[i][j-1] - 2.0*V[i][j]) / (delta_x*delta_x);
-
-            // Diffusion in y
-            if (i > 0 && i < N-1)
-                diffusion += (V[i+1][j] - 2.0*V[i][j] + V[i-1][j]) / (delta_x*delta_x);
-            else if (i == 0)
-                diffusion += (2.0*V[i+1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
-            else if (i == N-1)
-                diffusion += (2.0*V[i-1][j] - 2.0*V[i][j]) / (delta_x*delta_x);
-
-            // Forcing term
-            real x = j * delta_x;
-            real y = i * delta_x;
-            real forcing = forcingTerm(x, y, actual_t+(delta_t*0.5));
-
-            // Aux variables
-            real actualRHS, Vtilde, tildeRHS;
-
-            #ifdef LINMONO
-            // Calculate the RHS with actual values
-            actualRHS = (forcing/(chi*Cm)) - (G*actualV/Cm);
-
-            // Calculate an approx for V
-            Vtilde = actualV + (0.5 * delta_t) * (((sigma/(chi*Cm)) * diffusion) + actualRHS);
-
-            // Recalculate the forcing term at time t+(dt/2) and the RHS with the new values
-            tildeRHS = -(G*Vtilde/Cm);
-            #endif // LINMONO
-
-            // Update reaction term
-            Rv[i][j] = tildeRHS;
+            x = i * delta_x;
+            y = j * delta_x;
+            Var[i][j] = value;
         }
     }
 }
@@ -329,33 +253,6 @@ void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime,
     // Vector d now has the result
 }
 
-// Tridiag Ricardo
-// subroutine tridiag(A, D, X, n)
-
-// integer, intent(in) :: n 
-// real*8, intent(in) :: A(:,:), D(:)
-// real*8, intent(out) :: X(:)
-// real*8 :: cc(n), dd(n)
-// integer :: i, j
-
-// da(i) = A(i, 1)
-// db(i) = A(i, 2)
-// dc(i) = A(i, 3)
-
-// cc(1) = dc(1)/db(1)
-// do i=2,n-1
-//    cc(i)=dc(i)/(db(i) - cc(i-1)*da(i))
-// end do
-// dd(1) = D(1)/db(1)
-// do i=2,n
-//    dd(i) = (D(i)-dd(i-1)*da(i)) / &
-//          & (db(i)-cc(i-1)*da(i))
-// end do
-// X(n) = dd(n)
-// do i=n-1, 1, -1
-//     X(i) = dd(i) - cc(i)*X(i+1)
-// end do
-// end subroutine tridiag
 void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real* d, real* result)
 {
     c_prime[0] = lc[0]/lb[0];
@@ -375,67 +272,6 @@ void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, 
     }
 }
 
-void solveExplicitly(real** V, real** RHS, int N, real delta_x, real delta_t, real time)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            real actualV = V[i][j];
-            // if (time < delta_t && i == 0 && j == 0)
-            // {
-            //     printf("%f/%lf ", time, actualV);
-            // }
-                
-
-            // Diffusion component
-            real diffusion_x = 0.0;
-            real diffusion_y = 0.0;
-
-            // Diffusion in x
-            if (j > 0 && j < N-1)
-                diffusion_x = (V[i][j+1] - 2.0*actualV + V[i][j-1]) / (delta_x*delta_x);
-            else if (j == 0)
-                diffusion_x = (2.0*V[i][j+1] - 2.0*actualV) / (delta_x*delta_x);
-            else if (j == N-1)
-                diffusion_x = (2.0*V[i][j-1] - 2.0*actualV) / (delta_x*delta_x);
-            
-            // Diffusion in y
-            if (i > 0 && i < N-1)
-                diffusion_y = (V[i+1][j] - 2.0*actualV + V[i-1][j]) / (delta_x*delta_x);
-            else if (i == 0)
-                diffusion_y = (2.0*V[i+1][j] - 2.0*actualV) / (delta_x*delta_x);
-            else if (i == N-1)
-                diffusion_y = (2.0*V[i-1][j] - 2.0*actualV) / (delta_x*delta_x);
-
-            // Forcing term
-            real x = j * delta_x;
-            real y = i * delta_x;
-            real forcing = forcingTerm(x, y, time);
-
-            // Calculate new value of V
-            #ifdef LINMONO
-            RHS[i][j] = actualV + delta_t * (((sigma/(chi*Cm)) * (diffusion_x + diffusion_y)) + (forcing/(chi*Cm)) - (G*actualV/Cm));
-            #endif // LINMONO
-            #ifdef DIFF
-            RHS[i][j] = actualV + delta_t * ((sigma * (diffusion_x + diffusion_y)) + forcing);
-            #endif // DIFF
-            if (i == 0 && j == 0)
-            {
-                printf("time %lf - RHS[0][0] = %e\n", time, RHS[0][0]);
-            }
-            if (time == 0 && i == 0 && j == 0)
-            {
-                printf("diff_x = %e\n", diffusion_x);
-            }
-        }
-    }
-
-    // Copy from RHS to V
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++)
-            V[i][j] = RHS[i][j];
-}
 #endif // SERIAL
 
 #endif // AUXFUNCS_H

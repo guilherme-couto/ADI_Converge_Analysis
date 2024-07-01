@@ -1,7 +1,7 @@
 #ifndef CONVERGENCE_METHODS_H
 #define CONVERGENCE_METHODS_H
 
-#include "cuda_functions.h"
+#include "functions.h"
 #include "auxfuncs.h"
 
 void runSimulation(char *method, real delta_t, real delta_x, real theta)
@@ -16,23 +16,34 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     
     #ifdef SERIAL
     // Allocate 2D arrays for variables
-    real **V, **Vtilde, **RHS, **exact;
+    real **V, **Vtilde, **RHS, **partRHS, **exact;
     V = (real **)malloc(N * sizeof(real *));
     Vtilde = (real **)malloc(N * sizeof(real *));
     RHS = (real **)malloc(N * sizeof(real *));
+    partRHS = (real **)malloc(N * sizeof(real *));
     exact = (real **)malloc(N * sizeof(real *));
     real *c_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d = (real *)malloc(N * sizeof(real));
     real *result = (real *)malloc(N * sizeof(real));
+    #ifdef MONOAFHN
+    real **W = (real **)malloc(N * sizeof(real *));
+    #endif // MONOAFHN
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
         Vtilde[i] = (real *)malloc(N * sizeof(real));
         RHS[i] = (real *)malloc(N * sizeof(real));
+        partRHS[i] = (real *)malloc(N * sizeof(real));
         exact[i] = (real *)malloc(N * sizeof(real));
+        #ifdef MONOAFHN
+        W[i] = (real *)malloc(N * sizeof(real));
+        #endif // MONOAFHN
     }
-    initializeStateVariable(V, N, delta_x);
+    initializeVariableWithExactSolution(V, N, delta_x);
+    #ifdef MONOAFHN
+    initializeVariableWithValue(W, N, delta_x, 0.0);
+    #endif // MONOAFHN
     #endif // SERIAL
 
     // Auxiliary arrays for Thomas algorithm
@@ -41,12 +52,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real *lc = (real *)malloc(N * sizeof(real));    // superdiagonal
 
     // Populate auxiliary arrays for Thomas algorithm
-    #ifdef LINMONO
-    real D = sigma / (chi * Cm);
-    #endif // LINMONO
-    #ifdef DIFF
-    real D = sigma;
-    #endif // DIFF
     real phi = (delta_t / (2 * delta_x * delta_x));       // For Thomas algorithm
     populateDiagonalThomasAlgorithm(la, lb, lc, N, phi);
 
@@ -72,51 +77,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Infos file pointer
     sprintf(aux, "%s/%s", pathToSaveData, infosFileName);
-    FILE *fpInfos = fopen(aux, "w"); 
-
-    // CUDA variables and allocation
-    #ifdef PARALLEL
-    real *d_V, *d_RHS, *d_Vtilde;
-    real *d_la, *d_lb, *d_lc;
-
-    CUDA_CALL(cudaMalloc(&d_V, N * N * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_RHS, N * N * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_Vtilde, N * N * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_la, N * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_lb, N * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_lc, N * sizeof(real)));
-
-    // Copy memory of diagonals from host to device
-    CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
-
-    // Block and grid size
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0); // Assuming device 0
-    int max_block_dim_x = prop.maxThreadsDim[0];
-
-    // Blocks and threads for parallel Thomas (N calls)
-    int numBlocks = N / 100;
-    if (numBlocks == 0)
-        numBlocks = 1;
-    int blockSize = round(N / numBlocks) + 1;        
-    if (blockSize % 32 != 0)
-        blockSize = 32 * ((blockSize / 32) + 1);
-    if (blockSize > max_block_dim_x)
-    {
-        blockSize = max_block_dim_x;
-        numBlocks = ceil(N / blockSize);
-    }
-    
-    // Blocks and threads for kernels that go through all elements (N*N calls)
-    int GRID_SIZE = ceil((N*N*1.0) / (BLOCK_SIZE*1.0));
-    if (GRID_SIZE == 0)
-        GRID_SIZE = 1;
-
-    // Initialize state variable with exact solution at t = 0
-    initializeVariable<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, N, delta_x);
-    #endif // PARALLEL
+    FILE *fpInfos = fopen(aux, "w");
 
     int timeStepCounter = 0;
     real actualTime = 0.0;
@@ -129,37 +90,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         {
             // Get time step
             actualTime = time[timeStepCounter];
-
-            #ifdef PARALLEL
-            // Prepare right side of Thomas algorithm with explicit diffusion on y
-            // Call the kernel
-            prepareRHS_diff_i<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
-            cudaDeviceSynchronize();
-
-            // Call the transpose kernel
-            transposeDiagonalCol<<<GRID_SIZE, BLOCK_SIZE>>>(d_RHS, d_V, N);
-            cudaDeviceSynchronize();
-            
-            // 1st: Implicit x-axis diffusion (lines)
-            // Call the kernel
-            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_V, N);
-            cudaDeviceSynchronize();
-
-            // Prepare right side of Thomas algorithm with explicit diffusion on x
-            // Call the kernel
-            prepareRHS_diff_j<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_RHS, d_Vtilde, N, phi, delta_t, actualTime+(0.5*delta_t), delta_x); 
-            cudaDeviceSynchronize();
-
-            // 2nd: Implicit y-axis diffusion (columns)                
-            // Call the kernel
-            cuThomasConstantBatch<<<numBlocks, blockSize>>>(d_la, d_lb, d_lc, d_RHS, N);
-            cudaDeviceSynchronize();
-
-            // Copy d_RHS to d_V
-            CUDA_CALL(cudaMemcpy(d_V, d_RHS, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
-            #endif // PARALLEL
-
             #ifdef SERIAL
+            // GUILHERME
             /* // Prepare RHS for 1st part of ADI
             // RHS will have the contribution of the diffusion through x (lines of the matrix)
             // prepareRHS_explicit_x(V, RHS, Vtilde, N, phi, delta_t, actualTime+(0.0*delta_t), delta_x);
@@ -185,9 +117,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             copyMatrices(RHS, V, N); */
 
             // RICARDO
-            // !================================================!
-            // ! Calcula V em n + 1/2 -> Resultado vai para RHS !
-            // !================================================!
+            // ================================================!
+            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
+            // ================================================!
             real x, y;
             for (int j = 0; j < N; j++)
             {
@@ -195,7 +127,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 {   
                     x = j * delta_x;
                     y = i * delta_x;
+                    #if defined LINMONO || defined DIFF
                     d[i] = phi * V[i][lim(j-1,N)] + (1-2*phi) * V[i][j] + phi * V[i][lim(j+1,N)] + 0.5 * delta_t * forcingTerm(x, y, actualTime);
+                    #endif // LINMONO || DIFF
                 }
                 
                 tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
@@ -205,16 +139,18 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 }
             }
 
-            // !================================================!
-            // ! Calcula V em n + 1 -> Resultado vai para V     !
-            // !================================================!
+            // ================================================!
+            //  Calcula V em n + 1 -> Resultado vai para V     !
+            // ================================================!
             for (int i = 0; i < N; i++)
             {
                 for (int j = 0; j < N; j++)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
+                    #if defined LINMONO || defined DIFF
                     d[j] = phi * RHS[lim(i-1,N)][j] + (1-2*phi) * RHS[i][j] + phi * RHS[lim(i+1,N)][j] + 0.5 * delta_t * forcingTerm(x, y, actualTime+delta_t);
+                    #endif // LINMONO || DIFF
                 }
                 
                 tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
@@ -230,37 +166,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         }
     }
 
-    else if (strcmp(method, "FE") == 0)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
-
-            #ifdef PARALLEL
-            // Solve the reaction and forcing term part
-            solveExplicitly<<<GRID_SIZE, BLOCK_SIZE>>>(d_V, d_Vtilde, N, actualTime, delta_t, delta_x);
-            cudaDeviceSynchronize();
-
-            // Copy d_Vtilde to d_V
-            CUDA_CALL(cudaMemcpy(d_V, d_Vtilde, N * N * sizeof(real), cudaMemcpyDeviceToDevice));
-            #endif // PARALLEL
-            
-            #ifdef SERIAL
-            if (actualTime < delta_t)
-            {
-                printf("%f/%e\n", actualTime, V[0][0]);
-                printf("dx*dx = %e\n", delta_x*delta_x);
-            }
-            solveExplicitly(V, RHS, N, delta_x, delta_t, actualTime);
-            #endif // SERIAL
-
-            // Update time step counter
-            timeStepCounter++;
-        }
-    }
-    
-    #ifdef LINMONO
+    #if defined LINMONO || defined MONOAFHN
     else if (strcmp(method, "SSI-ADI") == 0)
     {
         while (timeStepCounter < M)
@@ -268,36 +174,58 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // Get time step
             actualTime = time[timeStepCounter];
             #ifdef SERIAL
-            // !================================================!
-            // ! Calcula Approx.                                !
-            // !================================================!
-            real x, y; 
+            // ================================================!
+            //  Calcula Approx.                                !
+            // ================================================!
+            real x, y;
             for (int i = 0; i < N; i++)
             {   
                 for (int j = 0; j < N; j++)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
-                    real diff_term = V[i][j] + (sigma/(chi*Cm))*(phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j]) - 4*phi*V[i][j] + phi*(V[i][lim(j+1,N)] + V[lim(i+1,N)][j]));
+
+                    #ifdef LINMONO
+                    real diff_term = (sigma/(chi*Cm))*(phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j]) - 4*phi*V[i][j] + phi*(V[i][lim(j+1,N)] + V[lim(i+1,N)][j]));
                     real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
                     real reac_term = G*V[i][j]/Cm;
-                    Vtilde[i][j] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+                    Vtilde[i][j] = V[i][j] + diff_term + (0.5*delta_t*(for_term - reac_term));
+
+                    // Preparing part of the RHS of the following linear systems
+                    reac_term = G*Vtilde[i][j]/Cm;
+                    partRHS[i][j] = 0.5*delta_t*(for_term - reac_term);
+                    #endif // LINMONO
+
+                    #ifdef MONOAFHN
+                    real diff_term = (sigma/(chi*Cm))*(phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j]) - 4*phi*V[i][j] + phi*(V[i][lim(j+1,N)] + V[lim(i+1,N)][j]));
+                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), W[i][j])/(chi*Cm);
+                    real RHS_V_term = RHS_V(V[i][j], W[i][j]);
+                    Vtilde[i][j] = V[i][j] + diff_term + (0.5*delta_t*(for_term - RHS_V_term));
+
+                    // Preparing part of the RHS of the following linear systems
+                    RHS_V_term = RHS_V(Vtilde[i][j], W[i][j]);
+                    partRHS[i][j] = 0.5*delta_t*(for_term - RHS_V_term);
+
+                    // Update Wn+1
+                    real RHS_W_term = RHS_W(V[i][j], W[i][j]);
+                    real Wtilde = W[i][j] + (0.5*delta_t*RHS_W_term);
+                    W[i][j] = W[i][j] + delta_t*RHS_W(Vtilde[i][j], Wtilde);
+                    #endif // MONOAFHN
                 }
             }
             
-            // !================================================!
-            // ! Calcula V em n + 1/2 -> Resultado vai para RHS !
-            // !================================================!
+            // ================================================!
+            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
+            // ================================================!
             for (int j = 0; j < N; j++)
             {
                 for (int i = 0; i < N; i++)
                 {   
                     x = j * delta_x;
                     y = i * delta_x;
-                    real diff_term = V[i][j] + (sigma/(chi*Cm))*(phi*V[i][lim(j-1,N)] - 2*phi*V[i][j] + phi*V[i][lim(j+1,N)]);
-                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
-                    real reac_term = G*Vtilde[i][j]/Cm;
-                    d[i] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+
+                    real diff_term = (sigma/(chi*Cm))*(phi*V[i][lim(j-1,N)] - 2*phi*V[i][j] + phi*V[i][lim(j+1,N)]);
+                    d[i] = V[i][j] + diff_term + partRHS[i][j];
                 }
                 
                 tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
@@ -307,19 +235,18 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 }
             }
 
-            // !================================================!
-            // ! Calcula V em n + 1 -> Resultado vai para V     !
-            // !================================================!
+            // ================================================!
+            //  Calcula V em n + 1 -> Resultado vai para V     !
+            // ================================================!
             for (int i = 0; i < N; i++)
             {
                 for (int j = 0; j < N; j++)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
-                    real diff_term = RHS[i][j] + (sigma/(chi*Cm))*(phi*RHS[lim(i-1,N)][j] - 2*phi*RHS[i][j] + phi*RHS[lim(i+1,N)][j]);
-                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
-                    real reac_term = G*Vtilde[i][j]/Cm;
-                    d[j] = diff_term + 0.5 * delta_t * (for_term - reac_term);
+
+                    real diff_term = (sigma/(chi*Cm))*(phi*RHS[lim(i-1,N)][j] - 2*phi*RHS[i][j] + phi*RHS[lim(i+1,N)][j]);
+                    d[j] = RHS[i][j] + diff_term + partRHS[i][j];
                 }
                 
                 tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
@@ -328,8 +255,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     V[i][j] = result[j];
                 }
             }
-
-
             #endif // SERIAL
 
             // Update time step counter
@@ -426,16 +351,24 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         free(V[i]);
         free(Vtilde[i]);
         free(RHS[i]);
+        free(partRHS[i]);
         free(exact[i]);
+        #ifdef MONOAFHN
+        free(W[i]);
+        #endif // MONOAFHN
     }
     free(V);
     free(Vtilde);
     free(RHS);
+    free(partRHS);
     free(exact);
     free(c_prime);
     free(d_prime);
     free(d);
     free(result);
+    #ifdef MONOAFHN
+    free(W);
+    #endif // MONOAFHN
     #endif // SERIAL
     free(la);
     free(lb);
@@ -460,6 +393,5 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     return;
 }
-
 
 #endif // CONVERGENCE_METHODS_H
