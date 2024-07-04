@@ -38,7 +38,8 @@ def read_errors(method, dts, dxs, thetas):
                         line = line.split('=')
                         errors.append(float(line[-1]))
         else:
-            tts = thetas    
+            tts = thetas
+            
     return errors
 
 def calculate_slopes(errors, dts):
@@ -179,8 +180,8 @@ def run_script(alpha, thetas, methods, dts, dxs):
 
 def main():
 
-    thetas = ['0.50']
-    methods = ['SSI-ADI']
+    thetas = ['1.00']
+    methods = ['theta-ADI']
 
     dts = [0.025, 0.0125, 0.00625] # Works for DIFF
     # dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
