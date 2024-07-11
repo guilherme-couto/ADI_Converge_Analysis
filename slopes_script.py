@@ -24,29 +24,27 @@ def run_all_simulations(method, dts, dxs, thetas):
             print(f'Executing {simulation_line}...')
             os.system(simulation_line)
 
-def read_errors(method, dts, dxs, thetas):
+def read_errors(method, dts, dxs, theta):
     errors = []
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
-        tts = []
         
-        if method != 'theta-ADI':
-            with open(f'./simulation-files/{real_type}/{model}/{method}/infos-{dt}-{dx}.txt', 'r') as file:
-                for line in file:
-                    if 'Norm-2 Error' in line:
-                        line = line.split('=')
-                        errors.append(float(line[-1]))
-        else:
-            tts = thetas
-            
+        infos_path = f'./simulation-files/{real_type}/{model}/{method}/infos-{dt}-{dx}.txt'
+        if method == 'theta-ADI':
+            infos_path = f'./simulation-files/{real_type}/{model}/{method}/{theta}/infos-{dt}-{dx}.txt'
+        
+        with open(infos_path, 'r') as file:
+            for line in file:
+                if 'Norm-2 Error' in line:
+                    line = line.split('=')
+                    errors.append(float(line[-1]))
     return errors
 
 def calculate_slopes(errors, dts):
     slopes = []
     slopes.append('-----')
     for i in range(1, len(errors)):
-        # slope = (np.log10(errors[i])-np.log10(errors[0])) / (np.log10(float(dts[i]))-np.log10(float(dts[0])))
         slope = (np.log10(errors[i-1])-np.log10(errors[i])) / (np.log10(float(dts[i-1]))-np.log10(float(dts[i])))
         slopes.append(f'{(slope):.3f}')
     return slopes
@@ -134,7 +132,6 @@ def plot_errors(method, dts, dxs, alpha):
             plt.savefig(f'./simulation-files/simulation-graphs/errors-{dt}-{dx}_{alpha}.png')
             plt.close()
     
-
 def run_script(alpha, thetas, methods, dts, dxs):
     
     # Create directories
@@ -146,25 +143,46 @@ def run_script(alpha, thetas, methods, dts, dxs):
     analysis_path = f'./simulation-files/simulation-analysis/analysis_{alpha}.txt'
     analysis_file = open(analysis_path, 'w')
 
+    plt.figure()
     for method in methods:
         run_all_simulations(method, dts, dxs, thetas)
-        errors = read_errors(method, dts, dxs, thetas)
-        # slopes = calculate_slopes(errors, dts)
-        slopes = calculate_slopes(errors, dts)
 
-        analysis_file.write(f'For method {method}\n')
-        analysis_file.write(f'dt \t\t\t|\tdx \t\t\t|\tN-2 Error \t|\tslope\n')
-        analysis_file.write('---------------------------------------------------------\n')
-        print(f'For method {method}')
-        print(f'dt \t\t|\tdx \t\t|\tN-2 Error \t|\tslope')
-        print('------------------------------------------------------------------------------------')
-        for i in range(len(errors)):
-            analysis_file.write(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}\n')
-            print(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}')
-        analysis_file.write('\n\n')
-        print('\n')
-        
-        plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method}')
+        if method == 'theta-ADI':
+            for theta in thetas:
+                errors = read_errors(method, dts, dxs, theta)
+                slopes = calculate_slopes(errors, dts)
+
+                analysis_file.write(f'For method {method} with theta = {theta}\n')
+                analysis_file.write(f'dt \t\t\t|\tdx \t\t\t|\tN-2 Error \t|\tslope\n')
+                analysis_file.write('---------------------------------------------------------\n')
+                print(f'For method {method} with theta = {theta}')
+                print(f'dt \t\t|\tdx \t\t|\tN-2 Error \t|\tslope')
+                print('------------------------------------------------------------------------------------')
+                for i in range(len(errors)):
+                    analysis_file.write(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}\n')
+                    print(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}')
+                analysis_file.write('\n\n')
+                print('\n')
+                
+                plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method} ({theta})')
+
+        else:
+            errors = read_errors(method, dts, dxs, '0')
+            slopes = calculate_slopes(errors, dts)
+
+            analysis_file.write(f'For method {method}\n')
+            analysis_file.write(f'dt \t\t\t|\tdx \t\t\t|\tN-2 Error \t|\tslope\n')
+            analysis_file.write('---------------------------------------------------------\n')
+            print(f'For method {method}')
+            print(f'dt \t\t|\tdx \t\t|\tN-2 Error \t|\tslope')
+            print('------------------------------------------------------------------------------------')
+            for i in range(len(errors)):
+                analysis_file.write(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}\n')
+                print(f'{dts[i]}\t|\t{dxs[i]}\t|\t{(errors[i]):.6f}\t|\t{slopes[i]}')
+            analysis_file.write('\n\n')
+            print('\n')
+            
+            plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method}')
     
     plt.xlabel('dt')
     plt.ylabel('Error')
@@ -173,14 +191,13 @@ def run_script(alpha, thetas, methods, dts, dxs):
     plt.savefig(f'./simulation-files/simulation-graphs/convergence-analysis_{alpha}.png')
     plt.close()
 
-    for method in methods:
-        plot_last_frame_and_exact(method, dts, dxs, alpha)
-        # plot_exact(method, dts, dxs, alpha)
-        plot_errors(method, dts, dxs, alpha)
+    # for method in methods:
+    #     plot_last_frame_and_exact(method, dts, dxs, alpha)
+    #     plot_errors(method, dts, dxs, alpha)
 
 def main():
 
-    thetas = ['1.00']
+    thetas = ['0.50', '0.66', '0.40', '0.25', '1.00']
     methods = ['theta-ADI']
 
     dts = [0.025, 0.0125, 0.00625] # Works for DIFF
@@ -201,42 +218,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-#dt_dx_analysis############################################################################################
-# os.system('nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w')
 
-# terminal_outputs = []
-# dt_dx_file = open('dt_dx_analysis.txt', 'w')
-# # dt_dx_file = open('dt_dx_analysis_exp.txt', 'w')
-# dts = [0.01, 0.005, 0.001, 0.0005, 0.00025, 0.0001, 0.00008, 0.00005, 0.00001]
-
-# for dt in [f'{value:.8f}' for value in dts]:
-#     dxs = [0.01, 0.008, 0.00625, 0.004, 0.002, 0.001, 0.0008, 0.000625, 0.0005, 0.0004, 0.0002, 0.0001, 0.00008, 0.00005]
-
-#     for dx in [f'{value:.6f}' for value in dxs]:
-#         # simulation_line = f'./convergence theta-ADI {dt} {dx} 0.50'
-#         simulation_line = f'./convergence SSI-ADI {dt} {dx} 0'
-#         print(f'Executing {simulation_line}...')
-#         os.system(simulation_line)
-#         print('Simulation finished!\n')
-
-#         # Save in the terminal output the value of the first element of the output file
-#         # output_file = open(f'./simulation-files/double/{model}/theta-ADI/0.50/last-{dt}-{dx}.txt', 'r')
-#         output_file = open(f'./simulation-files/double/{model}/SSI-ADI/last-{dt}-{dx}.txt', 'r')
-#         first_element = output_file.readline().split()[0]
-#         output = f'For dt = {dt} and dx = {dx}, the first element is {first_element}'
-#         terminal_outputs.append(output)
-#         print(output)
-#         dt_dx_file.write(f'{output}\n')
-#         output_file.close()
-        
-#         # os.system('rm -f ./simulation-files/double/{model}/theta-ADI/0.50/*.txt')
-#         # os.system('rm -f ./simulation-files/double/{model}/FE/*.txt')
-
-
-# # Print the terminal outputs
-# for output in terminal_outputs:
-#     print(output)
-
-# exit() 
-##########################################################################################################
 

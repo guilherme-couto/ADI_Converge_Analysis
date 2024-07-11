@@ -1,8 +1,0 @@
-Domain Length = 1, Time = 0.100000
-delta_x = 0.020000, Space steps N = 51, N*N = 2601
-delta_t = 0.010000, Time steps = 10
-Method SSI-ADI
-
-Norm-2 Error = 0.000189
-
-Total execution time = 0.005532

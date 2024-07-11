@@ -243,7 +243,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         }
     }
     
-    else if (strcmp(method, "theta-ADI"))
+    else if (strcmp(method, "theta-ADI") == 0)
     {
         while (timeStepCounter < M)
         {
