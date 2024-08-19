@@ -6,6 +6,8 @@
         "ranges": "cpp",
         "numbers": "cpp",
         "functional": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "__locale": "cpp",
+        "chrono": "cpp"
     }
 }

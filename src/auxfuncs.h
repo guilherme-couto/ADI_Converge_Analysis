@@ -2,9 +2,18 @@
 #define AUXFUNCS_H
 
 #include "include.h"
+
+#ifdef SERIAL
 #include "functions.h"
+#endif // SERIAL
+#ifdef GPU
+#include "gpu_functions.h"
+#endif // GPU
 
 // Populate diagonals for Thomas algorithm
+// la -> Subdiagonal
+// lb -> Diagonal
+// lc -> Superdiagonal
 void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real phi)
 {
     for (int i = 0; i < N; i++)
@@ -49,38 +58,19 @@ void initializeTimeArray(real* timeArray, int M, real dt)
     }
 }
 
-#ifdef PARALLEL
-void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
-
-	int rowCurrent;
-	int rowPrevious;
-
-	rowCurrent = 0;
-
-	// First row
-	lb[rowCurrent] = lb[rowCurrent];
-	lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
-
-	for (int i = 1; i < n - 1; ++i)	{
-		rowPrevious = rowCurrent;
-		rowCurrent  += 1;
-
-		la[rowCurrent] = la[rowCurrent];
-		lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent]*lc[rowPrevious];
-		lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
-	}
-
-	rowPrevious = rowCurrent;
-	rowCurrent += 1;
-
-	// Last row
-	la[rowCurrent] = la[rowCurrent];
-	lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent]*lc[rowPrevious];
+int lim(int num, int N)
+{
+    if (num == -1)
+        return 1;
+    else if (num == N)
+    {
+        return N-2;
+    }
+    return num;
 }
-#endif // PARALLEL
 
 #ifdef SERIAL
-void initializeVariableWithExactSolution(real** Var, int N, real delta_x)
+void initialize2DVariableWithExactSolution(real** Var, int N, real delta_x)
 {
     real x, y;
     for (int i = 0; i < N; ++i)
@@ -94,17 +84,60 @@ void initializeVariableWithExactSolution(real** Var, int N, real delta_x)
     }
 }
 
-void initializeVariableWithValue(real** Var, int N, real delta_x, real value)
+void initialize2DVariableWithValue(real** Var, int N, real value)
 {
-    real x, y;
     for (int i = 0; i < N; ++i)
     {
         for (int j = 0; j < N; ++j)
         {
-            x = i * delta_x;
-            y = j * delta_x;
             Var[i][j] = value;
         }
+    }
+}
+
+real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
+{
+    real x, y;
+    real solution;
+    real sum = 0.0;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            x = j * delta_x;
+            y = i * delta_x;
+            solution = exactSolution(T, x, y);
+            exact[i][j] = solution;
+            sum += ((V[i][j] - solution) * (V[i][j] - solution));
+        }
+    }
+    return delta_x * sqrt(sum);
+}
+
+void copyMatrices(real** in, real** out, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            out[i][j] = in[i][j];
+        }
+    }
+}
+
+void copyColumnToVector(real** V, real* d, int N, int column_id)
+{
+    for (int i = 0; i < N; i++)
+    {
+        d[i] = V[i][column_id];
+    }
+}
+
+void copyVectorToColumn(real** V, real* d, int N, int column_id)
+{
+    for (int i = 0; i < N; i++)
+    {
+        V[i][column_id] = d[i];
     }
 }
 
@@ -168,63 +201,6 @@ void prepareRHS_explicit_x(real** V, real** RHS, real** Rv, int N, real phi, rea
     }
 }
 
-int lim(int num, int N)
-{
-    if (num == -1)
-        return 1;
-    else if (num == N)
-    {
-        return N-2;
-    }
-    return num;
-}
-
-real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
-{
-    real x, y;
-    real solution;
-    real sum = 0.0;
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            x = j * delta_x;
-            y = i * delta_x;
-            solution = exactSolution(T, x, y);
-            exact[i][j] = solution;
-            sum += ((V[i][j] - solution) * (V[i][j] - solution));
-        }
-    }
-    return delta_x * sqrt(sum);
-}
-
-void copyMatrices(real** in, real** out, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            out[i][j] = in[i][j];
-        }
-    }
-}
-
-void copyColumnToVector(real** V, real* d, int N, int column_id)
-{
-    for (int i = 0; i < N; i++)
-    {
-        d[i] = V[i][column_id];
-    }
-}
-
-void copyVectorToColumn(real** V, real* d, int N, int column_id)
-{
-    for (int i = 0; i < N; i++)
-    {
-        V[i][column_id] = d[i];
-    }
-}
-
 void thomasAlgorithm(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, real* d)
 {
     // la -> subdiagonal
@@ -271,7 +247,86 @@ void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, 
         result[i] = d_prime[i] - c_prime[i]*result[i+1];
     }
 }
-
 #endif // SERIAL
+
+#ifdef GPU
+void initialize2DVariableWithExactSolution(real* Var, int N, real delta_x)
+{
+    real x, y;
+    int index;
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            x = i * delta_x;
+            y = j * delta_x;
+            index = i*N + j;
+            Var[index] = exactSolution(0.0, x, y);
+        }
+    }
+}
+
+void initialize2DVariableWithValue(real* Var, int N, real value)
+{
+    int index;
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            index = i*N + j;
+            Var[index] = value;
+        }
+    }
+}
+
+real calculateNorm2Error(real* V, real** exact, int N, real T, real delta_x)
+{
+    real x, y;
+    int index;
+    real solution;
+    real sum = 0.0;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            x = j * delta_x;
+            y = i * delta_x;
+            index = i*N + j;
+            solution = exactSolution(T, x, y);
+            exact[i][j] = solution;
+            sum += ((V[index] - solution) * (V[index] - solution));
+        }
+    }
+    return delta_x * sqrt(sum);
+}
+
+void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
+
+	int rowCurrent;
+	int rowPrevious;
+
+	rowCurrent = 0;
+
+	// First row
+	lb[rowCurrent] = lb[rowCurrent];
+	lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
+
+	for (int i = 1; i < n - 1; ++i)	{
+		rowPrevious = rowCurrent;
+		rowCurrent  += 1;
+
+		la[rowCurrent] = la[rowCurrent];
+		lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent]*lc[rowPrevious];
+		lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
+	}
+
+	rowPrevious = rowCurrent;
+	rowCurrent += 1;
+
+	// Last row
+	la[rowCurrent] = la[rowCurrent];
+	lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent]*lc[rowPrevious];
+}
+#endif // GPU
 
 #endif // AUXFUNCS_H

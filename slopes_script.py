@@ -2,13 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-real_type = 'double'
 model = 'AFHN'
 
-def run_all_simulations(method, dts, dxs, thetas):
+def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, problem):
+    
+    if real_type == 'float':
+        double_or_float = 'USE_FLOAT'
+    elif real_type == 'double':
+        double_or_float = 'USE_DOUBLE'
+    else:
+        raise ValueError('Invalid real type')
     
     # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    os.system('nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w')
+    os.system(f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -D{double_or_float} -D{serial_or_gpu} -D{problem}')
 
     for i in range(len(dts)):
         dx = dxs[i]
@@ -24,7 +30,7 @@ def run_all_simulations(method, dts, dxs, thetas):
             print(f'Executing {simulation_line}...')
             os.system(simulation_line)
 
-def read_errors(method, dts, dxs, theta):
+def read_errors(method, dts, dxs, theta, real_type):
     errors = []
     for i in range(len(dts)):
         dt = dts[i]
@@ -49,7 +55,7 @@ def calculate_slopes(errors, dts):
         slopes.append(f'{(slope):.3f}')
     return slopes
 
-def plot_last_frame_and_exact(method, dts, dxs, alpha):
+def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -92,7 +98,7 @@ def plot_last_frame_and_exact(method, dts, dxs, alpha):
             plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
             plt.close()
 
-def plot_exact(method, dts, dxs, alpha):
+def plot_exact(method, dts, dxs, alpha, real_type):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -112,7 +118,7 @@ def plot_exact(method, dts, dxs, alpha):
             plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
             plt.close()
 
-def plot_errors(method, dts, dxs, alpha):
+def plot_errors(method, dts, dxs, alpha, real_type):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -132,7 +138,7 @@ def plot_errors(method, dts, dxs, alpha):
             plt.savefig(f'./simulation-files/simulation-graphs/errors-{dt}-{dx}_{alpha}.png')
             plt.close()
     
-def run_script(alpha, thetas, methods, dts, dxs):
+def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gpu="SERIAL", problem="MONOAFHN"):
     
     # Create directories
     if not os.path.exists(f'./simulation-files/simulation-graphs'):
@@ -140,16 +146,16 @@ def run_script(alpha, thetas, methods, dts, dxs):
     if not os.path.exists(f'./simulation-files/simulation-analysis'):
         os.makedirs(f'./simulation-files/simulation-analysis')
 
-    analysis_path = f'./simulation-files/simulation-analysis/analysis_{alpha}.txt'
+    analysis_path = f'./simulation-files/simulation-analysis/analysis_gpu_{alpha}.txt'
     analysis_file = open(analysis_path, 'w')
 
     plt.figure()
     for method in methods:
-        run_all_simulations(method, dts, dxs, thetas)
+        run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, problem)
 
         if method == 'theta-ADI':
             for theta in thetas:
-                errors = read_errors(method, dts, dxs, theta)
+                errors = read_errors(method, dts, dxs, theta, real_type)
                 slopes = calculate_slopes(errors, dts)
 
                 analysis_file.write(f'For method {method} with theta = {theta}\n')
@@ -167,7 +173,7 @@ def run_script(alpha, thetas, methods, dts, dxs):
                 plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method} ({theta})')
 
         else:
-            errors = read_errors(method, dts, dxs, '0')
+            errors = read_errors(method, dts, dxs, '0', real_type)
             slopes = calculate_slopes(errors, dts)
 
             analysis_file.write(f'For method {method}\n')
@@ -192,20 +198,24 @@ def run_script(alpha, thetas, methods, dts, dxs):
     plt.close()
 
     # for method in methods:
-    #     plot_last_frame_and_exact(method, dts, dxs, alpha)
-    #     plot_errors(method, dts, dxs, alpha)
+    #     plot_last_frame_and_exact(method, dts, dxs, alpha, real_type)
+    #     plot_errors(method, dts, dxs, alpha, real_type)
 
 def main():
 
-    thetas = ['0.50', '0.66', '0.40', '0.25', '1.00']
-    methods = ['theta-ADI']
+    thetas = ['0.50', '0.66', '1.00']
+    methods = ['SSI-ADI']
+    real_type = 'double'
+    problem = 'MONOAFHN' # DIFF, MONOAFHN, LINMONO
+    serial_or_gpu = 'GPU'
+    serial_or_gpu = serial_or_gpu.upper()
 
-    dts = [0.025, 0.0125, 0.00625] # Works for DIFF
+    dts = [0.025, 0.0125, 0.00625] # Works for DIFF and MONOAFHN
     # dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
     dts[::-1].sort()
     dts = [f'{dt:.8f}' for dt in dts]
     
-    alphas = [0.5] # Works for DIFF
+    alphas = [0.5] # Works for DIFF and MONOAFHN
     # alphas = [0.1]
 
     for a in alphas:
@@ -213,7 +223,7 @@ def main():
         # 2nd order approx (dt = a*dx)
         
         dxs = [f'{(float(dt) / a):.6f}' for dt in dts]
-        run_script(a, thetas, methods, dts, dxs)
+        run_script(a, thetas, methods, dts, dxs, real_type, serial_or_gpu, problem)
 
 if __name__ == "__main__":
     main()

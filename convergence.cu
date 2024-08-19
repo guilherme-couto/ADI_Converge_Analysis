@@ -1,4 +1,11 @@
+#include "./src/include.h"
+
+#ifdef SERIAL
 #include "./src/methods.h"
+#endif
+#ifdef GPU
+#include "./src/gpu_methods.h"
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +27,12 @@ int main(int argc, char *argv[])
     theta = atof(argv[4]);
 
     // Call function
+    #ifdef SERIAL
     runSimulation(method, delta_t, delta_x, theta);
+    #endif
+    #ifdef GPU
+    runSimulationGPU(method, delta_t, delta_x, theta);
+    #endif
 
     return 0;
     
