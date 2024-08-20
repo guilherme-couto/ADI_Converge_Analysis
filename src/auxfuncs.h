@@ -32,7 +32,7 @@ void createDirectoriesAndFiles(char* method, real theta, char* pathToSaveData, c
 {
     char command[MAX_STRING_SIZE];
     sprintf(command, "%s", "mkdir -p");
-    char path[MAX_STRING_SIZE] = "./simulation-files/";
+    char path[MAX_STRING_SIZE] = "./simulation_files/";
     strcat(path, REAL_TYPE);
     sprintf(aux, "%s %s", command, path);
     system(aux);

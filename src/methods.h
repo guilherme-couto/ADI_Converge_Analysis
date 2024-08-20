@@ -67,13 +67,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // File names
     char infosFileName[MAX_STRING_SIZE];
-    sprintf(infosFileName, "infos-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(infosFileName, "infos_%.8lf_%.6lf.txt", delta_t, delta_x);
     char lastFrameFileName[MAX_STRING_SIZE];
-    sprintf(lastFrameFileName, "last-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(lastFrameFileName, "last_%.8lf_%.6lf.txt", delta_t, delta_x);
     char exactFileName[MAX_STRING_SIZE];
-    sprintf(exactFileName, "exact-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(exactFileName, "exact_%.8lf_%.6lf.txt", delta_t, delta_x);
     char errorsFileName[MAX_STRING_SIZE];
-    sprintf(errorsFileName, "errors-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(errorsFileName, "errors_%.8lf_%.6lf.txt", delta_t, delta_x);
 
     // Infos file pointer
     sprintf(aux, "%s/%s", pathToSaveData, infosFileName);

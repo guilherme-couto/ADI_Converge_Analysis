@@ -34,7 +34,10 @@ do { \
     } \
 } while(0)
 
-
+#ifndef SERIAL
+#define MONOAFHN
+#define GPU
+#endif
 // Define problem via compile command line (-D{OPTION}):
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*Cm*dv/dt = sigma*Lap(v) - chi*G*v + forcing

@@ -85,13 +85,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // File names
     char infosFileName[MAX_STRING_SIZE];
-    sprintf(infosFileName, "infos-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(infosFileName, "infos_%.8lf_%.6lf.txt", delta_t, delta_x);
     char lastFrameFileName[MAX_STRING_SIZE];
-    sprintf(lastFrameFileName, "last-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(lastFrameFileName, "last_%.8lf_%.6lf.txt", delta_t, delta_x);
     char exactFileName[MAX_STRING_SIZE];
-    sprintf(exactFileName, "exact-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(exactFileName, "exact_%.8lf_%.6lf.txt", delta_t, delta_x);
     char errorsFileName[MAX_STRING_SIZE];
-    sprintf(errorsFileName, "errors-%.8lf-%.6lf.txt", delta_t, delta_x);
+    sprintf(errorsFileName, "errors_%.8lf_%.6lf.txt", delta_t, delta_x);
 
     // Infos file pointer
     sprintf(aux, "%s/%s", pathToSaveData, infosFileName);
@@ -176,7 +176,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             //  diffusion implicit in x and explicit in y      !
             // ================================================!
-            prepareRHSwithjDiffSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, d_V, d_RHS, d_partRHS);
+            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5*phi, d_V, d_RHS, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_RHS, d_la, d_lb, d_lc);
@@ -192,7 +192,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  Calculate V at n+1 -> Result goes to V         !
             //  diffusion implicit in y and explicit in x      !
             // ================================================!
-            prepareRHSwithiDiffSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, d_Vtilde, d_V, d_partRHS);
+            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5*phi, d_Vtilde, d_V, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
@@ -209,89 +209,38 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
         {
             // Get time step
             actualTime = time[timeStepCounter];
-            #ifdef SERIAL
-            // ================================================!
-            //  Calcula Approx.                                !
-            // ================================================!
-            real x, y;
-            for (int i = 0; i < N; i++)
-            {   
-                for (int j = 0; j < N; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
-
-                    #ifdef LINMONO
-                    real diff_term = (sigma/(chi*Cm))*phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j] - 4*V[i][j] + V[i][lim(j+1,N)] + V[lim(i+1,N)][j]);
-                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t))/(chi*Cm);
-                    real reac_term = G*V[i][j]/Cm;
-                    Vtilde[i][j] = V[i][j] + diff_term + (delta_t*(for_term - reac_term));
-
-                    // Preparing part of the RHS of the following linear systems
-                    real reac_tilde_term = G*Vtilde[i][j]/Cm;
-                    partRHS[i][j] = delta_t*(for_term - ((1.0-theta)*reac_term) - (theta*reac_tilde_term));
-                    #endif // LINMONO
-
-                    #ifdef MONOAFHN
-                    real diff_term = (sigma/(chi*Cm))*phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j] - 4*V[i][j] + V[i][lim(j+1,N)] + V[lim(i+1,N)][j]);
-                    real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), W[i][j])/(chi*Cm);
-                    real RHS_V_term = RHS_V(V[i][j], W[i][j]);
-                    Vtilde[i][j] = V[i][j] + diff_term + (delta_t*(for_term - RHS_V_term));
-
-                    // Preparing part of the RHS of the following linear systems
-                    real RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
-                    partRHS[i][j] = delta_t*(for_term - ((1.0-theta)*RHS_V_term) - (theta*RHS_Vtilde_term));
-
-                    // Update Wn+1
-                    real RHS_W_term = RHS_W(V[i][j], W[i][j]);
-                    real Wtilde = W[i][j] + (delta_t*RHS_W_term);
-                    W[i][j] = W[i][j] + delta_t*RHS_W(Vtilde[i][j], Wtilde);
-                    #endif // MONOAFHN
-                }
-            }
             
             // ================================================!
-            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
+            //  Calculate Approx. and ODEs                     !
             // ================================================!
-            for (int j = 0; j < N; j++)
-            {
-                for (int i = 0; i < N; i++)
-                {   
-                    x = j * delta_x;
-                    y = i * delta_x;
-
-                    real diff_term = (sigma/(chi*Cm))*(1.0-theta)*phi*(V[i][lim(j-1,N)] - 2*V[i][j] + V[i][lim(j+1,N)]);
-                    d[i] = V[i][j] + diff_term + 0.5*partRHS[i][j];
-                }
-                
-                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
-                for (int i = 0; i < N; i++)
-                {
-                    RHS[i][j] = result[i];
-                }
-            }
+            computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
+            cudaDeviceSynchronize();
 
             // ================================================!
-            //  Calcula V em n + 1 -> Resultado vai para V     !
+            //  Calculate V at n+1/2 -> Result goes to RHS     !
+            //  diffusion implicit in x and explicit in y      !
             // ================================================!
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < N; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
+            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0-theta)*phi, d_V, d_RHS, d_partRHS);
+            cudaDeviceSynchronize();
 
-                    real diff_term = (sigma/(chi*Cm))*(1.0-theta)*phi*(RHS[lim(i-1,N)][j] - 2*RHS[i][j] + RHS[lim(i+1,N)][j]);
-                    d[j] = RHS[i][j] + diff_term + 0.5*partRHS[i][j];
-                }
-                
-                tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
-                for (int j = 0; j < N; j++)
-                {
-                    V[i][j] = result[j];
-                }
-            }
-            #endif // SERIAL
+            parallelThomas<<<numBlocks, blockSize>>>(N, d_RHS, d_la, d_lb, d_lc);
+            cudaDeviceSynchronize();
+
+            // ================================================!
+            //  Transpose d_RHS to d_Vtilde                    !
+            // ================================================!
+            parallelTranspose<<<GRID_SIZE, BLOCK_SIZE>>>(N, d_RHS, d_Vtilde);
+            cudaDeviceSynchronize();
+
+            // ================================================!
+            //  Calculate V at n+1 -> Result goes to V         !
+            //  diffusion implicit in y and explicit in x      !
+            // ================================================!
+            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0-theta)*phi, d_Vtilde, d_V, d_partRHS);
+            cudaDeviceSynchronize();
+
+            parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
+            cudaDeviceSynchronize();
 
             // Update time step counter
             timeStepCounter++;

@@ -14,7 +14,9 @@ def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, prob
         raise ValueError('Invalid real type')
     
     # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    os.system(f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -D{double_or_float} -D{serial_or_gpu} -D{problem}')
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -D{double_or_float} -D{serial_or_gpu} -D{problem}'
+    print(f'Compiling {compile_command}...')
+    os.system(compile_command)
 
     for i in range(len(dts)):
         dx = dxs[i]
@@ -36,9 +38,9 @@ def read_errors(method, dts, dxs, theta, real_type):
         dt = dts[i]
         dx = dxs[i]
         
-        infos_path = f'./simulation-files/{real_type}/{model}/{method}/infos-{dt}-{dx}.txt'
+        infos_path = f'./simulation_files/{real_type}/{model}/{method}/infos_{dt}_{dx}.txt'
         if method == 'theta-ADI':
-            infos_path = f'./simulation-files/{real_type}/{model}/{method}/{theta}/infos-{dt}-{dx}.txt'
+            infos_path = f'./simulation_files/{real_type}/{model}/{method}/{theta}/infos_{dt}_{dx}.txt'
         
         with open(infos_path, 'r') as file:
             for line in file:
@@ -55,7 +57,7 @@ def calculate_slopes(errors, dts):
         slopes.append(f'{(slope):.3f}')
     return slopes
 
-def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type):
+def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type, serial_or_gpu, problem):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -63,10 +65,10 @@ def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type):
         if method != 'theta-ADI':
 
             # Read data from the text file
-            data_last = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/last-{dt}-{dx}.txt', dtype=float)
+            data_last = np.genfromtxt(f'./simulation_files/{real_type}/{model}/{method}/last_{dt}_{dx}.txt', dtype=float)
 
             # Read data from the text file
-            data_exact = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/exact-{dt}-{dx}.txt', dtype=float)
+            data_exact = np.genfromtxt(f'./simulation_files/{real_type}/{model}/{method}/exact_{dt}_{dx}.txt', dtype=float)
 
             # Get the greater value to be the vmax
             max_value = data_last.max()
@@ -85,7 +87,7 @@ def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type):
             plt.xticks([])
             plt.yticks([])
             plt.title(f'Last dt={dt} dx={dx}')
-            plt.savefig(f'./simulation-files/simulation-graphs/last-{dt}-{dx}_{alpha}.png')
+            plt.savefig(f'./simulation_files/simulation_graphs/last_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.png')
             plt.close()
 
             # Plot the exact
@@ -95,10 +97,10 @@ def plot_last_frame_and_exact(method, dts, dxs, alpha, real_type):
             plt.xticks([])
             plt.yticks([])
             plt.title(f'Exact dt={dt} dx={dx}')
-            plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
+            plt.savefig(f'./simulation_files/simulation_graphs/exact_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.png')
             plt.close()
 
-def plot_exact(method, dts, dxs, alpha, real_type):
+def plot_exact(method, dts, dxs, alpha, real_type, serial_or_gpu, problem):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -106,7 +108,7 @@ def plot_exact(method, dts, dxs, alpha, real_type):
         if method != 'theta-ADI':
 
             # Read data from the text file
-            data = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/exact-{dt}-{dx}.txt', dtype=float)
+            data = np.genfromtxt(f'./simulation_files/{real_type}/{model}/{method}/exact_{dt}_{dx}.txt', dtype=float)
 
             # Plot the data
             plt.figure()
@@ -115,10 +117,10 @@ def plot_exact(method, dts, dxs, alpha, real_type):
             plt.xticks([])
             plt.yticks([])
             plt.title(f'Exact dt={dt} dx={dx}')
-            plt.savefig(f'./simulation-files/simulation-graphs/exact-{dt}-{dx}_{alpha}.png')
+            plt.savefig(f'./simulation_files/simulation_graphs/exact_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.png')
             plt.close()
 
-def plot_errors(method, dts, dxs, alpha, real_type):
+def plot_errors(method, dts, dxs, alpha, real_type, serial_or_gpu, problem):
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
@@ -126,7 +128,7 @@ def plot_errors(method, dts, dxs, alpha, real_type):
         if method != 'theta-ADI':
 
             # Read data from the text file
-            data = np.genfromtxt(f'./simulation-files/{real_type}/{model}/{method}/errors-{dt}-{dx}.txt', dtype=float)
+            data = np.genfromtxt(f'./simulation_files/{real_type}/{model}/{method}/errors_{dt}_{dx}.txt', dtype=float)
 
             # Plot the data
             plt.figure()
@@ -135,18 +137,18 @@ def plot_errors(method, dts, dxs, alpha, real_type):
             plt.xticks([])
             plt.yticks([])
             plt.title(f'Errors dt={dt} dx={dx} (max_error={data.max()})')
-            plt.savefig(f'./simulation-files/simulation-graphs/errors-{dt}-{dx}_{alpha}.png')
+            plt.savefig(f'./simulation_files/simulation_graphs/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.png')
             plt.close()
     
 def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gpu="SERIAL", problem="MONOAFHN"):
     
     # Create directories
-    if not os.path.exists(f'./simulation-files/simulation-graphs'):
-        os.makedirs(f'./simulation-files/simulation-graphs')
-    if not os.path.exists(f'./simulation-files/simulation-analysis'):
-        os.makedirs(f'./simulation-files/simulation-analysis')
+    if not os.path.exists(f'./simulation_files/simulation_graphs'):
+        os.makedirs(f'./simulation_files/simulation_graphs')
+    if not os.path.exists(f'./simulation_files/simulation_analysis'):
+        os.makedirs(f'./simulation_files/simulation_analysis')
 
-    analysis_path = f'./simulation-files/simulation-analysis/analysis_gpu_{alpha}.txt'
+    analysis_path = f'./simulation_files/simulation_analysis/analysis_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.txt'
     analysis_file = open(analysis_path, 'w')
 
     plt.figure()
@@ -194,20 +196,20 @@ def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gp
     plt.ylabel('Error')
     plt.title(f'Convergence Analysis - 2nd Order (a = {(alpha):.3f})')
     plt.legend()
-    plt.savefig(f'./simulation-files/simulation-graphs/convergence-analysis_{alpha}.png')
+    plt.savefig(f'./simulation_files/simulation_graphs/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}_alpha{alpha}.png')
     plt.close()
 
     # for method in methods:
-    #     plot_last_frame_and_exact(method, dts, dxs, alpha, real_type)
-    #     plot_errors(method, dts, dxs, alpha, real_type)
+    #     plot_last_frame_and_exact(method, dts, dxs, alpha, real_type, serial_or_gpu, problem)
+    #     plot_errors(method, dts, dxs, alpha, real_type, serial_or_gpu, problem)
 
 def main():
 
     thetas = ['0.50', '0.66', '1.00']
-    methods = ['SSI-ADI']
+    methods = ['SSI-ADI', 'theta-ADI']
     real_type = 'double'
     problem = 'MONOAFHN' # DIFF, MONOAFHN, LINMONO
-    serial_or_gpu = 'GPU'
+    serial_or_gpu = 'GPU' # SERIAL, GPU
     serial_or_gpu = serial_or_gpu.upper()
 
     dts = [0.025, 0.0125, 0.00625] # Works for DIFF and MONOAFHN
