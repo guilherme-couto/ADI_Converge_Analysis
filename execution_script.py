@@ -10,6 +10,10 @@ def main():
     device = 'GPU'
     problem = 'MONOAFHN'
     init = 'spiral'
+    
+    dts = ['0.0005']
+    dxs = ['0.0005']
+    methods = ['SSI-ADI']
 
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -w '
@@ -20,7 +24,7 @@ def main():
     if device == 'GPU':
         compile_command += '-DGPU '
     elif device == 'CPU':
-        compile_command += '-DCPU '
+        compile_command += '-DSERIAL '
     if problem == 'MONOAFHN':
         compile_command += '-DMONOAFHN '
     if init == 'spiral':
@@ -40,7 +44,7 @@ def main():
             for theta in tts:
                 os.system(f'./convergence {method} {dt} {dx} {theta}')
                 plot_last_frame(method, dt, dx, real_type, device, problem, theta)
-                create_gif(method, dt, dx, real_type, device, problem, theta)
+                #create_gif(method, dt, dx, real_type, device, problem, theta)
 
 if __name__ == '__main__':
     main()

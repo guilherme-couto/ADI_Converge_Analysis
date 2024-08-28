@@ -340,8 +340,6 @@ void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x
 
     int sizeFile = 0;
     int sizeVar = 0;
-
-    int index;
     real value;
 
     printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
@@ -352,15 +350,19 @@ void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x
         {
             // Read value from file to variable
             // If i and j are multiples of rate, read value to Var
-            #ifndef USE_DOUBLE
+            #ifdef USE_FLOAT
             fscanf(file, "%e", &value);
             #else
             fscanf(file, "%le", &value);
             #endif
             if (i % rate == 0 && j % rate == 0)
             {
-                index = (i/rate)*N + (j/rate);
-                Var[index] = value;
+                Var[sizeVar] = value;
+                if (isnan(value))
+                {
+                    printf("At var index %d, file index %d, value is NaN\n", sizeVar, i*baseN+j);
+                    exit(1);
+                }
                 sizeVar++;
             }
             sizeFile++;

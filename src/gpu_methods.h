@@ -95,9 +95,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // CUDA grid and block allocation
     // For Thomas algorithm kernel
-    int numBlocks, blockSize; 
-    (numBlocks == 0) ? (numBlocks = 1) : (numBlocks = N / 100);
-    (blockSize % 32 != 0) ? (blockSize = 32 * ((blockSize / 32) + 1)) : (blockSize = round(N / numBlocks) + 1);
+    int numBlocks = N / 100;
+    if (numBlocks == 0)
+        numBlocks = 1;
+
+    int blockSize = round(N / numBlocks) + 1;
+    if (blockSize % 32 != 0)
+        blockSize = 32 * ((blockSize / 32) + 1);
     
     // For ODEs and Transpose kernels
     int GRID_SIZE = ceil((N*N*1.0) / (BLOCK_SIZE*1.0));
@@ -178,27 +182,6 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
             cudaDeviceSynchronize();
-
-            // If save frames is true and time step is multiple of frame save rate
-            if (saveFrames && timeStepCounter % frameSaveRate == 0)
-            {
-                // Copy memory of d_V from device to host V
-                CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
-                cudaDeviceSynchronize();
-
-                // Save frame
-                saveFrame(fpFrames, actualTime, V, N);
-                printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
-            }
-
-            // Check if the first value of V is NaN
-            real *firstValue = (real *)malloc(sizeof(real));
-            CUDA_CALL(cudaMemcpy(firstValue, &d_V[0], sizeof(real), cudaMemcpyDeviceToHost));
-            if (isnan(*firstValue))
-            {
-                printf("At time %lf ms, first value of V is NaN\n", actualTime);
-                exit(1);
-            }
 
             // Update time step counter
             timeStepCounter++;
