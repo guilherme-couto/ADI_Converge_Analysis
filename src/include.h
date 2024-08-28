@@ -25,6 +25,17 @@ typedef float real;
 #define REAL_TYPE "float"
 #endif
 
+// Define execution type via compile command line (-D{OPTION}, SERIAL or GPU)
+// TODO: editar depois. Fazendo apenas para testes
+// O ideal vai ser colocar #ifndef GPU, define SERIAL e MONOAFHN
+// assim SERIAL fica como padrão e GPU só é definido se for passado como argumento
+#ifndef SERIAL 
+#define MONOAFHN 
+#define GPU 
+#endif 
+
+// Define CUDA error checking
+#ifdef GPU
 #define CUDA_CALL(call) \
 do { \
     cudaError_t error = call; \
@@ -33,11 +44,8 @@ do { \
         exit(EXIT_FAILURE); \
     } \
 } while(0)
+#endif // GPU
 
-#ifndef SERIAL
-#define MONOAFHN
-#define GPU
-#endif
 // Define problem via compile command line (-D{OPTION}):
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*Cm*dv/dt = sigma*Lap(v) - chi*G*v + forcing
@@ -58,17 +66,24 @@ do { \
 //             RHS_w = eta2 * ((v/vp)-(eta3*w))
 //             Boundaries: Neumann
 
-// Define execution type via compile command line (-D{OPTION}, SERIAL or GPU)
+// Define stimulus structure for MONOAFHN
+#ifdef MONOAFHN
+typedef struct {
+    real strength;
+    real begin;
+    real duration;
+    int xMaxDisc;
+    int xMinDisc;
+    int yMaxDisc;
+    int yMinDisc;
+} Stimulus;
+#endif // MONOAFHN
+
+// If defined SERIAL, constants are defined only as const for CPU
 #ifdef SERIAL
 const real _pi = 3.14159265358979323846;
-const int L = 1; // space
 
 #ifdef LINMONO
-const real T = 0.1;
-// const real G = 1.5;         // omega^-1 * cm^-2
-// const real sigma = 1.2e-3;  // omega^-1 * cm^-1
-// const real chi = 1.0e3;     // cm^-1
-// const real Cm = 1.0e-3;     // mF * cm^-2
 const real G = 1.0;         // omega^-1 * cm^-2
 const real sigma = 1.0;     // omega^-1 * cm^-1
 const real chi = 1.0;       // cm^-1
@@ -78,20 +93,10 @@ const real Cm = 1.0;        // mF * cm^-2
 const real sigma = 1.0;
 #endif // DIFFREAC
 #ifdef DIFF
-const real T = 0.5; // time
 const real sigma = 1.0;
 #endif // DIFF
 #ifdef MONOAFHN
-const real T = 0.1;
-// const real G = 1.5;         // omega^-1 * cm^-2
-// const real eta1 = 4.4;      // omega^-1 * cm^-1
-// const real eta2 = 0.012;    // dimensionless
-// const real eta3 = 1.0;      // dimensionless
-// const real vth = 13.0;      // mV
-// const real vp = 100.0;      // mV
-// const real sigma = 1.2e-3;  // omega^-1 * cm^-1
-// const real chi = 1.0e3;     // cm^-1
-// const real Cm = 1.0e-3;     // mF * cm^-2
+#ifdef CONVERGENCE_ANALYSIS
 const real G = 1.0;         // omega^-1 * cm^-2
 const real eta1 = 1.0;      // omega^-1 * cm^-1
 const real eta2 = 1.0;      // dimensionless
@@ -101,19 +106,26 @@ const real vp = 1.0;        // mV
 const real sigma = 1.0;     // omega^-1 * cm^-1
 const real chi = 1.0;       // cm^-1
 const real Cm = 1.0;        // mF * cm^-2
+#else
+// Model parameters - Based on Gerardo_Giorda 2007
+const real G = 1.5;                       // omega^-1 * cm^-2
+const real eta1 = 4.4;                    // omega^-1 * cm^-1
+const real eta2 = 0.012;                  // dimensionless
+const real eta3 = 1.0;                    // dimensionless
+const real vth = 13.0;                    // mV
+const real vp = 100.0;                    // mV
+const real sigma = 1.2e-3;                // omega^-1 * cm^-1
+const real chi = 1.0e3;                   // cm^-1
+const real Cm = 1.0e-3;                   // mF * cm^-2
+#endif // CONVERGENCE_ANALYSIS
 #endif // MONOAFHN
 #endif // SERIAL
 
+// If defined GPU, constants are defined as const for CPU and __constant__ for GPU
 #ifdef GPU
 const __constant__ real _pi = 3.14159265358979323846;
-const __constant__ int L = 1; // space
 
 #ifdef LINMONO
-const __constant__ real T = 0.1;
-// const __constant__ real G = 1.5;         // omega^-1 * cm^-2
-// const __constant__ real sigma = 1.2e-3;  // omega^-1 * cm^-1
-// const __constant__ real chi = 1.0e3;     // cm^-1
-// const __constant__ real Cm = 1.0e-3;     // mF * cm^-2
 const __constant__ real G = 1.0;         // omega^-1 * cm^-2
 const __constant__ real sigma = 1.0;     // omega^-1 * cm^-1
 const __constant__ real chi = 1.0;       // cm^-1
@@ -123,20 +135,10 @@ const __constant__ real Cm = 1.0;        // mF * cm^-2
 const __constant__ real sigma = 1.0;
 #endif // DIFFREAC
 #ifdef DIFF
-const __constant__ real T = 0.5; // time
 const __constant__ real sigma = 1.0;
 #endif // DIFF
 #ifdef MONOAFHN
-const real T = 0.1;
-// const __constant__ real G = 1.5;         // omega^-1 * cm^-2
-// const __constant__ real eta1 = 4.4;      // omega^-1 * cm^-1
-// const __constant__ real eta2 = 0.012;    // dimensionless
-// const __constant__ real eta3 = 1.0;      // dimensionless
-// const __constant__ real vth = 13.0;      // mV
-// const __constant__ real vp = 100.0;      // mV
-// const __constant__ real sigma = 1.2e-3;  // omega^-1 * cm^-1
-// const __constant__ real chi = 1.0e3;     // cm^-1
-// const __constant__ real Cm = 1.0e-3;     // mF * cm^-2
+#ifdef CONVERGENCE_ANALYSIS
 const __constant__ real G = 1.0;         // omega^-1 * cm^-2
 const __constant__ real eta1 = 1.0;      // omega^-1 * cm^-1
 const __constant__ real eta2 = 1.0;      // dimensionless
@@ -146,8 +148,19 @@ const __constant__ real vp = 1.0;        // mV
 const __constant__ real sigma = 1.0;     // omega^-1 * cm^-1
 const __constant__ real chi = 1.0;       // cm^-1
 const __constant__ real Cm = 1.0;        // mF * cm^-2
+#else
+// Model parameters - Based on Gerardo_Giorda 2007
+const __constant__ real G = 1.5;                       // omega^-1 * cm^-2
+const __constant__ real eta1 = 4.4;                    // omega^-1 * cm^-1
+const __constant__ real eta2 = 0.012;                  // dimensionless
+const __constant__ real eta3 = 1.0;                    // dimensionless
+const __constant__ real vth = 13.0;                    // mV
+const __constant__ real vp = 100.0;                    // mV
+const __constant__ real sigma = 1.2e-3;                // omega^-1 * cm^-1
+const __constant__ real chi = 1.0e3;                   // cm^-1
+const __constant__ real Cm = 1.0e-3;                   // mF * cm^-2
+#endif // CONVERGENCE_ANALYSIS
 #endif // MONOAFHN
 #endif // GPU
-
 
 #endif // INCLUDE_H

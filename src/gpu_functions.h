@@ -1,9 +1,10 @@
 #ifndef GPU_FUNCTIONS_H
 #define GPU_FUNCTIONS_H
 
-#include "include.h"
+#include "simulation_config.h"
 
 #ifdef DIFF
+#ifdef CONVERGENCE_ANALYSIS
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi*x) * cos(_pi*y);
@@ -12,9 +13,11 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-1.0+2.0*(_pi*_pi));
 }
+#endif // CONVERGENCE_ANALYSIS
 #endif // DIFF
 
 #ifdef LINMONO
+#ifdef CONVERGENCE_ANALYSIS
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi*x/L) * cos(_pi*y/L);
@@ -24,9 +27,11 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-(chi*Cm) + chi*G + 2.0*(sigma/(chi*Cm))*_pi*_pi/(L*L));
 }
+#endif // CONVERGENCE_ANALYSIS
 #endif // LINMONO
 
 #ifdef MONOAFHN
+#ifdef CONVERGENCE_ANALYSIS
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi*x/L) * cos(_pi*y/L);
@@ -54,10 +59,10 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         int index_jm1 = i * N + (j-1);
         int index_jp1 = i * N + (j+1);
 
-        (i-1 == -1) ? index_im1 = index_ip1 : index_im1;
-        (i+1 == N) ? index_ip1 = index_im1 : index_ip1;
-        (j-1 == -1) ? index_jm1 = index_jp1 : index_jm1;
-        (j+1 == N) ? index_jp1 = index_jm1 : index_jp1;
+        (i-1 == -1) ? (index_im1 = index_ip1) : index_im1;
+        (i+1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (j-1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
+        (j+1 == N) ? (index_jp1 = index_jm1) : index_jp1;
 
         real x = j * delta_x;
         real y = i * delta_x;
@@ -66,8 +71,8 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real actualW = d_W[index];
 
         real diff_term = (sigma/(chi*Cm))*0.5*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
+        real RHS_V_term = ((G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW))/(Cm*chi);
         real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), actualW)/(chi*Cm);
-        real RHS_V_term = (G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW);
         d_Vtilde[index] = actualV + diff_term + (0.5*delta_t*(for_term - RHS_V_term));
 
         real actualVtilde = d_Vtilde[index];
@@ -83,6 +88,155 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
     }
 }
 
+// Kernel to compute the approximate solution of the reaction-diffusion system using the theta-ADI
+__global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < N * N)
+    {
+        int i = index / N;
+        int j = index % N;
+
+        int index_im1 = (i-1) * N + j;
+        int index_ip1 = (i+1) * N + j;
+        int index_jm1 = i * N + (j-1);
+        int index_jp1 = i * N + (j+1);
+
+        (i-1 == -1) ? (index_im1 = index_ip1) : index_im1;
+        (i+1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (j-1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
+        (j+1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        real actualV = d_V[index];
+        real actualW = d_W[index];
+
+        real diff_term = (sigma/(chi*Cm))*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
+        real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), actualW)/(chi*Cm);
+        real RHS_V_term = ((G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW))/(Cm*chi);
+        d_Vtilde[index] = actualV + diff_term + (delta_t*(for_term - RHS_V_term));
+
+        real actualVtilde = d_Vtilde[index];
+
+        // Preparing part of the RHS of the following linear systems
+        real RHS_Vtilde_term = (G*actualVtilde*(1.0-(actualVtilde/vth)) * (1.0-(actualVtilde/vp))) + (eta1*actualVtilde*actualW);
+        d_partRHS[index] = delta_t*(for_term - ((1.0-theta)*RHS_V_term) - (theta*RHS_Vtilde_term));
+
+        // Update Wn+1
+        real RHS_W_term = eta2*((actualV/vp)-(eta3*actualW));
+        real Wtilde = actualW + (delta_t*RHS_W_term);
+        d_W[index] = actualW + delta_t*(eta2*((actualVtilde/vp)-(eta3*Wtilde)));
+    }
+}
+#else
+// Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
+__global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < N * N)
+    {
+        int i = index / N;
+        int j = index % N;
+
+        int index_im1 = (i-1) * N + j;
+        int index_ip1 = (i+1) * N + j;
+        int index_jm1 = i * N + (j-1);
+        int index_jp1 = i * N + (j+1);
+
+        (i-1 == -1) ? (index_im1 = index_ip1) : index_im1;
+        (i+1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (j-1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
+        (j+1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        real actualV = d_V[index];
+        real actualW = d_W[index];
+
+        real diff_term = (sigma/(chi*Cm))*0.5*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
+        real RHS_V_term = ((G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW))/(Cm*chi);
+        real stim = 0.0;
+        for (int si = 0; si < numberOfStimuli; si++)
+        {
+            if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
+            {
+                stim = d_stimuli[si].strength;
+                break;
+            }
+        }
+
+        d_Vtilde[index] = actualV + diff_term + (0.5*delta_t*(stim - RHS_V_term));
+        real actualVtilde = d_Vtilde[index];
+
+        // Preparing part of the RHS of the following linear systems
+        real RHS_Vtilde_term = (G*actualVtilde*(1.0-(actualVtilde/vth)) * (1.0-(actualVtilde/vp))) + (eta1*actualVtilde*actualW);
+        d_partRHS[index] = delta_t*(stim - RHS_Vtilde_term);
+
+        // Update Wn+1
+        real RHS_W_term = eta2*((actualV/vp)-(eta3*actualW));
+        real Wtilde = actualW + (0.5*delta_t*RHS_W_term);
+        d_W[index] = actualW + delta_t*(eta2*((actualVtilde/vp)-(eta3*Wtilde)));
+    }
+}
+
+// Kernel to compute the approximate solution of the reaction-diffusion system using the theta-ADI
+__global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < N * N)
+    {
+        int i = index / N;
+        int j = index % N;
+
+        int index_im1 = (i-1) * N + j;
+        int index_ip1 = (i+1) * N + j;
+        int index_jm1 = i * N + (j-1);
+        int index_jp1 = i * N + (j+1);
+
+        (i-1 == -1) ? (index_im1 = index_ip1) : index_im1;
+        (i+1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (j-1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
+        (j+1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+
+        real x = j * delta_x;
+        real y = i * delta_x;
+
+        real actualV = d_V[index];
+        real actualW = d_W[index];
+
+        real diff_term = (sigma/(chi*Cm))*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
+        real RHS_V_term = ((G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW))/(Cm*chi);
+        real stim = 0.0;
+        for (int si = 0; si < numberOfStimuli; si++)
+        {
+            if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
+            {
+                stim = d_stimuli[si].strength;
+                break;
+            }
+        }
+
+        d_Vtilde[index] = actualV + diff_term + (delta_t*(stim - RHS_V_term));
+        real actualVtilde = d_Vtilde[index];
+
+        // Preparing part of the RHS of the following linear systems
+        real RHS_Vtilde_term = (G*actualVtilde*(1.0-(actualVtilde/vth)) * (1.0-(actualVtilde/vp))) + (eta1*actualVtilde*actualW);
+        d_partRHS[index] = delta_t*(stim - ((1.0-theta)*RHS_V_term) - (theta*RHS_Vtilde_term));
+
+        // Update Wn+1
+        real RHS_W_term = eta2*((actualV/vp)-(eta3*actualW));
+        real Wtilde = actualW + (delta_t*RHS_W_term);
+        d_W[index] = actualW + delta_t*(eta2*((actualVtilde/vp)-(eta3*Wtilde)));
+    }
+}
+#endif
+
 __global__ void prepareRHSwithiDiff(int N, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
@@ -95,8 +249,8 @@ __global__ void prepareRHSwithiDiff(int N, real tau, real *d_V, real *d_RHS, rea
         int index_im1 = (i-1) * N + j;
         int index_ip1 = (i+1) * N + j;
 
-        (i-1 == -1) ? index_im1 = index_ip1 : index_im1;
-        (i+1 == N) ? index_ip1 = index_im1 : index_ip1;
+        (i-1 == -1) ? (index_im1 = index_ip1) : index_im1;
+        (i+1 == N) ? (index_ip1 = index_im1) : index_ip1;
 
         real actualV = d_V[index];
 
@@ -119,57 +273,13 @@ __global__ void prepareRHSwithjDiff(int N, real tau, real *d_V, real *d_RHS, rea
         int index_jm1 = i * N + (j-1);
         int index_jp1 = i * N + (j+1);
 
-        (j-1 == -1) ? index_jm1 = index_jp1 : index_jm1;
-        (j+1 == N) ? index_jp1 = index_jm1 : index_jp1;
+        (j-1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
+        (j+1 == N) ? (index_jp1 = index_jm1) : index_jp1;
 
         real actualV = d_V[index];
 
         real diff_term = (sigma/(chi*Cm))*tau*(d_V[index_jm1] - 2*actualV + d_V[index_jp1]);
         d_RHS[transposedIndex] = actualV + diff_term + 0.5*d_partRHS[index];
-    }
-}
-
-// Kernel to compute the approximate solution of the reaction-diffusion system using the theta-ADI
-__global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index < N * N)
-    {
-        int i = index / N;
-        int j = index % N;
-
-        int index_im1 = (i-1) * N + j;
-        int index_ip1 = (i+1) * N + j;
-        int index_jm1 = i * N + (j-1);
-        int index_jp1 = i * N + (j+1);
-
-        (i-1 == -1) ? index_im1 = index_ip1 : index_im1;
-        (i+1 == N) ? index_ip1 = index_im1 : index_ip1;
-        (j-1 == -1) ? index_jm1 = index_jp1 : index_jm1;
-        (j+1 == N) ? index_jp1 = index_jm1 : index_jp1;
-
-        real x = j * delta_x;
-        real y = i * delta_x;
-
-        real actualV = d_V[index];
-        real actualW = d_W[index];
-
-        real diff_term = (sigma/(chi*Cm))*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
-        real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), actualW)/(chi*Cm);
-        real RHS_V_term = (G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW);
-        d_Vtilde[index] = actualV + diff_term + (delta_t*(for_term - RHS_V_term));
-
-        real actualVtilde = d_Vtilde[index];
-
-        // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G*actualVtilde*(1.0-(actualVtilde/vth)) * (1.0-(actualVtilde/vp))) + (eta1*actualVtilde*actualW);
-        d_partRHS[index] = delta_t*(for_term - ((1.0-theta)*RHS_V_term) - (theta*RHS_Vtilde_term));
-
-        // Update Wn+1
-        real RHS_W_term = eta2*((actualV/vp)-(eta3*actualW));
-        real Wtilde = actualW + (delta_t*RHS_W_term);
-        d_W[index] = actualW + delta_t*(eta2*((actualVtilde/vp)-(eta3*Wtilde)));
     }
 }
 

@@ -1,14 +1,11 @@
 #ifndef AUXFUNCS_H
 #define AUXFUNCS_H
 
-#include "include.h"
-
-#ifdef SERIAL
-#include "functions.h"
-#endif // SERIAL
 #ifdef GPU
 #include "gpu_functions.h"
-#endif // GPU
+#else
+#include "cpu_functions.h"
+#endif
 
 // Populate diagonals for Thomas algorithm
 // la -> Subdiagonal
@@ -28,29 +25,30 @@ void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real p
     lc[N-1] = 0.0; 
 }
 
-void createDirectoriesAndFiles(char* method, real theta, char* pathToSaveData, char* aux)
-{
-    char command[MAX_STRING_SIZE];
-    sprintf(command, "%s", "mkdir -p");
-    char path[MAX_STRING_SIZE] = "./simulation_files/";
-    strcat(path, REAL_TYPE);
-    sprintf(aux, "%s %s", command, path);
-    system(aux);
-    sprintf(pathToSaveData, "%s/%s", path, "AFHN");
-    sprintf(aux, "%s %s", command, pathToSaveData);
-    system(aux);
-    sprintf(pathToSaveData, "%s/%s", pathToSaveData, method);
-    sprintf(aux, "%s %s", command, pathToSaveData);
-    system(aux);
-    if (strcmp(method, "theta-ADI") == 0)
-    {
-        sprintf(pathToSaveData, "%s/%.2lf", pathToSaveData, theta);
-        sprintf(aux, "%s %s", command, pathToSaveData);
-        system(aux);
+void createDirectories(char* method, real theta, char* pathToSaveData)
+{   
+    // Build the path
+    char path[MAX_STRING_SIZE];
+    snprintf(path, MAX_STRING_SIZE*sizeof(char), "./simulation_files/%s/AFHN/%s", REAL_TYPE, method);
+
+    // Add theta to the path
+    if (strcmp(method, "theta-ADI") == 0) {
+        char thetaPath[MAX_STRING_SIZE];
+        snprintf(thetaPath, MAX_STRING_SIZE*sizeof(char), "%.2lf", theta);
+        strcat(path, "/");
+        strcat(path, thetaPath);
     }
+
+    // Make directories
+    char command[MAX_STRING_SIZE];
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s", path);
+    system(command);
+
+    // Update pathToSaveData
+    strcpy(pathToSaveData, path);
 }
 
-void initializeTimeArray(real* timeArray, int M, real dt)
+void initializeTimeArray(real *timeArray, int M, real dt)
 {
     for (int i = 0; i < M; ++i)
     {
@@ -68,6 +66,24 @@ int lim(int num, int N)
     }
     return num;
 }
+
+#ifdef MONOAFHN
+void populateStimuli(Stimulus *stimuli, real delta_x)
+{
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        stimuli[i].strength = stimuliStrength;
+        stimuli[i].begin = stimuliBegin[i];
+        stimuli[i].duration = stimuliDuration;
+        
+        // Discretized limits of stimulation areas
+        stimuli[i].xMaxDisc = round(stimulixMax[i] / delta_x);
+        stimuli[i].xMinDisc = round(stimulixMin[i] / delta_x);
+        stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_x);
+        stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
+    }
+}
+#endif // MONOAFHN
 
 #ifdef SERIAL
 void initialize2DVariableWithExactSolution(real** Var, int N, real delta_x)
@@ -93,6 +109,40 @@ void initialize2DVariableWithValue(real** Var, int N, real value)
             Var[i][j] = value;
         }
     }
+}
+
+void initialize2DVariableFromFile(real** Var, int N, char* filename, real delta_x)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    printf("Reading file %s to initialize variable\n", filename);
+    int baseN = round(L / 0.0005) + 1;
+    int rate = round(delta_x / 0.0005);
+    real value;
+    for (int i = 0; i < baseN; ++i)
+    {
+        for (int j = 0; j < baseN; ++j)
+        {
+            // Read value from file to variable
+            // If i and j are multiples of rate, read value to Var
+            #ifndef USE_DOUBLE
+            fscanf(file, "%e", &value);
+            #else
+            fscanf(file, "%le", &value);
+            #endif
+            if (i % rate == 0 && j % rate == 0)
+            {
+                Var[(i/rate)][(j/rate)] = value;
+            }
+        }
+    }
+    fclose(file);
+    printf("Variable initialized with values from file %s\n", filename);
 }
 
 real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
@@ -247,25 +297,22 @@ void tridiag(real* la, real* lb, real* lc, real* c_prime, real* d_prime, int N, 
         result[i] = d_prime[i] - c_prime[i]*result[i+1];
     }
 }
+
+void saveFrame(FILE *file, real actualTime, real** V, int N)
+{
+    fprintf(file, "%lf\n", actualTime);
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            fprintf(file, "%e ", V[i][j]);
+        }
+        fprintf(file, "\n");
+    }
+}
 #endif // SERIAL
 
 #ifdef GPU
-void initialize2DVariableWithExactSolution(real* Var, int N, real delta_x)
-{
-    real x, y;
-    int index;
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            x = i * delta_x;
-            y = j * delta_x;
-            index = i*N + j;
-            Var[index] = exactSolution(0.0, x, y);
-        }
-    }
-}
-
 void initialize2DVariableWithValue(real* Var, int N, real value)
 {
     int index;
@@ -279,25 +326,40 @@ void initialize2DVariableWithValue(real* Var, int N, real value)
     }
 }
 
-real calculateNorm2Error(real* V, real** exact, int N, real T, real delta_x)
+void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x)
 {
-    real x, y;
-    int index;
-    real solution;
-    real sum = 0.0;
-    for (int i = 0; i < N; i++)
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
     {
-        for (int j = 0; j < N; j++)
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    printf("Reading file %s to initialize variable\n", filename);
+    int index;
+    int baseN = round(L / 0.0005) + 1;
+    int rate = round(delta_x / 0.0005);
+    real value;
+    for (int i = 0; i < baseN; ++i)
+    {
+        for (int j = 0; j < baseN; ++j)
         {
-            x = j * delta_x;
-            y = i * delta_x;
-            index = i*N + j;
-            solution = exactSolution(T, x, y);
-            exact[i][j] = solution;
-            sum += ((V[index] - solution) * (V[index] - solution));
+            // Read value from file to variable
+            // If i and j are multiples of rate, read value to Var
+            #ifndef USE_DOUBLE
+            fscanf(file, "%e", &value);
+            #else
+            fscanf(file, "%le", &value);
+            #endif
+            if (i % rate == 0 && j % rate == 0)
+            {
+                index = (i/rate)*N + (j/rate);
+                Var[index] = value;
+            }
         }
     }
-    return delta_x * sqrt(sum);
+    fclose(file);
+    printf("Variable initialized with values from file %s\n", filename);
 }
 
 void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
@@ -327,6 +389,59 @@ void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
 	la[rowCurrent] = la[rowCurrent];
 	lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent]*lc[rowPrevious];
 }
+
+void saveFrame(FILE *file, real actualTime, real* V, int N)
+{
+    fprintf(file, "%lf\n", actualTime);
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            int index = i*N + j;
+            fprintf(file, "%e ", V[index]);
+        }
+        fprintf(file, "\n");
+    }
+}
+
+#ifdef CONVERGENCE_ANALYSIS
+void initialize2DVariableWithExactSolution(real* Var, int N, real delta_x)
+{
+    real x, y;
+    int index;
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            x = i * delta_x;
+            y = j * delta_x;
+            index = i*N + j;
+            Var[index] = exactSolution(0.0, x, y);
+        }
+    }
+}
+
+real calculateNorm2Error(real* V, real** exact, int N, real T, real delta_x)
+{
+    real x, y;
+    int index;
+    real solution;
+    real sum = 0.0;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            x = j * delta_x;
+            y = i * delta_x;
+            index = i*N + j;
+            solution = exactSolution(T, x, y);
+            exact[i][j] = solution;
+            sum += ((V[index] - solution) * (V[index] - solution));
+        }
+    }
+    return delta_x * sqrt(sum);
+}
+#endif // CONVERGENCE_ANALYSIS
 #endif // GPU
 
 #endif // AUXFUNCS_H
