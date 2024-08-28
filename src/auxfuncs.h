@@ -334,12 +334,18 @@ void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x
         printf("Error opening file %s\n", filename);
         exit(1);
     }
-
-    printf("Reading file %s to initialize variable\n", filename);
-    int index;
+    
     int baseN = round(L / 0.0005) + 1;
     int rate = round(delta_x / 0.0005);
+
+    int sizeFile = 0;
+    int sizeVar = 0;
+
+    int index;
     real value;
+
+    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+
     for (int i = 0; i < baseN; ++i)
     {
         for (int j = 0; j < baseN; ++j)
@@ -355,11 +361,14 @@ void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x
             {
                 index = (i/rate)*N + (j/rate);
                 Var[index] = value;
+                sizeVar++;
             }
+            sizeFile++;
         }
     }
     fclose(file);
-    printf("Variable initialized with values from file %s\n", filename);
+    
+    printf("Variable initialized with %d values from the %d values in file\n", sizeVar, sizeFile);
 }
 
 void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {

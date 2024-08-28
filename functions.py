@@ -5,6 +5,25 @@ import imageio.v2
 
 cell_model = 'AFHN'
 
+def get_gpu_architecture():
+    try:
+        # Run `nvidia-smi` and get the output
+        stream = os.popen('nvidia-smi --query-gpu=compute_cap --format=csv,noheader')
+        output = stream.read().strip()
+        
+        if not output:
+            raise Exception("No output from nvidia-smi")
+
+        # Get the major and minor version of the GPU architecture
+        major, minor = output.split('.')
+        architecture = f"sm_{major}{minor}"
+        
+        return architecture
+
+    except Exception as e:
+        print(f"Failed to determine GPU architecture: {e}")
+        return None
+
 def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, problem):
     
     if real_type == 'float':

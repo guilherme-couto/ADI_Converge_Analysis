@@ -191,6 +191,15 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                 printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
             }
 
+            // Check if the first value of V is NaN
+            real *firstValue = (real *)malloc(sizeof(real));
+            CUDA_CALL(cudaMemcpy(firstValue, &d_V[0], sizeof(real), cudaMemcpyDeviceToHost));
+            if (isnan(*firstValue))
+            {
+                printf("At time %lf ms, first value of V is NaN\n", actualTime);
+                exit(1);
+            }
+
             // Update time step counter
             timeStepCounter++;
         }
