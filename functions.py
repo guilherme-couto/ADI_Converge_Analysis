@@ -62,6 +62,9 @@ def read_errors(method, dts, dxs, theta, real_type):
         if method == 'theta-ADI':
             infos_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/infos_{dt}_{dx}.txt'
         
+        if not os.path.exists(infos_path):
+            raise FileNotFoundError(f'File {infos_path} not found')                                             
+            
         with open(infos_path, 'r') as file:
             for line in file:
                 if 'Norm-2 Error' in line:
@@ -91,7 +94,12 @@ def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.
     
     if method != 'theta-ADI':
         # Read data from the text file
-        data_last = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data_last = np.genfromtxt(file_path, dtype=float)
 
         if max_value == 0.0 and min_value == 0.0:
             # Get the greater value to be the vmax
@@ -114,7 +122,12 @@ def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.
     
     else:
         # Read data from the text file
-        data_last = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/last_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/last_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data_last = np.genfromtxt(file_path, dtype=float)
 
         # Plot the last
         plt.figure(figsize=(6, 6))
@@ -138,10 +151,20 @@ def plot_last_frame_and_exact(method, dt, dx, real_type, serial_or_gpu, problem,
     if method != 'theta-ADI':
 
         # Read data from the text file
-        data_last = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data_last = np.genfromtxt(file_path, dtype=float)
 
         # Read data from the text file
-        data_exact = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data_exact = np.genfromtxt(file_path, dtype=float)
 
         # Get the greater value to be the vmax
         max_value = data_last.max()
@@ -184,7 +207,12 @@ def plot_exact(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
     if method != 'theta-ADI':
 
         # Read data from the text file
-        data = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data = np.genfromtxt(file_path, dtype=float)
 
         # Plot the data
         plt.figure()
@@ -207,7 +235,12 @@ def plot_errors(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00')
     if method != 'theta-ADI':
 
         # Read data from the text file
-        data = np.genfromtxt(f'./simulation_files/{real_type}/{cell_model}/{method}/errors_{dt}_{dx}.txt', dtype=float)
+        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/errors_{dt}_{dx}.txt'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        data = np.genfromtxt(file_path, dtype=float)
 
         # Plot the data
         plt.figure()
@@ -235,6 +268,10 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
     frames_file = f'./simulation_files/{real_type}/{cell_model}/{method}/frames_{dt}_{dx}.txt'
     if method == 'theta-ADI':
         frames_file = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/frames_{dt}_{dx}.txt'
+    
+    if not os.path.exists(frames_file):
+        raise FileNotFoundError(f'File {frames_file} not found')
+        
     f = open(frames_file, 'r')
     
     line = f.readline()
@@ -303,12 +340,14 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
 def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gpu="SERIAL", problem="MONOAFHN"):
     
     # Create directories
-    if not os.path.exists(f'./simulation_files/simulation_graphs'):
-        os.makedirs(f'./simulation_files/simulation_graphs')
-    if not os.path.exists(f'./simulation_files/simulation_analysis'):
-        os.makedirs(f'./simulation_files/simulation_analysis')
+    graph_dir = f'./simulation_files/simulation_graphs'
+    if not os.path.exists(graph_dir):
+        os.makedirs(graph_dir)
+    convergence_analysis_dir = f'./simulation_files/simulation_analysis'
+    if not os.path.exists(convergence_analysis_dir):
+        os.makedirs(convergence_analysis_dir)
 
-    analysis_path = f'./simulation_files/simulation_analysis/analysis_{real_type}_{serial_or_gpu}_{problem}.txt'
+    analysis_path = f'{convergence_analysis_dir}/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}.txt'
     analysis_file = open(analysis_path, 'w')
 
     plt.figure()
@@ -356,5 +395,24 @@ def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gp
     plt.ylabel('Error')
     plt.title(f'Convergence Analysis - 2nd Order (a = {(alpha):.3f})')
     plt.legend()
-    plt.savefig(f'./simulation_files/simulation_graphs/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}.png')
+    plt.savefig(f'{graph_dir}/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}.png')
     plt.close()
+    
+def read_values_with_rate(filename, rate):
+    selected_values = []
+    
+    with open(filename, 'r') as file:
+        
+        # Read the file line by line
+        for line_index, line in enumerate(file):
+            
+            # If the line index is multiple of the rate, select the line
+            if line_index % rate == 0:
+            
+                values = line.split()
+                values = [float(value) for value in values]
+                
+                # Select columns with the rate
+                selected_values.extend(values[::rate])
+    
+    return selected_values

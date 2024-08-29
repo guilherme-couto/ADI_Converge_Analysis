@@ -29,13 +29,14 @@ const real stim2yMin = 0.0;               // Stimulation y min -> cm
 
 #ifdef GPU
 const __constant__ int L = 2;   // Length of each side (cm)
-const real T = 1;             // Total time (ms)
+const real T = 300;             // Total time (ms)
+
+#ifdef SAVE_FRAMES
+// Save frames parameters
+const int numberOfFrames = 100;
+#endif // SAVE_FRAMES
 
 #ifdef MONOAFHN
-// Save frames parameters
-const bool saveFrames = false;
-const int numberOfFrames = 100;
-
 // Initial conditions
 const real V0 = 0.0;
 const real W0 = 0.0;

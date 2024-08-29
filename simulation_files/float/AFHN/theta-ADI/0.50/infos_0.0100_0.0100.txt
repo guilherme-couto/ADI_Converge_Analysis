@@ -6,7 +6,7 @@ Method theta-ADI
 For Approx, ODEs and Transpose -> Grid size 1263, Block size 32
 Total threads: 40416
 
-For Thomas -> Grid size: 1, Block size: 202
-Total threads: 202
+For Thomas -> Grid size: 2, Block size: 128
+Total threads: 256
 
-Total execution time = 21.084961
+Total execution time = 9.398438

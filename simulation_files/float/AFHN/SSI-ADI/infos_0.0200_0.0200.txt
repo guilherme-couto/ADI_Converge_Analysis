@@ -6,7 +6,7 @@ Method SSI-ADI
 For Approx, ODEs and Transpose -> Grid size 319, Block size 32
 Total threads: 10208
 
-For Thomas -> Grid size: 1, Block size: 102
-Total threads: 102
+For Thomas -> Grid size: 1, Block size: 128
+Total threads: 128
 
-Total execution time = 4.232666
+Total execution time = 4.013672

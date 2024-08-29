@@ -110,6 +110,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     createDirectories(method, theta, pathToSaveData);
     
+    #ifdef SAVE_FRAMES
     // Save frames
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
@@ -120,6 +121,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
         fpFrames = fopen(framesPath, "w");
         frameSaveRate = ceil(M / numberOfFrames);
     }
+    #endif // SAVE_FRAMES
     
     int timeStepCounter = 0;
     real actualTime = 0.0;
@@ -183,6 +185,20 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
             cudaDeviceSynchronize();
 
+            #ifdef SAVE_FRAMES
+            // If save frames is true and time step is multiple of frame save rate
+            if (timeStepCounter % frameSaveRate == 0)
+            {
+                // Copy memory of d_V from device to host V
+                CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
+                cudaDeviceSynchronize();
+
+                // Save frame
+                saveFrame(fpFrames, actualTime, V, N);
+                printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
+            }
+            #endif // SAVE_FRAMES
+
             // Update time step counter
             timeStepCounter++;
         }
@@ -231,8 +247,9 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
             cudaDeviceSynchronize();
 
+            #ifdef SAVE_FRAMES
             // If save frames is true and time step is multiple of frame save rate
-            if (saveFrames && timeStepCounter % frameSaveRate == 0)
+            if (timeStepCounter % frameSaveRate == 0)
             {
                 // Copy memory of d_V from device to host V
                 CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
@@ -242,6 +259,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                 saveFrame(fpFrames, actualTime, V, N);
                 printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
             }
+            #endif // SAVE_FRAMES
 
             // Update time step counter
             timeStepCounter++;
