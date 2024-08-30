@@ -1,6 +1,8 @@
 *.csv
 frames_*.txt
 last*.txt
+*.gif
+
 # Prerequisites
 *.d
 

@@ -9,4 +9,4 @@ Total threads: 40416
 For Thomas -> Grid size: 2, Block size: 128
 Total threads: 256
 
-Total execution time = 9.570312
+Total execution time = 22.391602

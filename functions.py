@@ -81,7 +81,7 @@ def calculate_slopes(errors, dts):
     return slopes
 
 def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = './simulation_files/simulation_figures'
+    save_dir = f'./simulation_files/simulation_figures/{method}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
     
@@ -113,7 +113,7 @@ def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.
         plt.colorbar(label='Value', fraction=0.04, pad=0.04)
         plt.xticks([])
         plt.yticks([])
-        plt.title(f'Last frame {method} dt={dt} dx={dx}')
+        plt.title(f'Last frame dt={dt} dx={dx}')
         plt.tight_layout()
         plt.savefig(f'{save_dir}/last_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
         plt.close()
@@ -135,7 +135,7 @@ def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.
         plt.colorbar(label='Value', fraction=0.04, pad=0.04)
         plt.xticks([])
         plt.yticks([])
-        plt.title(f'Last frame {method} ({theta}) dt={dt} dx={dx}')
+        plt.title(f'Last frame ({theta}) dt={dt} dx={dx}')
         plt.tight_layout()
         plt.savefig(f'{save_dir}/last_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.png')
         plt.close()
@@ -228,7 +228,7 @@ def plot_exact(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
         print("Dont have support for theta-ADI method in plot_exact function yet")
 
 def plot_errors(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = './simulation_files/simulation_figures'
+    save_dir = './simulation_files/simulation_errors_figures'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
@@ -254,6 +254,30 @@ def plot_errors(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00')
     
     else:
         print("Dont have support for theta-ADI method in plot_errors function yet")
+
+def plot_difference_map_from_data(data, method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
+    save_dir = f'./simulation_files/simulation_difference_figures/{method}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+    
+    side_length = int(np.sqrt(len(data)))
+    data = abs(data)
+    data = data.reshape((side_length, side_length))
+    # Plot the data
+    plt.figure(figsize=(6, 6))
+    plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=40)
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout()
+    if method != 'theta-ADI':
+        plt.title(f'Differences dt={dt} dx={dx} (max_error={(data.max()):.2f})')
+        plt.savefig(f'{save_dir}/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
+    else:
+        plt.title(f'Differences ({theta}) dt={dt} dx={dx} (max_error={(data.max()):.2f})')
+        plt.savefig(f'{save_dir}/errors_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.png')
+    plt.close()
+    print(f'Difference map saved to {save_dir}/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
 
 def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
     # Create gif directory

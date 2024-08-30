@@ -3,7 +3,7 @@ import os
 from functions import *
 
 def main():
-    dts = ['0.0050', '0.0100', '0.0200']
+    dts = ['0.0050', '0.0100', '0.0200', '0.0300', '0.0400', '0.0500']
     dxs = ['0.0050', '0.0100', '0.0200']
     methods = ['SSI-ADI', 'theta-ADI']
     thetas = ['0.50', '0.66', '1.00']
@@ -17,6 +17,7 @@ def main():
     for dx in dxs:
         if float(dx) > base_dx:
             base_dx = float(dx)
+    base_dx = 0.01
     
     # Read reference solution
     reference_discr = '0.0005'
@@ -50,7 +51,8 @@ def main():
             prev_error = 0
             for i in range(len(dts)):
                 dt = dts[i]
-                dx = dxs[i]
+                # dx = dxs[i]
+                dx = '0.0100'
                                     
                 simulation_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
                 
@@ -62,8 +64,12 @@ def main():
                 simulation_data = read_values_with_rate(simulation_path, int(base_dx/float(dx)))
                 print(f'Simulation file read successfully. Total size: {len(simulation_data)}')
                 
+                # Plot difference map between reference and simulation
+                difference = np.array(simulation_data) - np.array(reference_data)
+                plot_difference_map_from_data(difference, method, dt, dx, real_type, serial_or_gpu, problem)                
+                
                 # Calculate the N-2 error
-                n2_error = np.linalg.norm(np.array(simulation_data) - np.array(reference_data), 2)
+                n2_error = np.linalg.norm(difference, 2) * float(dx)
                 print(f'N-2 error: {n2_error}')
                 
                 # Calculate the convergence rate (slope)
@@ -91,7 +97,8 @@ def main():
                 prev_error = 0
                 for i in range(len(dts)):
                     dt = dts[i]
-                    dx = dxs[i]
+                    # dx = dxs[i]
+                    dx = '0.0100'
                                         
                     simulation_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/last_{dt}_{dx}.txt'
                     
@@ -103,8 +110,12 @@ def main():
                     simulation_data = read_values_with_rate(simulation_path, int(base_dx/float(dx)))
                     print(f'Simulation file read successfully. Total size: {len(simulation_data)}')
                     
+                    # Plot difference map between reference and simulation
+                    difference = np.array(simulation_data) - np.array(reference_data)
+                    plot_difference_map_from_data(difference, method, dt, dx, real_type, serial_or_gpu, problem, theta)                
+                    
                     # Calculate the N-2 error
-                    n2_error = np.linalg.norm(np.array(simulation_data) - np.array(reference_data), 2)
+                    n2_error = np.linalg.norm(difference, 2) * float(dx)
                     print(f'N-2 error: {n2_error}')
                     
                     # Calculate the convergence rate (slope)

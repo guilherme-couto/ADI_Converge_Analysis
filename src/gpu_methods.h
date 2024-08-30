@@ -115,12 +115,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
     int frameSaveRate;
-    if (saveFrames)
-    {
-        snprintf(framesPath, MAX_STRING_SIZE*sizeof(char), "%s/frames_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
-        fpFrames = fopen(framesPath, "w");
-        frameSaveRate = ceil(M / numberOfFrames);
-    }
+    snprintf(framesPath, MAX_STRING_SIZE*sizeof(char), "%s/frames_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    fpFrames = fopen(framesPath, "w");
+    frameSaveRate = ceil(M / numberOfFrames);
+    
     #endif // SAVE_FRAMES
     
     int timeStepCounter = 0;
