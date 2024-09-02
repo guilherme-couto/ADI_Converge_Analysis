@@ -10,7 +10,7 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#define MAX_STRING_SIZE 100
+#define MAX_STRING_SIZE 200
 
 #define BDIMX 16
 #define BDIMY 16
@@ -27,12 +27,25 @@ typedef float real;
 
 // Define execution type via compile command line (-D{OPTION}, SERIAL or GPU)
 // TODO: editar depois. Fazendo apenas para testes
-// O ideal vai ser colocar #ifndef GPU, define SERIAL e MONOAFHN
+// O ideal vai ser colocar #ifndef GPU, define SERIAL, MONODOMAIN e AFHN
 // assim SERIAL fica como padrão e GPU só é definido se for passado como argumento
 #ifndef SERIAL 
-#define MONOAFHN 
-#define GPU 
-#endif 
+#define MONODOMAIN
+#define AFHN
+#define GPU
+#endif // not SERIAL
+
+#ifdef SERIAL
+#define EXECUTION_TYPE "SERIAL";
+#endif // SERIAL
+#ifdef GPU
+#define EXECUTION_TYPE "GPU"
+#endif // GPU
+
+#ifdef AFHN
+#define CELL_MODEL "AFHN"
+#endif // AFHN
+
 
 // Define CUDA error checking
 #ifdef GPU
@@ -59,15 +72,28 @@ do { \
 //         dv/dt = sigma*Lap(v) + forcing
 //         Boundaries: Neumann
 //
-// MONOAFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
-//             { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm + forcing/(chi*Cm)
-//             { dw/dt = RHS_w
-//             RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
-//             RHS_w = eta2 * ((v/vp)-(eta3*w))
-//             Boundaries: Neumann
+// MONODOMAIN with AFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
+//                         { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm + forcing/(chi*Cm)
+//                         { dw/dt = RHS_w
+//                         RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
+//                         RHS_w = eta2 * ((v/vp)-(eta3*w))
+//                         Boundaries: Neumann
 
-// Define stimulus structure for MONOAFHN
-#ifdef MONOAFHN
+#ifdef LINMONO
+#define PROBLEM "LINMONO"
+#endif // LINMONO
+#ifdef DIFFREAC
+#define PROBLEM "DIFFREAC"
+#endif // DIFFREAC
+#ifdef DIFF
+#define PROBLEM "DIFF"
+#endif // DIFF
+#ifdef MONODOMAIN
+#define PROBLEM "MONODOMAIN"
+#endif // MONODOMAIN
+
+// Define stimulus structure for MONODOMAIN with AFHN model
+#ifdef MONODOMAIN
 typedef struct {
     real strength;
     real begin;
@@ -77,7 +103,13 @@ typedef struct {
     int yMaxDisc;
     int yMinDisc;
 } Stimulus;
-#endif // MONOAFHN
+
+typedef struct {
+    #ifdef AFHN
+    real W;
+    #endif // AFHN
+} stateVariables;
+#endif // MONODOMAIN
 
 // If defined SERIAL, constants are defined only as const for CPU
 #ifdef SERIAL
@@ -95,7 +127,7 @@ const real sigma = 1.0;
 #ifdef DIFF
 const real sigma = 1.0;
 #endif // DIFF
-#ifdef MONOAFHN
+#if defined(MONODOMAIN) && defined(AFHN)
 #ifdef CONVERGENCE_ANALYSIS
 const real G = 1.0;         // omega^-1 * cm^-2
 const real eta1 = 1.0;      // omega^-1 * cm^-1
@@ -118,7 +150,7 @@ const real sigma = 1.2e-3;                // omega^-1 * cm^-1
 const real chi = 1.0e3;                   // cm^-1
 const real Cm = 1.0e-3;                   // mF * cm^-2
 #endif // CONVERGENCE_ANALYSIS
-#endif // MONOAFHN
+#endif // MONODOMAIN && AFHN
 #endif // SERIAL
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU
@@ -137,7 +169,7 @@ const __constant__ real sigma = 1.0;
 #ifdef DIFF
 const __constant__ real sigma = 1.0;
 #endif // DIFF
-#ifdef MONOAFHN
+#if defined(MONODOMAIN) && defined(AFHN)
 #ifdef CONVERGENCE_ANALYSIS
 const __constant__ real G = 1.0;         // omega^-1 * cm^-2
 const __constant__ real eta1 = 1.0;      // omega^-1 * cm^-1
@@ -160,7 +192,7 @@ const __constant__ real sigma = 1.2e-3;                // omega^-1 * cm^-1
 const __constant__ real chi = 1.0e3;                   // cm^-1
 const __constant__ real Cm = 1.0e-3;                   // mF * cm^-2
 #endif // CONVERGENCE_ANALYSIS
-#endif // MONOAFHN
+#endif // MONODOMAIN && AFHN
 #endif // GPU
 
 #endif // INCLUDE_H

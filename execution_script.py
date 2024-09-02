@@ -8,7 +8,8 @@ def main():
     
     real_type = 'float'
     serial_or_gpu = 'GPU'
-    problem = 'MONOAFHN'
+    problem = 'MONODOMAIN'
+    cell_model = 'AFHN'
     init = 'spiral'
     frames = True
     
@@ -22,8 +23,10 @@ def main():
         compile_command += '-DGPU '
     elif serial_or_gpu == 'CPU':
         compile_command += '-DSERIAL '
-    if problem == 'MONOAFHN':
-        compile_command += '-DMONOAFHN '
+    if problem == 'MONODOMAIN':
+        compile_command += '-DMONODOMAIN '
+    if cell_model == 'AFHN':
+        compile_command += '-DAFHN '
     if init == 'spiral':
         compile_command += '-DINIT_WITH_SPIRAL '
     if frames:
@@ -43,8 +46,8 @@ def main():
                 tts = thetas
             for theta in tts:
                 os.system(f'./convergence {method} {dt} {dx} {theta}')
-                plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta)
-                create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta)
+                plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
+                create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
 
 if __name__ == '__main__':
     main()

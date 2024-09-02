@@ -7,7 +7,7 @@
 const int L = 1;        // Length of each side (cm)
 const real T = 0.1;     // Total time (ms)
 
-#ifdef MONOAFHN
+#ifdef MONODOMAIN
 // Stimulation parameters
 const real stimStrength = 100.0;
 
@@ -24,7 +24,7 @@ const real stim2xMax = 1.0;               // Stimulation x max -> cm
 const real stim2yMax = 1.0;               // Stimulation y max -> cm
 const real stim2xMin = 0.0;               // Stimulation x min -> cm
 const real stim2yMin = 0.0;               // Stimulation y min -> cm
-#endif // MONOAFHN
+#endif // MONODOMAIN
 #endif // SERIAL
 
 #ifdef GPU
@@ -36,10 +36,12 @@ const real T = 300;             // Total time (ms)
 const int numberOfFrames = 100;
 #endif // SAVE_FRAMES
 
-#ifdef MONOAFHN
+#ifdef MONODOMAIN
 // Initial conditions
+#ifdef AFHN
 const real V0 = 0.0;
 const real W0 = 0.0;
+#endif // AFHN
 
 // Stimulation parameters
 const __constant__ int numberOfStimuli = 2;            // Number of stimuli
@@ -50,7 +52,7 @@ const real stimulixMax[] = {0.2, 1.0};                 // Stimuli x max -> cm
 const real stimulixMin[] = {0.0, 0.0};                 // Stimuli x min -> cm
 const real stimuliyMax[] = {2.0, 1.0};                 // Stimuli y max -> cm
 const real stimuliyMin[] = {0.0, 0.0};                 // Stimuli y min -> cm
-#endif // MONOAFHN
+#endif // MONODOMAIN
 #endif // GPU
 
 #endif // SIMULATION_CONFIG_H

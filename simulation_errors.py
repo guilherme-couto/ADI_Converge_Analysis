@@ -10,7 +10,8 @@ def main():
     
     real_type = 'float'
     serial_or_gpu = 'GPU'
-    problem = 'MONOAFHN'
+    problem = 'MONODOMAIN'
+    cell_model = 'AFHN'
     
     # Find the largest dx to use as base for the read rate
     base_dx = 0
@@ -21,7 +22,7 @@ def main():
     
     # Read reference solution
     reference_discr = '0.0005'
-    reference_solution_path = f'./reference_solutions/{real_type}/{cell_model}/last_{reference_discr}_{reference_discr}.txt'
+    reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_discr}_{reference_discr}.txt'
     
     if not os.path.exists(reference_solution_path):
         raise FileNotFoundError(f'Reference solution not found at {reference_solution_path}')
@@ -33,11 +34,11 @@ def main():
     
     for method in methods:
         # Create error analysis file
-        error_analysis_dir = f'./simulation_files/simulation_analysis/{method}'
+        error_analysis_dir = f'./simulation_files/analysis/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
         if not os.path.exists(error_analysis_dir):
             os.makedirs(error_analysis_dir)
             
-        error_analysis_path = f'{error_analysis_dir}/error_analysis_{real_type}_{serial_or_gpu}_{problem}.txt'
+        error_analysis_path = f'{error_analysis_dir}/error_analysis.txt'
         ea_file = open(error_analysis_path, 'w')
         
         # Prepare error analysis file
@@ -54,8 +55,7 @@ def main():
                 # dx = dxs[i]
                 dx = '0.0100'
                                     
-                simulation_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
-                
+                simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
                 if not os.path.exists(simulation_path):
                     raise FileNotFoundError(f'Simulation file not found at {simulation_path}')
                 
@@ -66,7 +66,7 @@ def main():
                 
                 # Plot difference map between reference and simulation
                 difference = np.array(simulation_data) - np.array(reference_data)
-                plot_difference_map_from_data(difference, method, dt, dx, real_type, serial_or_gpu, problem)                
+                plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx)                
                 
                 # Calculate the N-2 error
                 n2_error = np.linalg.norm(difference, 2) * float(dx)
@@ -100,8 +100,7 @@ def main():
                     # dx = dxs[i]
                     dx = '0.0100'
                                         
-                    simulation_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/last_{dt}_{dx}.txt'
-                    
+                    simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
                     if not os.path.exists(simulation_path):
                         raise FileNotFoundError(f'Simulation file not found at {simulation_path}')
                     
@@ -112,7 +111,7 @@ def main():
                     
                     # Plot difference map between reference and simulation
                     difference = np.array(simulation_data) - np.array(reference_data)
-                    plot_difference_map_from_data(difference, method, dt, dx, real_type, serial_or_gpu, problem, theta)                
+                    plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)                
                     
                     # Calculate the N-2 error
                     n2_error = np.linalg.norm(difference, 2) * float(dx)

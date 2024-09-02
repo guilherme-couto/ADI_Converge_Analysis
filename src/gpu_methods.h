@@ -26,14 +26,20 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     initialize2DVariableWithValue(V, N, V0);
     #endif // CONVERGENCE_ANALYSIS
 
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     real *W = (real *)malloc(N * N * sizeof(real));
     initialize2DVariableWithValue(W, N, W0);
-    #endif // MONOAFHN
+    #endif // AFHN
+    #endif // MONODOMAIN
 
     #ifdef INIT_WITH_SPIRAL
-    initialize2DVariableFromFile(V, N, "./spiral_files/lastV_0.0005_0.0005.txt", delta_x);
-    initialize2DVariableFromFile(W, N, "./spiral_files/lastW_0.0005_0.0005.txt", delta_x);
+    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x);
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x);
+    free(pathToSpiralFiles);
     #endif // INIT_WITH_SPIRAL
 
     // Auxiliary arrays for Thomas algorithm
@@ -74,14 +80,16 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
     
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     real *d_W;
     CUDA_CALL(cudaMalloc(&d_W, N * N * sizeof(real)));
     CUDA_CALL(cudaMemcpy(d_W, W, N * N * sizeof(real), cudaMemcpyHostToDevice));
-    #endif // MONOAFHN
+    #endif // AFHN
+    #endif // MONODOMAIN
 
     #ifndef CONVERGENCE_ANALYSIS
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
     populateStimuli(stimuli, delta_x);
@@ -90,8 +98,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     Stimulus *d_stimuli;
     CUDA_CALL(cudaMalloc(&d_stimuli, numberOfStimuli * sizeof(Stimulus)));
     CUDA_CALL(cudaMemcpy(d_stimuli, stimuli, numberOfStimuli * sizeof(Stimulus), cudaMemcpyHostToDevice));
-    #endif // MONOAFHN
-    #endif // not def CONVERGENCE_ANALYSIS
+    #endif // MONODOMAIN
+    #endif // not CONVERGENCE_ANALYSIS
 
     // CUDA grid and block allocation
     // For Thomas algorithm kernel
@@ -115,7 +123,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
     int frameSaveRate;
-    snprintf(framesPath, MAX_STRING_SIZE*sizeof(char), "%s/frames_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(framesPath, MAX_STRING_SIZE*sizeof(char), "%s/frames/frames_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     fpFrames = fopen(framesPath, "w");
     frameSaveRate = ceil(M / numberOfFrames);
     
@@ -139,7 +147,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
         }
     }
 
-    #if defined LINMONO || defined MONOAFHN
+    #if defined(LINMONO) || defined(MONODOMAIN)
     else if (strcmp(method, "SSI-ADI") == 0)
     {
         while (timeStepCounter < M)
@@ -263,7 +271,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             timeStepCounter++;
         }
     }
-    #endif // LINMONO || MONOAFHN
+    #endif // LINMONO || MONODOMAIN
 
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
@@ -283,7 +291,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE*sizeof(char), "%s/infos_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(infosFilePath, MAX_STRING_SIZE*sizeof(char), "%s/infos/infos_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpInfos = fopen(infosFilePath, "w");
     printf("Infos saved to %s\n", infosFilePath);
     fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
@@ -302,16 +310,16 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE*sizeof(char), "%s/last_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE*sizeof(char), "%s/lastframe/last_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
     printf("Last frame saved to %s\n", lastFrameFilePath);
     #ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE*sizeof(char), "%s/exact_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(exactFilePath, MAX_STRING_SIZE*sizeof(char), "%s/exact/exact_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpExact = fopen(exactFilePath, "w");
     printf("Exact solution saved to %s\n", exactFilePath);
     char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE*sizeof(char), "%s/errors_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(errorsFilePath, MAX_STRING_SIZE*sizeof(char), "%s/errors/errors_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpErrors = fopen(errorsFilePath, "w");
     printf("Errors saved to %s\n", errorsFilePath);
     #endif // CONVERGENCE_ANALYSIS
@@ -357,10 +365,12 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(lb);
     free(lc);
     free(pathToSaveData);
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     free(W);
+    #endif // AFHN
     free(stimuli);
-    #endif // MONOAFHN
+    #endif // MONODOMAIN
 
     // Free memory from device
     CUDA_CALL(cudaFree(d_V));
@@ -370,10 +380,12 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaFree(d_la));
     CUDA_CALL(cudaFree(d_lb));
     CUDA_CALL(cudaFree(d_lc));
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     CUDA_CALL(cudaFree(d_W));
+    #endif // AFHN
     CUDA_CALL(cudaFree(d_stimuli));
-    #endif // MONOAFHN
+    #endif // MONODOMAIN
 
     // Reset device
     CUDA_CALL(cudaDeviceReset());

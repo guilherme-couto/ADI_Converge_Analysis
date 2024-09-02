@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import os
 import imageio.v2
 
-cell_model = 'AFHN'
-
 def get_gpu_architecture():
     try:
         # Run `nvidia-smi` and get the output
@@ -24,7 +22,7 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, problem):
+def run_all_simulations(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
     
     if real_type == 'float':
         double_or_float = 'USE_FLOAT'
@@ -34,7 +32,7 @@ def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, prob
         raise ValueError('Invalid real type')
     
     # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -D{double_or_float} -D{serial_or_gpu} -D{problem}'
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
     print(f'Compiling {compile_command}...')
     os.system(compile_command)
 
@@ -52,15 +50,15 @@ def run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, prob
             print(f'Executing {simulation_line}...')
             os.system(simulation_line)
 
-def read_errors(method, dts, dxs, theta, real_type):
+def read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, theta='0.00'):
     errors = []
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
         
-        infos_path = f'./simulation_files/{real_type}/{cell_model}/{method}/infos_{dt}_{dx}.txt'
+        infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/infos/infos_{dt}_{dx}.txt'
         if method == 'theta-ADI':
-            infos_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/infos_{dt}_{dx}.txt'
+            infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/infos/infos_{dt}_{dx}.txt'
         
         if not os.path.exists(infos_path):
             raise FileNotFoundError(f'File {infos_path} not found')                                             
@@ -80,189 +78,194 @@ def calculate_slopes(errors, dts):
         slopes.append(f'{(slope):.3f}')
     return slopes
 
-def plot_last_frame(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = f'./simulation_files/simulation_figures/{method}'
+def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
     
     max_value = 0.0
     min_value = 0.0
     
-    if problem == 'MONOAFHN':
+    if problem == 'MONODOMAIN' and cell_model == 'AFHN':
         max_value = 100.0
         min_value = 0.0
     
     if method != 'theta-ADI':
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data_last = np.genfromtxt(file_path, dtype=float)
-
-        if max_value == 0.0 and min_value == 0.0:
-            # Get the greater value to be the vmax
-            max_value = data_last.max()
-            # Get the minimum value to be the vmin
-            min_value = data_last.min()
-            
-        # Plot the last
-        plt.figure(figsize=(6, 6))
-        plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Last frame dt={dt} dx={dx}')
-        plt.tight_layout()
-        plt.savefig(f'{save_dir}/last_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
-        
-        print(f'Last frame saved to {save_dir}/last_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-    
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
+        title = f'Last frame dt={dt} dx={dx}'
     else:
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/last_{dt}_{dx}.txt'
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
+        title = f'Last frame ({theta}) dt={dt} dx={dx}'
         
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data_last = np.genfromtxt(file_path, dtype=float)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f'File {file_path} not found')
+    
+    # Read data from the text file
+    data_last = np.genfromtxt(file_path, dtype=float)
 
-        # Plot the last
-        plt.figure(figsize=(6, 6))
-        plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Last frame ({theta}) dt={dt} dx={dx}')
-        plt.tight_layout()
-        plt.savefig(f'{save_dir}/last_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
-        
-        print(f'Last frame saved to {save_dir}/last_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.png')
-
-def plot_last_frame_and_exact(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = './simulation_files/simulation_figures'
-    if not os.path.exists(f'{save_dir}'):
-        os.makedirs(f'{save_dir}')
-        
-        
-    if method != 'theta-ADI':
-
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/last_{dt}_{dx}.txt'
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data_last = np.genfromtxt(file_path, dtype=float)
-
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt'
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data_exact = np.genfromtxt(file_path, dtype=float)
-
+    if max_value == 0.0 and min_value == 0.0:
         # Get the greater value to be the vmax
         max_value = data_last.max()
-        if data_exact.max() > max_value:
-            max_value = data_exact.max()
-
         # Get the minimum value to be the vmin
         min_value = data_last.min()
-        if data_exact.min() > min_value:
-            min_value = data_exact.min()
-
-        # Plot the last
-        plt.figure()
-        plt.imshow(data_last, cmap='viridis', vmin=-1.0, vmax=1.0, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Last dt={dt} dx={dx}')
-        plt.savefig(f'{save_dir}/last_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
-
-        # Plot the exact
-        plt.figure()
-        plt.imshow(data_exact, cmap='viridis', vmin=-1.0, vmax=1.0, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Exact dt={dt} dx={dx}')
-        plt.savefig(f'{save_dir}/exact_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
         
-    else:
-        print("Dont have support for theta-ADI method in plot_last_frame_and_exact function yet")
-
-def plot_exact(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = './simulation_files/simulation_figures'
-    if not os.path.exists(f'{save_dir}'):
-        os.makedirs(f'{save_dir}')
-        
-    if method != 'theta-ADI':
-
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/exact_{dt}_{dx}.txt'
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data = np.genfromtxt(file_path, dtype=float)
-
-        # Plot the data
-        plt.figure()
-        plt.imshow(data, cmap='viridis', vmin=0, vmax=5, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Exact dt={dt} dx={dx}')
-        plt.savefig(f'{save_dir}/exact_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
-        
-    else:
-        print("Dont have support for theta-ADI method in plot_exact function yet")
-
-def plot_errors(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = './simulation_files/simulation_errors_figures'
-    if not os.path.exists(f'{save_dir}'):
-        os.makedirs(f'{save_dir}')
-        
-    if method != 'theta-ADI':
-
-        # Read data from the text file
-        file_path = f'./simulation_files/{real_type}/{cell_model}/{method}/errors_{dt}_{dx}.txt'
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f'File {file_path} not found')
-        
-        data = np.genfromtxt(file_path, dtype=float)
-
-        # Plot the data
-        plt.figure()
-        plt.imshow(data, cmap='viridis', origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(f'Errors dt={dt} dx={dx} (max_error={data.max()})')
-        plt.savefig(f'{save_dir}/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-        plt.close()
+    # Plot the last
+    plt.figure(figsize=(6, 6))
+    plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(f'{title}')
+    plt.tight_layout()
+    plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+    plt.close()
     
-    else:
-        print("Dont have support for theta-ADI method in plot_errors function yet")
+    print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
 
-def plot_difference_map_from_data(data, method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
-    save_dir = f'./simulation_files/simulation_difference_figures/{method}'
+def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+        
+        
+    if method != 'theta-ADI':
+        file_path_last = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
+        file_path_exact = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
+        title_last = f'Last frame dt={dt} dx={dx}'
+        title_exact = f'Exact dt={dt} dx={dx}'
+    else:
+        file_path_last = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
+        file_path_exact = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact_{dt}_{dx}.txt'
+        title_last = f'Last frame ({theta}) dt={dt} dx={dx}'
+        title_exact = f'Exact ({theta}) dt={dt} dx={dx}'
+        
+    if not os.path.exists(file_path_last):
+        raise FileNotFoundError(f'File {file_path_last} not found')
+    if not os.path.exists(file_path_exact):
+        raise FileNotFoundError(f'File {file_path_exact} not found')
+    
+    # Read data from the text file
+    data_last = np.genfromtxt(file_path_last, dtype=float)    
+    data_exact = np.genfromtxt(file_path_exact, dtype=float)
+
+    # Get the greater value to be the vmax
+    max_value = data_last.max()
+    if data_exact.max() > max_value:
+        max_value = data_exact.max()
+
+    # Get the minimum value to be the vmin
+    min_value = data_last.min()
+    if data_exact.min() > min_value:
+        min_value = data_exact.min()
+
+    # Plot the last
+    plt.figure()
+    plt.imshow(data_last, cmap='viridis', vmin=-1.0, vmax=1.0, origin='lower')
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(f'{title_last}')
+    plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+    plt.close()
+    
+    print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
+
+    # Plot the exact
+    plt.figure()
+    plt.imshow(data_exact, cmap='viridis', vmin=-1.0, vmax=1.0, origin='lower')
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(f'{title_exact}')
+    plt.savefig(f'{save_dir}/exact_{dt}_{dx}.png')
+    plt.close()
+    
+    print(f'Exact saved to {save_dir}/exact_{dt}_{dx}.png')
+
+def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+        
+    if method != 'theta-ADI':
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
+        title = f'Exact dt={dt} dx={dx}'
+    else:
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact_{dt}_{dx}.txt'
+        title = f'Exact ({theta}) dt={dt} dx={dx}'   
+        
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f'File {file_path} not found')
+    
+    # Read data from the text file
+    data = np.genfromtxt(file_path, dtype=float)
+
+    # Plot the data
+    plt.figure()
+    plt.imshow(data, cmap='viridis', vmin=0, vmax=5, origin='lower')
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(f'{title}')
+    plt.savefig(f'{save_dir}/exact_{dt}_{dx}.png')
+    plt.close()
+    
+    print(f'Exact saved to {save_dir}/exact_{dt}_{dx}.png')
+    
+def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/errors_figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+        
+    if method != 'theta-ADI':
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/errors/errors_{dt}_{dx}.txt'
+        title = f'Errors dt={dt} dx={dx}'
+    else:
+        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/errors/errors_{dt}_{dx}.txt'
+        title = f'Errors ({theta}) dt={dt} dx={dx}'
+        
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f'File {file_path} not found')
+    
+    # Read data from the text file
+    data = np.genfromtxt(file_path, dtype=float)
+
+    # Plot the data
+    plt.figure()
+    plt.imshow(data, cmap='viridis', origin='lower')
+    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(f'{title} (max_error={data.max()})')
+    plt.savefig(f'{save_dir}/errors_{dt}_{dx}.png')
+    plt.close()
+    
+    print(f'Errors saved to {save_dir}/errors_{dt}_{dx}.png')
+
+def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/difference_maps/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
     
     side_length = int(np.sqrt(len(data)))
     data = abs(data)
     data = data.reshape((side_length, side_length))
+    
+    if method != 'theta-ADI':
+        title = f'DiffMap dt={dt} dx={dx}'
+    else:
+        title = f'DiffMap ({theta}) dt={dt} dx={dx}'
+    
     # Plot the data
     plt.figure(figsize=(6, 6))
     plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=40)
@@ -270,18 +273,17 @@ def plot_difference_map_from_data(data, method, dt, dx, real_type, serial_or_gpu
     plt.xticks([])
     plt.yticks([])
     plt.tight_layout()
-    if method != 'theta-ADI':
-        plt.title(f'Differences dt={dt} dx={dx} (max_error={(data.max()):.2f})')
-        plt.savefig(f'{save_dir}/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
-    else:
-        plt.title(f'Differences ({theta}) dt={dt} dx={dx} (max_error={(data.max()):.2f})')
-        plt.savefig(f'{save_dir}/errors_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.png')
+    plt.title(f'{title} (max_error={(data.max()):.2f})')
+    plt.savefig(f'{save_dir}/diffmap_{dt}_{dx}.png')
     plt.close()
-    print(f'Difference map saved to {save_dir}/errors_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.png')
+    
+    print(f'Difference map saved to {save_dir}/diffmap_{dt}_{dx}.png')
 
-def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
+def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     # Create gif directory
-    save_dir = './simulation_files/simulation_gifs'
+    save_dir = f'./simulation_files/gifs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
@@ -289,9 +291,12 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
     frame = []
     frames = []
 
-    frames_file = f'./simulation_files/{real_type}/{cell_model}/{method}/frames_{dt}_{dx}.txt'
-    if method == 'theta-ADI':
-        frames_file = f'./simulation_files/{real_type}/{cell_model}/{method}/{theta}/frames_{dt}_{dx}.txt'
+    if method != 'theta-ADI':
+        frames_file = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/frames/frames_{dt}_{dx}.txt'
+        title = f'Simulation dt={dt} dx={dx}'
+    else:
+        frames_file = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/frames/frames_{dt}_{dx}.txt'
+        title = f'Simulation ({theta}) dt={dt} dx={dx}'
     
     if not os.path.exists(frames_file):
         raise FileNotFoundError(f'File {frames_file} not found')
@@ -333,10 +338,7 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
             elif cell_model == 'TT2':
                 plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=50, origin='lower')
             plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04)
-            if method != 'theta-ADI':
-                plt.title(f'{serial_or_gpu} {problem} {cell_model} {method} dt={dt} dx={dx} ({times[frame_count]:.2f} ms)')
-            else:
-                plt.title(f'{serial_or_gpu} {problem} {cell_model} {method} ({theta}) dt={dt} dx={dx} ({times[frame_count]:.2f} ms)')
+            plt.title(f'{title} ({times[frame_count]:.2f} ms)')
             plt.xticks([])
             plt.yticks([])
             plt.tight_layout()
@@ -346,9 +348,7 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
             frame_count += 1
 
     # Build gif
-    gif_path = f'{save_dir}/gif_{dt}_{dx}_{real_type}_{serial_or_gpu}_{problem}.gif'
-    if method == 'theta-ADI':
-        gif_path = f'{save_dir}/gif_{dt}_{dx}_{theta}_{real_type}_{serial_or_gpu}_{problem}.gif'
+    gif_path = f'{save_dir}/gif_{dt}_{dx}.gif'
     with imageio.v2.get_writer(gif_path, mode='I') as writer:
         for frame in frames:
             image = imageio.v2.imread(frame)
@@ -361,26 +361,26 @@ def create_gif(method, dt, dx, real_type, serial_or_gpu, problem, theta='0.00'):
             
     print(f'Gif saved to {gif_path}')
     
-def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gpu="SERIAL", problem="MONOAFHN"):
-    
-    # Create directories
-    graph_dir = f'./simulation_files/simulation_graphs'
+def run_script(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
+    graph_dir = f'./simulation_files/graphs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}'
     if not os.path.exists(graph_dir):
         os.makedirs(graph_dir)
-    convergence_analysis_dir = f'./simulation_files/simulation_analysis'
-    if not os.path.exists(convergence_analysis_dir):
-        os.makedirs(convergence_analysis_dir)
-
-    analysis_path = f'{convergence_analysis_dir}/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}.txt'
-    analysis_file = open(analysis_path, 'w')
-
+        
     plt.figure()
     for method in methods:
-        run_all_simulations(method, dts, dxs, thetas, real_type, serial_or_gpu, problem)
+        # Create directories
+        convergence_analysis_dir = f'./simulation_files/analysis/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+        if not os.path.exists(convergence_analysis_dir):
+            os.makedirs(convergence_analysis_dir)
+
+        analysis_path = f'{convergence_analysis_dir}/convergence_analysis.txt'
+        analysis_file = open(analysis_path, 'w')
+        
+        run_all_simulations(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas)
 
         if method == 'theta-ADI':
             for theta in thetas:
-                errors = read_errors(method, dts, dxs, theta, real_type)
+                errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, theta)
                 slopes = calculate_slopes(errors, dts)
 
                 analysis_file.write(f'For method {method} with theta = {theta} and alpha = {alpha}\n')
@@ -398,7 +398,7 @@ def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gp
                 plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method} ({theta})')
 
         else:
-            errors = read_errors(method, dts, dxs, '0', real_type)
+            errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, theta)
             slopes = calculate_slopes(errors, dts)
 
             analysis_file.write(f'For method {method} and alpha = {alpha}\n')
@@ -417,9 +417,9 @@ def run_script(alpha, thetas, methods, dts, dxs, real_type="float", serial_or_gp
     
     plt.xlabel('dt')
     plt.ylabel('Error')
-    plt.title(f'Convergence Analysis - 2nd Order (a = {(alpha):.3f})')
+    plt.title(f'Convergence Analysis with 2nd Order (a = {(alpha):.3f})')
     plt.legend()
-    plt.savefig(f'{graph_dir}/convergence_analysis_{real_type}_{serial_or_gpu}_{problem}.png')
+    plt.savefig(f'{graph_dir}/convergence_analysis.png')
     plt.close()
     
 def read_values_with_rate(filename, rate):

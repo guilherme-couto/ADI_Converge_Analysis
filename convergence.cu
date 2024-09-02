@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
     printf("Problem: DIFFREAC -> Diffusion with linear reaction (2D)\n");
     #elif defined(DIFF)
     printf("Problem: DIFF -> Linear diffusion (2D)\n");
-    #elif defined(MONOAFHN)
-    printf("Problem: MONOAFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)\n");
+    #elif defined(MONODOMAIN)
+    printf("Problem: MONODOMAIN -> Monodomain with %s (2D)\n", CELL_MODEL);
     #else
     printf("Problem not yet implemented\n");
     return 1;

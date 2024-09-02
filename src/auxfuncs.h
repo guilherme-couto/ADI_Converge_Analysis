@@ -29,7 +29,7 @@ void createDirectories(char* method, real theta, char* pathToSaveData)
 {   
     // Build the path
     char path[MAX_STRING_SIZE];
-    snprintf(path, MAX_STRING_SIZE*sizeof(char), "./simulation_files/%s/AFHN/%s", REAL_TYPE, method);
+    snprintf(path, MAX_STRING_SIZE*sizeof(char), "./simulation_files/outputs/%s/%s/%s/%s/%s", EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
 
     // Add theta to the path
     if (strcmp(method, "theta-ADI") == 0) {
@@ -43,6 +43,18 @@ void createDirectories(char* method, real theta, char* pathToSaveData)
     char command[MAX_STRING_SIZE];
     snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s", path);
     system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/frames", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/infos", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/lastframe", path);
+    system(command);
+    #ifdef CONVERGENCE_ANALYSIS
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/exact", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/errors", path);
+    system(command);
+    #endif // CONVERGENCE_ANALYSIS
 
     // Update pathToSaveData
     strcpy(pathToSaveData, path);
@@ -67,7 +79,7 @@ int lim(int num, int N)
     return num;
 }
 
-#ifdef MONOAFHN
+#ifdef MONODOMAIN
 void populateStimuli(Stimulus *stimuli, real delta_x)
 {
     for (int i = 0; i < numberOfStimuli; i++)
@@ -83,7 +95,7 @@ void populateStimuli(Stimulus *stimuli, real delta_x)
         stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
     }
 }
-#endif // MONOAFHN
+#endif // MONODOMAIN
 
 #ifdef SERIAL
 void initialize2DVariableWithExactSolution(real** Var, int N, real delta_x)
@@ -116,7 +128,7 @@ void initialize2DVariableFromFile(real** Var, int N, char* filename, real delta_
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file %s\n", filename);
+        printf("ERROR opening file %s\n", filename);
         exit(1);
     }
 
@@ -134,7 +146,7 @@ void initialize2DVariableFromFile(real** Var, int N, char* filename, real delta_
             fscanf(file, "%e", &value);
             #else
             fscanf(file, "%le", &value);
-            #endif
+            #endif // not USE_DOUBLE
             if (i % rate == 0 && j % rate == 0)
             {
                 Var[(i/rate)][(j/rate)] = value;

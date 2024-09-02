@@ -30,19 +30,21 @@ __device__ real forcingTerm(real x, real y, real t)
 #endif // CONVERGENCE_ANALYSIS
 #endif // LINMONO
 
-#ifdef MONOAFHN
+#ifdef MONODOMAIN
 #ifdef CONVERGENCE_ANALYSIS
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi*x/L) * cos(_pi*y/L);
 }
 
+#ifdef AFHN
 __device__ real forcingTerm(real x, real y, real t, real W)
 {
     real exactV = exactSolution(t, x, y);
     real reaction = (G*exactV*(1.0-(exactV/vth)) * (1.0-(exactV/vp))) + (eta1*exactV*W);
     return (exactV * (-(chi*Cm) + 2.0*(sigma/(chi*Cm))*_pi*_pi/(L*L))) + (chi*reaction);
 }
+#endif // AFHN
 
 // Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
 __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
@@ -159,7 +161,11 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real actualW = d_W[index];
 
         real diff_term = (sigma/(chi*Cm))*0.5*phi*(d_V[index_jm1] + d_V[index_im1] - 4*actualV + d_V[index_jp1] + d_V[index_ip1]);
+
+        #ifdef AFHN
         real RHS_V_term = ((G*actualV*(1.0-(actualV/vth)) * (1.0-(actualV/vp))) + (eta1*actualV*actualW))/(Cm*chi);
+        #endif // AFHN
+
         real stim = 0.0;
         for (int si = 0; si < numberOfStimuli; si++)
         {
@@ -334,6 +340,6 @@ __global__ void parallelTranspose(int N, real *in, real *out)
         out[y * N + x] = in[index];
     }
 }
-#endif // MONOAFHN
+#endif // MONODOMAIN
 
 #endif // GPU_FUNCTIONS_H

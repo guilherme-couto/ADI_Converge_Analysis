@@ -24,9 +24,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real *d_prime = (real *)malloc(N * sizeof(real));   // aux for Thomas
     real *d = (real *)malloc(N * sizeof(real));
     real *result = (real *)malloc(N * sizeof(real));
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     real **W = (real **)malloc(N * sizeof(real *));
-    #endif // MONOAFHN
+    #endif // AFHN
+    #endif // MONODOMAIN
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
@@ -34,9 +36,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         RHS[i] = (real *)malloc(N * sizeof(real));
         partRHS[i] = (real *)malloc(N * sizeof(real));
         exact[i] = (real *)malloc(N * sizeof(real));
-        #ifdef MONOAFHN
+        #ifdef MONODOMAIN
+        #ifdef AFHN
         W[i] = (real *)malloc(N * sizeof(real));
-        #endif // MONOAFHN
+        #endif // AFHN
+        #endif // MONODOMAIN
     }
 
     #ifdef CONVERGENCE_ANALYSIS
@@ -45,13 +49,19 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     initialize2DVariableWithValue(V, N, V0);
     #endif // CONVERGENCE_ANALYSIS
     
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     initialize2DVariableWithValue(W, N, 0.0);
-    #endif // MONOAFHN
+    #endif // AFHN
+    #endif // MONODOMAIN
 
     #ifdef INIT_WITH_SPIRAL
-    initialize2DVariableFromFile(V, N, "./spiral_files/lastV_0.0005_0.0005.txt", delta_x);
-    initialize2DVariableFromFile(W, N, "./spiral_files/lastW_0.0005_0.0005.txt", delta_x);
+    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x);
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x);
+    free(pathToSpiralFiles);
     #endif // INIT_WITH_SPIRAL
 
     // Auxiliary arrays for Thomas algorithm
@@ -97,7 +107,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 {   
                     x = j * delta_x;
                     y = i * delta_x;
-                    #if defined LINMONO || defined DIFF
+                    #if defined(LINMONO) || defined(DIFF)
                     d[i] = 0.5*phi * V[i][lim(j-1,N)] + (1-2*0.5*phi) * V[i][j] + 0.5*phi * V[i][lim(j+1,N)] + 0.5 * delta_t * forcingTerm(x, y, actualTime);
                     #endif // LINMONO || DIFF
                 }
@@ -118,7 +128,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
-                    #if defined LINMONO || defined DIFF
+                    #if defined(LINMONO) || defined(DIFF)
                     d[j] = 0.5*phi * RHS[lim(i-1,N)][j] + (1-2*0.5*phi) * RHS[i][j] + 0.5*phi * RHS[lim(i+1,N)][j] + 0.5 * delta_t * forcingTerm(x, y, actualTime+delta_t);
                     #endif // LINMONO || DIFF
                 }
@@ -135,7 +145,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         }
     }
 
-    #if defined LINMONO || defined MONOAFHN
+    #if defined(LINMONO) || defined(MONODOMAIN)
     else if (strcmp(method, "SSI-ADI") == 0)
     {
         while (timeStepCounter < M)
@@ -165,21 +175,30 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     partRHS[i][j] = delta_t*(for_term - reac_tilde_term);
                     #endif // LINMONO
 
-                    #ifdef MONOAFHN
+                    #ifdef MONODOMAIN
                     real diff_term = (sigma/(chi*Cm))*0.5*phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j] - 4*V[i][j] + V[i][lim(j+1,N)] + V[lim(i+1,N)][j]);
+                    
+                    #ifdef AFHN
                     real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), W[i][j])/(chi*Cm);
                     real RHS_V_term = RHS_V(V[i][j], W[i][j]);
+                    #endif // AFHN
+
                     Vtilde[i][j] = V[i][j] + diff_term + (0.5*delta_t*(for_term - RHS_V_term));
 
                     // Preparing part of the RHS of the following linear systems
+                    #ifdef AFHN
                     real RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
+                    #endif // AFHN
+
                     partRHS[i][j] = delta_t*(for_term - RHS_Vtilde_term);
 
+                    #ifdef AFHN
                     // Update Wn+1
                     real RHS_W_term = RHS_W(V[i][j], W[i][j]);
                     real Wtilde = W[i][j] + (0.5*delta_t*RHS_W_term);
                     W[i][j] = W[i][j] + delta_t*RHS_W(Vtilde[i][j], Wtilde);
-                    #endif // MONOAFHN
+                    #endif // AFHN
+                    #endif // MONODOMAIN
                 }
             }
             
@@ -253,21 +272,30 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     partRHS[i][j] = delta_t*(for_term - ((1.0-theta)*reac_term) - (theta*reac_tilde_term));
                     #endif // LINMONO
 
-                    #ifdef MONOAFHN
+                    #ifdef MONODOMAIN
                     real diff_term = (sigma/(chi*Cm))*phi*(V[i][lim(j-1,N)] + V[lim(i-1,N)][j] - 4*V[i][j] + V[i][lim(j+1,N)] + V[lim(i+1,N)][j]);
+                    
+                    #ifdef AFHN
                     real for_term = forcingTerm(x, y, actualTime+(0.5*delta_t), W[i][j])/(chi*Cm);
                     real RHS_V_term = RHS_V(V[i][j], W[i][j]);
+                    #endif // AFHN
+
                     Vtilde[i][j] = V[i][j] + diff_term + (delta_t*(for_term - RHS_V_term));
 
                     // Preparing part of the RHS of the following linear systems
+                    #ifdef AFHN
                     real RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
+                    #endif // AFHN
+
                     partRHS[i][j] = delta_t*(for_term - ((1.0-theta)*RHS_V_term) - (theta*RHS_Vtilde_term));
 
+                    #ifdef AFHN
                     // Update Wn+1
                     real RHS_W_term = RHS_W(V[i][j], W[i][j]);
                     real Wtilde = W[i][j] + (delta_t*RHS_W_term);
                     W[i][j] = W[i][j] + delta_t*RHS_W(Vtilde[i][j], Wtilde);
-                    #endif // MONOAFHN
+                    #endif // AFHN
+                    #endif // MONODOMAIN
                 }
             }
             
@@ -311,7 +339,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             timeStepCounter++;
         }
     }
-    #endif // LINMONO || MONOAFHN
+    #endif // LINMONO || MONODOMAIN
 
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
@@ -323,7 +351,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE*sizeof(char), "%s/infos_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(infosFilePath, MAX_STRING_SIZE*sizeof(char), "%s/infos/infos_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpInfos = fopen(infosFilePath, "w");
     printf("Infos saved to %s\n", infosFilePath);
     fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
@@ -338,16 +366,16 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE*sizeof(char), "%s/last_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE*sizeof(char), "%s/lastframe/last_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
     printf("Last frame saved to %s\n", lastFrameFilePath);
     #ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE*sizeof(char), "%s/exact_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(exactFilePath, MAX_STRING_SIZE*sizeof(char), "%s/exact/exact_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpExact = fopen(exactFilePath, "w");
     printf("Exact solution saved to %s\n", exactFilePath);
     char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE*sizeof(char), "%s/errors_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(errorsFilePath, MAX_STRING_SIZE*sizeof(char), "%s/errors/errors_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpErrors = fopen(errorsFilePath, "w");
     printf("Errors saved to %s\n", errorsFilePath);
     #endif // CONVERGENCE_ANALYSIS
@@ -383,9 +411,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         free(RHS[i]);
         free(partRHS[i]);
         free(exact[i]);
-        #ifdef MONOAFHN
+        #ifdef MONODOMAIN
+        #ifdef AFHN
         free(W[i]);
-        #endif // MONOAFHN
+        #endif // AFHN
+        #endif // MONODOMAIN
     }
     free(V);
     free(Vtilde);
@@ -400,9 +430,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     free(lb);
     free(lc);
     free(pathToSaveData);
-    #ifdef MONOAFHN
+    #ifdef MONODOMAIN
+    #ifdef AFHN
     free(W);
-    #endif // MONOAFHN
+    #endif // AFHN
+    #endif // MONODOMAIN
 
     return;
 }
