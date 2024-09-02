@@ -27,19 +27,16 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     #endif // CONVERGENCE_ANALYSIS
 
     #ifdef MONODOMAIN
-    #ifdef AFHN
-    real *W = (real *)malloc(N * N * sizeof(real));
-    initialize2DVariableWithValue(W, N, W0);
-    #endif // AFHN
+    stateVariables *sV = (stateVariables *)malloc(N * N * sizeof(stateVariables));
+    initialize2DStateVariablesWithInitialConditions(sV, N);
     #endif // MONODOMAIN
 
     #ifdef INIT_WITH_SPIRAL
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
     free(pathToSpiralFiles);
+    initialize2DStateVariablesWithSpiral(sV, N, delta_x);
     #endif // INIT_WITH_SPIRAL
 
     // Auxiliary arrays for Thomas algorithm
@@ -81,11 +78,9 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
     
     #ifdef MONODOMAIN
-    #ifdef AFHN
-    real *d_W;
-    CUDA_CALL(cudaMalloc(&d_W, N * N * sizeof(real)));
-    CUDA_CALL(cudaMemcpy(d_W, W, N * N * sizeof(real), cudaMemcpyHostToDevice));
-    #endif // AFHN
+    stateVariables *d_sV;
+    CUDA_CALL(cudaMalloc(&d_sV, N * N * sizeof(real)));
+    CUDA_CALL(cudaMemcpy(d_sV, sV, N * N * sizeof(real), cudaMemcpyHostToDevice));
     #endif // MONODOMAIN
 
     #ifndef CONVERGENCE_ANALYSIS
@@ -158,10 +153,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calculate Approx. and ODEs                     !
             // ================================================!
-            #ifdef CONVERGENCE_ANALYSIS
+            #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
             computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
             #else
-            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W, d_stimuli);
+            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_sV, d_stimuli);
             #endif // CONVERGENCE_ANALYSIS
             cudaDeviceSynchronize();
 
@@ -220,10 +215,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calculate Approx. and ODEs                     !
             // ================================================!
-            #ifdef CONVERGENCE_ANALYSIS
+            #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
             computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
             #else
-            computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W, d_stimuli);
+            computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_sV, d_stimuli);
             #endif // CONVERGENCE_ANALYSIS
             cudaDeviceSynchronize();
 
@@ -366,9 +361,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(lc);
     free(pathToSaveData);
     #ifdef MONODOMAIN
-    #ifdef AFHN
-    free(W);
-    #endif // AFHN
+    free(sV);
     free(stimuli);
     #endif // MONODOMAIN
 
@@ -381,9 +374,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaFree(d_lb));
     CUDA_CALL(cudaFree(d_lc));
     #ifdef MONODOMAIN
-    #ifdef AFHN
-    CUDA_CALL(cudaFree(d_W));
-    #endif // AFHN
+    CUDA_CALL(cudaFree(d_sV));
     CUDA_CALL(cudaFree(d_stimuli));
     #endif // MONODOMAIN
 

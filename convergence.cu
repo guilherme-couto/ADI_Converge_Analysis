@@ -30,6 +30,14 @@ int main(int argc, char *argv[])
     printf("Real type: FLOAT\n");
     #endif
 
+    #ifdef CONVERGENCE_ANALYSIS
+    printf("CONVERGENCE ANALYSIS\n");
+    #ifdef MONODOMAIN
+    #define AFHN
+    printf("By now, Convergence Analysis for MONODOMAIN is only implemented with AFHN cell model\n");
+    #endif // MONODOMAIN
+    #endif // CONVERGENCE_ANALYSIS
+
     #ifdef LINMONO
     printf("Problem: LINMONO -> Adapted monodomain with linear reaction (2D)\n");
     #elif defined(DIFFREAC)

@@ -16,13 +16,15 @@ def main():
     parser.add_argument("--option", "--o", choices=options.keys(), help="Option to choose the function to execute.")
 
     # Arguments for the functions
+    parser.add_argument("--serial_or_gpu", "--e", type=str, help="Execution mode (SERIAL or GPU)")
+    parser.add_argument("--real_type", "--rt", type=str, help="The real type (e.g., float or double)")
+    parser.add_argument("--problem", "--p", type=str, help="Problem identifier")
+    parser.add_argument("--cell_model", "--cm", type=str, help="Cell model identifier")
     parser.add_argument("--method", "--m", type=str, help="The method to use")
     parser.add_argument("--dt", type=str, help="Time step size (must be > 0 and < 1) with 4 decimal places")
     parser.add_argument("--dx", type=str, help="Space step size (must be > 0 and < 1) with 4 decimal places")
-    parser.add_argument("--real_type", "--rt", type=str, help="The real type (e.g., float or double)")
-    parser.add_argument("--serial_or_gpu", "--e", type=str, help="Execution mode (SERIAL or GPU)")
-    parser.add_argument("--problem", "--p", type=str, help="Problem identifier")
-
+    parser.add_argument("--theta", type=str, help="Theta value for the method")
+    
     args = parser.parse_args()
 
     # Check if the parameters dt and dx are valid
@@ -39,7 +41,7 @@ def main():
     func_to_call = options[args.option]
 
     # Call the function with the parameters
-    func_to_call(args.method, args.dt, args.dx, args.real_type, args.serial_or_gpu, args.problem)
+    func_to_call(args.serial_or_gpu, args.real_type, args.problem, args.cell_model, args.method, args.dt, args.dx, args.theta)
 
 if __name__ == "__main__":
     main()

@@ -58,9 +58,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #ifdef INIT_WITH_SPIRAL
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x);
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W");
     free(pathToSpiralFiles);
     #endif // INIT_WITH_SPIRAL
 

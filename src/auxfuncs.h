@@ -7,96 +7,6 @@
 #include "cpu_functions.h"
 #endif
 
-// Populate diagonals for Thomas algorithm
-// la -> Subdiagonal
-// lb -> Diagonal
-// lc -> Superdiagonal
-void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real phi)
-{
-    for (int i = 0; i < N; i++)
-    {
-        la[i] = -phi;
-        lb[i] = 1.0 + 2.0*phi;
-        lc[i] = -phi;
-    }
-    lc[0] = lc[0] + la[0];
-    la[N-1] = la[N-1] + lc[N-1];
-    la[0] = 0.0;
-    lc[N-1] = 0.0; 
-}
-
-void createDirectories(char* method, real theta, char* pathToSaveData)
-{   
-    // Build the path
-    char path[MAX_STRING_SIZE];
-    snprintf(path, MAX_STRING_SIZE*sizeof(char), "./simulation_files/outputs/%s/%s/%s/%s/%s", EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
-
-    // Add theta to the path
-    if (strcmp(method, "theta-ADI") == 0) {
-        char thetaPath[MAX_STRING_SIZE];
-        snprintf(thetaPath, MAX_STRING_SIZE*sizeof(char), "%.2lf", theta);
-        strcat(path, "/");
-        strcat(path, thetaPath);
-    }
-
-    // Make directories
-    char command[MAX_STRING_SIZE];
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/frames", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/infos", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/lastframe", path);
-    system(command);
-    #ifdef CONVERGENCE_ANALYSIS
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/exact", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/errors", path);
-    system(command);
-    #endif // CONVERGENCE_ANALYSIS
-
-    // Update pathToSaveData
-    strcpy(pathToSaveData, path);
-}
-
-void initializeTimeArray(real *timeArray, int M, real dt)
-{
-    for (int i = 0; i < M; ++i)
-    {
-        timeArray[i] = i * dt;
-    }
-}
-
-int lim(int num, int N)
-{
-    if (num == -1)
-        return 1;
-    else if (num == N)
-    {
-        return N-2;
-    }
-    return num;
-}
-
-#ifdef MONODOMAIN
-void populateStimuli(Stimulus *stimuli, real delta_x)
-{
-    for (int i = 0; i < numberOfStimuli; i++)
-    {
-        stimuli[i].strength = stimuliStrength;
-        stimuli[i].begin = stimuliBegin[i];
-        stimuli[i].duration = stimuliDuration;
-        
-        // Discretized limits of stimulation areas
-        stimuli[i].xMaxDisc = round(stimulixMax[i] / delta_x);
-        stimuli[i].xMinDisc = round(stimulixMin[i] / delta_x);
-        stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_x);
-        stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
-    }
-}
-#endif // MONODOMAIN
-
 #ifdef SERIAL
 void initialize2DVariableWithExactSolution(real** Var, int N, real delta_x)
 {
@@ -123,38 +33,51 @@ void initialize2DVariableWithValue(real** Var, int N, real value)
     }
 }
 
-void initialize2DVariableFromFile(real** Var, int N, char* filename, real delta_x)
+void initialize2DVariableFromFile(real** Var, int N, char* filename, real delta_x, char* varName)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("ERROR opening file %s\n", filename);
+        printf("Error opening file %s\n", filename);
         exit(1);
     }
-
-    printf("Reading file %s to initialize variable\n", filename);
+    
     int baseN = round(L / 0.0005) + 1;
     int rate = round(delta_x / 0.0005);
+
+    int sizeFile = 0;
+    int sizeVar = 0;
     real value;
+
+    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+
     for (int i = 0; i < baseN; ++i)
     {
         for (int j = 0; j < baseN; ++j)
         {
             // Read value from file to variable
             // If i and j are multiples of rate, read value to Var
-            #ifndef USE_DOUBLE
+            #ifdef USE_FLOAT
             fscanf(file, "%e", &value);
             #else
             fscanf(file, "%le", &value);
-            #endif // not USE_DOUBLE
+            #endif
             if (i % rate == 0 && j % rate == 0)
             {
-                Var[(i/rate)][(j/rate)] = value;
+                Var[int(i/rate)][int(j/rate)] = value;
+                if (isnan(value))
+                {
+                    printf("At var index [%d][%d], file index %d, value is NaN\n", int(i/rate), int(j/rate), i*baseN+j);
+                    exit(1);
+                }
+                sizeVar++;
             }
+            sizeFile++;
         }
     }
     fclose(file);
-    printf("Variable initialized with values from file %s\n", filename);
+    
+    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
 real calculateNorm2Error(real** V, real** exact, int N, real T, real delta_x)
@@ -338,7 +261,7 @@ void initialize2DVariableWithValue(real* Var, int N, real value)
     }
 }
 
-void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x)
+void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x, char* varName)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -382,7 +305,7 @@ void initialize2DVariableFromFile(real* Var, int N, char* filename, real delta_x
     }
     fclose(file);
     
-    printf("Variable initialized with %d values from the %d values in file\n", sizeVar, sizeFile);
+    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
 void thomasFactorConstantBatch(real* la, real* lb, real* lc, int n) {
@@ -467,4 +390,131 @@ real calculateNorm2Error(real* V, real** exact, int N, real T, real delta_x)
 #endif // CONVERGENCE_ANALYSIS
 #endif // GPU
 
+// Populate diagonals for Thomas algorithm
+// la -> Subdiagonal
+// lb -> Diagonal
+// lc -> Superdiagonal
+void populateDiagonalThomasAlgorithm(real* la, real* lb, real* lc, int N, real phi)
+{
+    for (int i = 0; i < N; i++)
+    {
+        la[i] = -phi;
+        lb[i] = 1.0 + 2.0*phi;
+        lc[i] = -phi;
+    }
+    lc[0] = lc[0] + la[0];
+    la[N-1] = la[N-1] + lc[N-1];
+    la[0] = 0.0;
+    lc[N-1] = 0.0; 
+}
+
+void createDirectories(char* method, real theta, char* pathToSaveData)
+{   
+    // Build the path
+    char path[MAX_STRING_SIZE];
+    snprintf(path, MAX_STRING_SIZE*sizeof(char), "./simulation_files/outputs/%s/%s/%s/%s/%s", EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+
+    // Add theta to the path
+    if (strcmp(method, "theta-ADI") == 0) {
+        char thetaPath[MAX_STRING_SIZE];
+        snprintf(thetaPath, MAX_STRING_SIZE*sizeof(char), "%.2lf", theta);
+        strcat(path, "/");
+        strcat(path, thetaPath);
+    }
+
+    // Make directories
+    char command[MAX_STRING_SIZE];
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/frames", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/infos", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/lastframe", path);
+    system(command);
+    #ifdef CONVERGENCE_ANALYSIS
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/exact", path);
+    system(command);
+    snprintf(command, MAX_STRING_SIZE*sizeof(char), "mkdir -p %s/errors", path);
+    system(command);
+    #endif // CONVERGENCE_ANALYSIS
+
+    // Update pathToSaveData
+    strcpy(pathToSaveData, path);
+}
+
+void initializeTimeArray(real *timeArray, int M, real dt)
+{
+    for (int i = 0; i < M; ++i)
+    {
+        timeArray[i] = i * dt;
+    }
+}
+
+int lim(int num, int N)
+{
+    if (num == -1)
+        return 1;
+    else if (num == N)
+    {
+        return N-2;
+    }
+    return num;
+}
+
+#ifdef MONODOMAIN
+void populateStimuli(Stimulus *stimuli, real delta_x)
+{
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        stimuli[i].strength = stimuliStrength;
+        stimuli[i].begin = stimuliBegin[i];
+        stimuli[i].duration = stimuliDuration;
+        
+        // Discretized limits of stimulation areas
+        stimuli[i].xMaxDisc = round(stimulixMax[i] / delta_x);
+        stimuli[i].xMinDisc = round(stimulixMin[i] / delta_x);
+        stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_x);
+        stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
+    }
+}
+
+void initialize2DStateVariablesWithInitialConditions(stateVariables* sV, int N)
+{
+    int index;
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            index = i*N + j;
+            #ifdef AFHN
+            sV[index].W = W0;
+            #endif // AFHN
+        }
+    }
+}
+
+void initialize2DStateVariablesWithSpiral(stateVariables* sV, int N, real delta_x)
+{
+    real *var = (real *)malloc(N * N * sizeof(real));
+    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    
+    #ifdef AFHN
+    char *varName = "W";
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
+    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            int index = i*N + j;
+            sV[index].W = var[index];
+        }
+    }
+    #endif // AFHN
+
+    free(var);
+    free(pathToSpiralFiles);
+}
+#endif // MONODOMAIN
 #endif // AUXFUNCS_H
