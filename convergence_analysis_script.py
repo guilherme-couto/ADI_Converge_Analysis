@@ -7,13 +7,13 @@ def main():
     real_type = 'double'
     problem = 'MONODOMAIN' # DIFF, LINMONO
     cell_model = 'AFHN' # AFHN
-    serial_or_gpu = 'GPU' # SERIAL, GPU
+    serial_or_gpu = 'SERIAL' # SERIAL, GPU
     serial_or_gpu = serial_or_gpu.upper()
 
     dts = [0.025, 0.0125, 0.00625] # Works for DIFF and MONODOMAIN (with AFHN)
     # dts = [0.01, 0.005, 0.0025, 0.00125] # Works for LINMONO
     dts[::-1].sort()
-    dts = [f'{dt:.8f}' for dt in dts]
+    dts = [f'{dt:.5f}' for dt in dts]
     
     alphas = [0.5] # Works for DIFF and MONODOMAIN (with AFHN)
     # alphas = [0.1]
@@ -22,8 +22,8 @@ def main():
         # 1st order approx (dt = a*dx²)
         # 2nd order approx (dt = a*dx)
         
-        dxs = [f'{(float(dt) / a):.6f}' for dt in dts]
-        run_script(a, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas)
+        dxs = [f'{(float(dt) / a):.5f}' for dt in dts]
+        run_script_for_convergence_analysis(a, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas)
 
 if __name__ == "__main__":
     main()

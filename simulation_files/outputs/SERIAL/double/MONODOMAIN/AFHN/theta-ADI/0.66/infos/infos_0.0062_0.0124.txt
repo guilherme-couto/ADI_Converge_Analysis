@@ -1,0 +1,8 @@
+Domain Length = 1, Time = 0.100000
+delta_x = 0.012400, Space steps N = 82, N*N = 6724
+delta_t = 0.006200, Time steps = 16
+Method theta-ADI
+
+Total execution time = 0.005711
+
+Norm-2 Error = 0.005147

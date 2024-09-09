@@ -1,0 +1,12 @@
+Domain Length = 2, Time = 300.000000
+delta_x = 0.020000, Space steps N = 101, N*N = 10201
+delta_t = 0.020000, Time steps = 15000
+Method SSI-ADI
+
+For Approx, ODEs and Transpose -> Grid size 319, Block size 32
+Total threads: 10208
+
+For Thomas -> Grid size: 1, Block size: 128
+Total threads: 128
+
+Total execution time = 6.268555

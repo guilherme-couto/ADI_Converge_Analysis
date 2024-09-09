@@ -22,7 +22,7 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def run_all_simulations(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
+def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
     
     if real_type == 'float':
         double_or_float = 'USE_FLOAT'
@@ -32,7 +32,7 @@ def run_all_simulations(serial_or_gpu, real_type, problem, cell_model, method, d
         raise ValueError('Invalid real type')
     
     # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
     print(f'Compiling {compile_command}...')
     os.system(compile_command)
 
@@ -361,7 +361,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
             
     print(f'Gif saved to {gif_path}')
     
-def run_script(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
+def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
     graph_dir = f'./simulation_files/graphs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}'
     if not os.path.exists(graph_dir):
         os.makedirs(graph_dir)
@@ -376,7 +376,7 @@ def run_script(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dt
         analysis_path = f'{convergence_analysis_dir}/convergence_analysis.txt'
         analysis_file = open(analysis_path, 'w')
         
-        run_all_simulations(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas)
+        run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas)
 
         if method == 'theta-ADI':
             for theta in thetas:
@@ -398,7 +398,7 @@ def run_script(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dt
                 plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method} ({theta})')
 
         else:
-            errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, theta)
+            errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs)
             slopes = calculate_slopes(errors, dts)
 
             analysis_file.write(f'For method {method} and alpha = {alpha}\n')

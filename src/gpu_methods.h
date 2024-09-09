@@ -6,53 +6,98 @@
 void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 {
     // Number of steps
-    int N = round(L / delta_x) + 1;               // Spatial steps (square tissue)
-    int M = round(T / delta_t);                   // Number of time steps
+    int N = round(L / delta_x) + 1;     // Spatial steps (square tissue)
+    int M = round(totalTime / delta_t); // Number of time steps
 
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
-    
+
     // Allocate arrays for variables
     real *V, *Vtilde, *RHS, *partRHS;
     V = (real *)malloc(N * N * sizeof(real));
     Vtilde = (real *)malloc(N * N * sizeof(real));
     RHS = (real *)malloc(N * N * sizeof(real));
     partRHS = (real *)malloc(N * N * sizeof(real));
-    
-    #ifdef CONVERGENCE_ANALYSIS
+
+#ifdef CONVERGENCE_ANALYSIS
     initialize2DVariableWithExactSolution(V, N, delta_x);
-    #else
-    initialize2DVariableWithValue(V, N, V0);
-    #endif // CONVERGENCE_ANALYSIS
+#else
+    initialize2DVariableWithValue(V, N, V_init);
+#endif // CONVERGENCE_ANALYSIS
 
-    #ifdef MONODOMAIN
-    stateVariables *sV = (stateVariables *)malloc(N * N * sizeof(stateVariables));
-    initialize2DStateVariablesWithInitialConditions(sV, N);
-    #endif // MONODOMAIN
+#ifdef MONODOMAIN
+    #ifdef AFHN
+    real *W = (real *)malloc(N * N * sizeof(real));
+    initialize2DVariableWithValue(W, N, W_init);
+    #endif // AFHN
+    #ifdef TT2
+    real *X_r1 = (real *)malloc(N * N * sizeof(real));
+    real *X_r2 = (real *)malloc(N * N * sizeof(real));
+    real *X_s = (real *)malloc(N * N * sizeof(real));
+    real *m = (real *)malloc(N * N * sizeof(real));
+    real *h = (real *)malloc(N * N * sizeof(real));
+    real *j = (real *)malloc(N * N * sizeof(real));
+    real *d = (real *)malloc(N * N * sizeof(real));
+    real *f = (real *)malloc(N * N * sizeof(real));
+    real *f2 = (real *)malloc(N * N * sizeof(real));
+    real *fCaSS = (real *)malloc(N * N * sizeof(real));
+    real *s = (real *)malloc(N * N * sizeof(real));
+    real *r = (real *)malloc(N * N * sizeof(real));
+    real *Ca_i = (real *)malloc(N * N * sizeof(real));
+    real *Ca_SR = (real *)malloc(N * N * sizeof(real));
+    real *Ca_SS = (real *)malloc(N * N * sizeof(real));
+    real *R_prime = (real *)malloc(N * N * sizeof(real));
+    real *Na_i = (real *)malloc(N * N * sizeof(real));
+    real *K_i = (real *)malloc(N * N * sizeof(real));
+    initialize2DVariableWithValue(X_r1, N, X_r1_init);
+    initialize2DVariableWithValue(X_r2, N, X_r2_init);
+    initialize2DVariableWithValue(X_s, N, X_s_init);
+    initialize2DVariableWithValue(m, N, m_init);
+    initialize2DVariableWithValue(h, N, h_init);
+    initialize2DVariableWithValue(j, N, j_init);
+    initialize2DVariableWithValue(d, N, d_init);
+    initialize2DVariableWithValue(f, N, f_init);
+    initialize2DVariableWithValue(f2, N, f2_init);
+    initialize2DVariableWithValue(fCaSS, N, fCaSS_init);
+    initialize2DVariableWithValue(s, N, s_init);
+    initialize2DVariableWithValue(r, N, r_init);
+    initialize2DVariableWithValue(Ca_i, N, Ca_i_init);
+    initialize2DVariableWithValue(Ca_SR, N, Ca_SR_init);
+    initialize2DVariableWithValue(Ca_SS, N, Ca_SS_init);
+    initialize2DVariableWithValue(R_prime, N, R_prime_init);
+    initialize2DVariableWithValue(Na_i, N, Na_i_init);
+    initialize2DVariableWithValue(K_i, N, K_i_init);
+    #endif // TT2
+#endif // MONODOMAIN
 
-    #ifdef INIT_WITH_SPIRAL
+#ifdef INIT_WITH_SPIRAL
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE*sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
     free(pathToSpiralFiles);
     initialize2DStateVariablesWithSpiral(sV, N, delta_x);
-    #endif // INIT_WITH_SPIRAL
+#endif // INIT_WITH_SPIRAL
 
     // Auxiliary arrays for Thomas algorithm
-    real *la = (real *)malloc(N * sizeof(real));    // subdiagonal
-    real *lb = (real *)malloc(N * sizeof(real));    // diagonal
-    real *lc = (real *)malloc(N * sizeof(real));    // superdiagonal
+    real *la = (real *)malloc(N * sizeof(real)); // subdiagonal
+    real *lb = (real *)malloc(N * sizeof(real)); // diagonal
+    real *lc = (real *)malloc(N * sizeof(real)); // superdiagonal
 
     // Populate auxiliary arrays for Thomas algorithm
     real phi = (delta_t / (delta_x * delta_x));
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5*phi*(sigma/(Cm*chi)));
+#ifdef AFHN
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * (sigma / (Cm * chi)));
+#endif // AFHN
+#ifdef TT2
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * (sigma / (chi)));
+#endif // TT2
     }
     else if (strcmp(method, "theta-ADI") == 0)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta*phi*(sigma/(Cm*chi)));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / (Cm * chi)));
     }
 
     // Prefactorization
@@ -76,15 +121,57 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMemcpy(d_la, la, N * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_lb, lb, N * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_lc, lc, N * sizeof(real), cudaMemcpyHostToDevice));
-    
-    #ifdef MONODOMAIN
-    stateVariables *d_sV;
-    CUDA_CALL(cudaMalloc(&d_sV, N * N * sizeof(real)));
-    CUDA_CALL(cudaMemcpy(d_sV, sV, N * N * sizeof(real), cudaMemcpyHostToDevice));
-    #endif // MONODOMAIN
 
-    #ifndef CONVERGENCE_ANALYSIS
-    #ifdef MONODOMAIN
+#ifdef MONODOMAIN
+#ifdef AFHN
+    real *d_W;
+    CUDA_CALL(cudaMalloc(&d_W, N * N * sizeof(real)));
+    CUDA_CALL(cudaMemcpy(d_W, W, N * N * sizeof(real), cudaMemcpyHostToDevice));
+#endif // AFHN
+#ifdef TT2
+    real *d_X_r1, *d_X_r2, *d_X_s, *d_m, *d_h, *d_j, *d_d, *d_f, *d_f2, *d_fCaSS, *d_s, *d_r, *d_Ca_i, *d_Ca_SR, *d_Ca_SS, *d_R_prime, *d_Na_i, *d_K_i;
+    CUDA_CALL(cudaMalloc(&d_X_r1, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_X_r2, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_X_s, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_m, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_h, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_j, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_d, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_f, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_f2, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_fCaSS, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_s, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_r, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_Ca_i, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_Ca_SR, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_Ca_SS, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_R_prime, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_Na_i, N * N * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_K_i, N * N * sizeof(real)));
+    CUDA_CALL(cudaMemcpy(d_X_r1, X_r1, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_X_r2, X_r2, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_X_s, X_s, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_m, m, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_h, h, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_j, j, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_d, d, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_f, f, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_f2, f2, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_fCaSS, fCaSS, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_s, s, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_r, r, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_Ca_i, Ca_i, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_Ca_SR, Ca_SR, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_Ca_SS, Ca_SS, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_R_prime, R_prime, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_Na_i, Na_i, N * N * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_K_i, K_i, N * N * sizeof(real), cudaMemcpyHostToDevice));
+#endif // TT2
+
+#endif // MONODOMAIN
+
+#ifndef CONVERGENCE_ANALYSIS
+#ifdef MONODOMAIN
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
     populateStimuli(stimuli, delta_x);
@@ -93,8 +180,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     Stimulus *d_stimuli;
     CUDA_CALL(cudaMalloc(&d_stimuli, numberOfStimuli * sizeof(Stimulus)));
     CUDA_CALL(cudaMemcpy(d_stimuli, stimuli, numberOfStimuli * sizeof(Stimulus), cudaMemcpyHostToDevice));
-    #endif // MONODOMAIN
-    #endif // not CONVERGENCE_ANALYSIS
+#endif // MONODOMAIN
+#endif // not CONVERGENCE_ANALYSIS
 
     // CUDA grid and block allocation
     // For Thomas algorithm kernel
@@ -105,27 +192,25 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     int blockSize = round(N / numBlocks) + 1;
     if (blockSize % 32 != 0)
         blockSize = 32 * ((blockSize / 32) + 1);
-    
+
     // For ODEs and Transpose kernels
-    int GRID_SIZE = ceil((N*N*1.0) / (BLOCK_SIZE*1.0));
+    int GRID_SIZE = ceil((N * N * 1.0f) / (BLOCK_SIZE * 1.0f));
 
     // Create directories
     char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     createDirectories(method, theta, pathToSaveData);
-    
-    #ifdef SAVE_FRAMES
+
+#ifdef SAVE_FRAMES
     // Save frames
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
-    int frameSaveRate;
-    snprintf(framesPath, MAX_STRING_SIZE*sizeof(char), "%s/frames/frames_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames/frames_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     fpFrames = fopen(framesPath, "w");
-    frameSaveRate = ceil(M / numberOfFrames);
-    
-    #endif // SAVE_FRAMES
-    
+
+#endif // SAVE_FRAMES
+
     int timeStepCounter = 0;
-    real actualTime = 0.0;
+    real actualTime = 0.0f;
 
     // Measure total execution time
     real startTime = omp_get_wtime();
@@ -137,34 +222,40 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             // Get time step
             actualTime = time[timeStepCounter];
 
+            printf("ADI for GPU not implemented yet\n");
+            exit(EXIT_FAILURE);
+
             // Update time step counter
             timeStepCounter++;
         }
     }
 
-    #if defined(LINMONO) || defined(MONODOMAIN)
+#if defined(LINMONO) || defined(MONODOMAIN)
     else if (strcmp(method, "SSI-ADI") == 0)
     {
         while (timeStepCounter < M)
         {
             // Get time step
             actualTime = time[timeStepCounter];
-            
-            // ================================================!
-            //  Calculate Approx. and ODEs                     !
-            // ================================================!
-            #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+
+// ================================================!
+//  Calculate Approx. and ODEs                     !
+// ================================================!
+#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
             computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
-            #else
-            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_sV, d_stimuli);
-            #endif // CONVERGENCE_ANALYSIS
+#elif defined(AFHN)
+            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W, d_stimuli);
+#endif // CONVERGENCE_ANALYSIS
+#ifdef TT2
+            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+#endif // TT2
             cudaDeviceSynchronize();
 
             // ================================================!
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             //  diffusion implicit in x and explicit in y      !
             // ================================================!
-            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5*phi, d_V, d_RHS, d_partRHS);
+            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5f * phi, d_V, d_RHS, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_RHS, d_la, d_lb, d_lc);
@@ -180,13 +271,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  Calculate V at n+1 -> Result goes to V         !
             //  diffusion implicit in y and explicit in x      !
             // ================================================!
-            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5*phi, d_Vtilde, d_V, d_partRHS);
+            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, 0.5f * phi, d_Vtilde, d_V, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
             cudaDeviceSynchronize();
 
-            #ifdef SAVE_FRAMES
+#ifdef SAVE_FRAMES
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
@@ -198,35 +289,35 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                 saveFrame(fpFrames, actualTime, V, N);
                 printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
             }
-            #endif // SAVE_FRAMES
+#endif // SAVE_FRAMES
 
             // Update time step counter
             timeStepCounter++;
         }
     }
-    
+
     else if (strcmp(method, "theta-ADI") == 0)
     {
         while (timeStepCounter < M)
         {
             // Get time step
             actualTime = time[timeStepCounter];
-            
-            // ================================================!
-            //  Calculate Approx. and ODEs                     !
-            // ================================================!
-            #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+
+// ================================================!
+//  Calculate Approx. and ODEs                     !
+// ================================================!
+#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
             computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
-            #else
+#elif defined(AFHN)
             computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_sV, d_stimuli);
-            #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
             cudaDeviceSynchronize();
 
             // ================================================!
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             //  diffusion implicit in x and explicit in y      !
             // ================================================!
-            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0-theta)*phi, d_V, d_RHS, d_partRHS);
+            prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0f - theta) * phi, d_V, d_RHS, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_RHS, d_la, d_lb, d_lc);
@@ -242,13 +333,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  Calculate V at n+1 -> Result goes to V         !
             //  diffusion implicit in y and explicit in x      !
             // ================================================!
-            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0-theta)*phi, d_Vtilde, d_V, d_partRHS);
+            prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, (1.0f - theta) * phi, d_Vtilde, d_V, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);
             cudaDeviceSynchronize();
 
-            #ifdef SAVE_FRAMES
+#ifdef SAVE_FRAMES
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
@@ -260,13 +351,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                 saveFrame(fpFrames, actualTime, V, N);
                 printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
             }
-            #endif // SAVE_FRAMES
+#endif // SAVE_FRAMES
 
             // Update time step counter
             timeStepCounter++;
         }
     }
-    #endif // LINMONO || MONODOMAIN
+#endif // LINMONO || MONODOMAIN
 
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
@@ -274,82 +365,82 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     // Copy memory of d_V from device to host V
     CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
 
-    // Calculate exact solution
-    #ifdef CONVERGENCE_ANALYSIS
+// Calculate exact solution
+#ifdef CONVERGENCE_ANALYSIS
     real **exact = (real **)malloc(N * sizeof(real *));
     for (int i = 0; i < N; i++)
     {
         exact[i] = (real *)malloc(N * sizeof(real));
     }
-    real norm2error = calculateNorm2Error(V, exact, N, T, delta_x);
-    #endif // CONVERGENCE_ANALYSIS
+    real norm2error = calculateNorm2Error(V, exact, N, totalTime, delta_x);
+#endif // CONVERGENCE_ANALYSIS
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE*sizeof(char), "%s/infos/infos_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos/infos_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpInfos = fopen(infosFilePath, "w");
     printf("Infos saved to %s\n", infosFilePath);
-    fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, T);
-    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N*N);
+    fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, totalTime);
+    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N * N);
     fprintf(fpInfos, "delta_t = %lf, Time steps = %d\n", delta_t, M);
     fprintf(fpInfos, "Method %s\n", method);
     fprintf(fpInfos, "\nFor Approx, ODEs and Transpose -> Grid size %d, Block size %d\n", GRID_SIZE, BLOCK_SIZE);
-    fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE*BLOCK_SIZE);
+    fprintf(fpInfos, "Total threads: %d\n", GRID_SIZE * BLOCK_SIZE);
     fprintf(fpInfos, "\nFor Thomas -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
-    fprintf(fpInfos, "Total threads: %d\n", numBlocks*blockSize);
+    fprintf(fpInfos, "Total threads: %d\n", numBlocks * blockSize);
     fprintf(fpInfos, "\nTotal execution time = %lf\n", elapsedTime);
-    #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
     fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
-    #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
     fclose(fpInfos);
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE*sizeof(char), "%s/lastframe/last_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/last_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
     printf("Last frame saved to %s\n", lastFrameFilePath);
-    #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE*sizeof(char), "%s/exact/exact_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact/exact_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpExact = fopen(exactFilePath, "w");
     printf("Exact solution saved to %s\n", exactFilePath);
     char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE*sizeof(char), "%s/errors/errors_%.4f_%.4f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors/errors_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpErrors = fopen(errorsFilePath, "w");
     printf("Errors saved to %s\n", errorsFilePath);
-    #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
     for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int _j = 0; _j < N; _j++)
         {
-            int index = i * N + j;
+            int index = i * N + _j;
             fprintf(fpLast, "%e ", V[index]);
-            #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
             fprintf(fpExact, "%e ", exact[i][j]);
             fprintf(fpErrors, "%e ", abs(V[index] - exact[i][j]));
-            #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
         }
         fprintf(fpLast, "\n");
-        #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
-        #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
     }
     fclose(fpLast);
-    #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
     fclose(fpExact);
     fclose(fpErrors);
-    #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
 
     // Free memory
     free(time);
-    #ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS
     for (int i = 0; i < N; i++)
     {
         free(exact[i]);
-    }  
+    }
     free(exact);
-    #endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS
 
     // Free memory from host
     free(V);
@@ -360,10 +451,34 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(lb);
     free(lc);
     free(pathToSaveData);
-    #ifdef MONODOMAIN
-    free(sV);
+#ifdef MONODOMAIN
+    #ifdef AFHN
+    free(W);
+    #endif // AFHN
+    #ifdef TT2
+    free(X_r1);
+    free(X_r2);
+    free(X_s);
+    free(m);
+    free(h);
+    free(j);
+    free(d);
+    free(f);
+    free(f2);
+    free(fCaSS);
+    free(s);
+    free(r);
+    free(Ca_i);
+    free(Ca_SR);
+    free(Ca_SS);
+    free(R_prime);
+    free(Na_i);
+    free(K_i);
+    #endif // TT2
+    #ifndef CONVERGENCE_ANALYSIS
     free(stimuli);
-    #endif // MONODOMAIN
+    #endif // not CONVERGENCE_ANALYSIS
+#endif // MONODOMAIN
 
     // Free memory from device
     CUDA_CALL(cudaFree(d_V));
@@ -373,10 +488,34 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaFree(d_la));
     CUDA_CALL(cudaFree(d_lb));
     CUDA_CALL(cudaFree(d_lc));
-    #ifdef MONODOMAIN
-    CUDA_CALL(cudaFree(d_sV));
+#ifdef MONODOMAIN
+#ifdef AFHN
+    CUDA_CALL(cudaFree(d_W));
+#endif // AFHN
+#ifdef TT2
+    CUDA_CALL(cudaFree(d_X_r1));
+    CUDA_CALL(cudaFree(d_X_r2));
+    CUDA_CALL(cudaFree(d_X_s));
+    CUDA_CALL(cudaFree(d_m));
+    CUDA_CALL(cudaFree(d_h));
+    CUDA_CALL(cudaFree(d_j));
+    CUDA_CALL(cudaFree(d_d));
+    CUDA_CALL(cudaFree(d_f));
+    CUDA_CALL(cudaFree(d_f2));
+    CUDA_CALL(cudaFree(d_fCaSS));
+    CUDA_CALL(cudaFree(d_s));
+    CUDA_CALL(cudaFree(d_r));
+    CUDA_CALL(cudaFree(d_Ca_i));
+    CUDA_CALL(cudaFree(d_Ca_SR));
+    CUDA_CALL(cudaFree(d_Ca_SS));
+    CUDA_CALL(cudaFree(d_R_prime));
+    CUDA_CALL(cudaFree(d_Na_i));
+    CUDA_CALL(cudaFree(d_K_i));
+#endif // TT2
+#ifndef CONVERGENCE_ANALYSIS
     CUDA_CALL(cudaFree(d_stimuli));
-    #endif // MONODOMAIN
+#endif // not CONVERGENCE_ANALYSIS
+#endif // MONODOMAIN
 
     // Reset device
     CUDA_CALL(cudaDeviceReset());
