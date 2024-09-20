@@ -26,7 +26,7 @@ real forcingTerm(real x, real y, real t)
 }
 #endif // LINMONO
 
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi*x/L) * cos(_pi*y/L);
@@ -50,6 +50,6 @@ real forcingTerm(real x, real y, real t, real W)
     return (exactV * (-(chi*Cm) + 2.0f*(sigma/(chi*Cm))*_pi*_pi/(L*L))) + (chi*reaction);
 }
 #endif // AFHN
-#endif // MONODOMAIN
+#endif // MONODOMAIN || CABLEEQ
 
 #endif // CPU_FUNCTIONS_H

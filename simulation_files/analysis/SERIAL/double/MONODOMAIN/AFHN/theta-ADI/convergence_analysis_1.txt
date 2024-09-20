@@ -22,3 +22,7 @@ dt 			|	dx 			|	N-2 Error 	|	slope
 0.00625	|	0.01250	|	0.002773	|	-0.503
 
 
+* RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
+  W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
+  partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
+

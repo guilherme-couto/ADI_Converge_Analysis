@@ -1,0 +1,11 @@
+For method SSI-ADI and alpha = 0.5
+dt 			|	dx 			|	N-2 Error 	|	slope
+---------------------------------------------------------
+0.02500	|	0.05000	|	0.001412	|	-----
+0.01250	|	0.02500	|	0.000357	|	1.984
+0.00625	|	0.01250	|	0.000105	|	1.766
+
+
+* RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde)
+  W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
+  partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);

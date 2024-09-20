@@ -22,6 +22,14 @@ void initialize2DVariableWithExactSolution(real **Var, int N, real delta_x)
     }
 }
 
+void initialize1DVariableWithValue(real *Var, int N, real value)
+{
+    for (int i = 0; i < N; ++i)
+    {
+        Var[i] = value;
+    }   
+}
+
 void initialize2DVariableWithValue(real **Var, int N, real value)
 {
     for (int i = 0; i < N; ++i)

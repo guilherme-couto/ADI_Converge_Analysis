@@ -1,0 +1,27 @@
+For method theta-ADI with theta = 0.50 and alpha = 0.5
+dt 			|	dx 			|	N-2 Error 	|	slope
+---------------------------------------------------------
+0.02500	|	0.05000	|	0.001398	|	-----
+0.01250	|	0.02500	|	0.000354	|	1.982
+0.00625	|	0.01250	|	0.000104	|	1.767
+
+
+For method theta-ADI with theta = 0.66 and alpha = 0.5
+dt 			|	dx 			|	N-2 Error 	|	slope
+---------------------------------------------------------
+0.02500	|	0.05000	|	0.002595	|	-----
+0.01250	|	0.02500	|	0.000889	|	1.545
+0.00625	|	0.01250	|	0.000350	|	1.345
+
+
+For method theta-ADI with theta = 1.00 and alpha = 0.5
+dt 			|	dx 			|	N-2 Error 	|	slope
+---------------------------------------------------------
+0.02500	|	0.05000	|	0.005196	|	-----
+0.01250	|	0.02500	|	0.002041	|	1.348
+0.00625	|	0.01250	|	0.002724	|	-0.416
+
+
+* RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde)
+  W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
+  partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));

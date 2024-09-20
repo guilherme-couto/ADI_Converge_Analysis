@@ -596,7 +596,7 @@ __global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta,
 #endif // AFHN
     }
 }
-#endif
+#endif // AFHN
 #ifdef TT2
 __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
 {

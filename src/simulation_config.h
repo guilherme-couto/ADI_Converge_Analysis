@@ -7,7 +7,7 @@
 const int L = 1;     // Length of each side (cm)
 const real totalTime = 0.1f; // Total time (ms)
 
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 // Stimulation parameters
 const real stimStrength = 100.0f;
 
@@ -30,7 +30,7 @@ const real stim2yMin = 0.0f;     // Stimulation y min -> cm
 const real V_init = 0.0f;
 const real W_init = 0.0f;
 #endif // AFHN
-#endif                           // MONODOMAIN
+#endif                           // MONODOMAIN || CABLEEQ
 #endif                           // SERIAL
 
 #ifdef GPU

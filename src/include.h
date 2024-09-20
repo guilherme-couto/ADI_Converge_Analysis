@@ -10,10 +10,13 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#define TT2
-#define ENDO
-#define GPU
-#define MONODOMAIN
+// #define TT2
+// #define ENDO
+// #define GPU
+// #define MONODOMAIN
+#define AFHN
+#define CABLEEQ
+#define SERIAL
 
 #define MAX_STRING_SIZE 200
 
@@ -105,6 +108,9 @@ typedef float real;
 #ifdef MONODOMAIN
 #define PROBLEM "MONODOMAIN"
 #endif // MONODOMAIN
+#ifdef CABLEEQ
+#define PROBLEM "CABLEEQ"
+#endif // CABLEEQ
 
 // Define aux structures for MONODOMAIN
 #ifdef MONODOMAIN
@@ -163,7 +169,7 @@ const real sigma = 1.0f;
 #ifdef DIFF
 const real sigma = 1.0f;
 #endif // DIFF
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
@@ -270,7 +276,7 @@ const real K_bufSR = 0.3f;     // Half-saturation constant of sarcoplasmic retic
 const real bufSS = 0.4f;       // Total subspace buffer concentration -> mM
 const real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer -> mM
 #endif                         // TT2
-#endif                         // MONODOMAIN
+#endif                         // MONODOMAIN || CABLEEQ
 #endif                         // SERIAL
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU

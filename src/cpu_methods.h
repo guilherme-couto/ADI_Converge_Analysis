@@ -12,7 +12,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
-
+#ifndef CABLEEQ
     // Allocate 2D arrays for variables
     real **V, **Vtilde, **RHS, **partRHS, **exact;
     V = (real **)malloc(N * sizeof(real *));
@@ -20,6 +20,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     RHS = (real **)malloc(N * sizeof(real *));
     partRHS = (real **)malloc(N * sizeof(real *));
     exact = (real **)malloc(N * sizeof(real *));
+#else
+    // Allocate 1D arrays for variables
+    real *V, *Vtilde, *RHS, *partRHS, *exact;
+    V = (real *)malloc(N * sizeof(real));
+    Vtilde = (real *)malloc(N * sizeof(real));
+    RHS = (real *)malloc(N * sizeof(real));
+    partRHS = (real *)malloc(N * sizeof(real));
+    exact = (real *)malloc(N * sizeof(real));
+#endif // not CABLEEQ
     real *c_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
     real *d = (real *)malloc(N * sizeof(real));
@@ -29,6 +38,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real **W = (real **)malloc(N * sizeof(real *));
 #endif // AFHN
 #endif // MONODOMAIN
+#ifdef CABLEEQ
+#ifdef AFHN
+    real *W = (real *)malloc(N * sizeof(real));
+#endif // AFHN
+#endif // CABLEEQ
+#ifndef CABLEEQ
     for (int i = 0; i < N; i++)
     {
         V[i] = (real *)malloc(N * sizeof(real));
@@ -42,11 +57,16 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // AFHN
 #endif // MONODOMAIN
     }
+#endif // not CABLEEQ
 
 #ifdef CONVERGENCE_ANALYSIS
     initialize2DVariableWithExactSolution(V, N, delta_x);
 #else
+#ifndef CABLEEQ
     initialize2DVariableWithValue(V, N, V_init);
+#else
+    initialize1DVariableWithValue(V, N, V_init);
+#endif // not CABLEEQ
 #endif // CONVERGENCE_ANALYSIS
 
 #ifdef MONODOMAIN
@@ -54,6 +74,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     initialize2DVariableWithValue(W, N, 0.0f);
 #endif // AFHN
 #endif // MONODOMAIN
+#ifdef CABLEEQ
+#ifdef AFHN
+    initialize1DVariableWithValue(W, N, 0.0f);
+#endif // AFHN
+#endif // CABLEEQ
 
 #ifdef INIT_WITH_SPIRAL
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
@@ -89,7 +114,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
     // Measure total execution time
     real startTime = omp_get_wtime();
-
+#ifndef CABLEEQ
     if (strcmp(method, "ADI") == 0)
     {
         while (timeStepCounter < M)
@@ -200,7 +225,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     real RHS_W_term = RHS_W(V[i][j], W[i][j]);
                     real Wtilde = W[i][j] + (0.5f * delta_t * RHS_W_term);
                     W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
+                    // RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde);
 #endif // AFHN
+                    // partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
 #endif // MONODOMAIN
                 }
             }
@@ -297,7 +324,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     real RHS_W_term = RHS_W(V[i][j], W[i][j]);
                     real Wtilde = W[i][j] + (delta_t * RHS_W_term);
                     W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
+                    // RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde);
 #endif // AFHN
+                    // partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
 #endif // MONODOMAIN
                 }
             }
@@ -344,6 +373,65 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
 #endif // LINMONO || MONODOMAIN
 
+#else
+    if (strcmp(method, "SSI-ADI") == 0)
+    {
+        while (timeStepCounter < M)
+        {
+            // Get time step
+            actualTime = time[timeStepCounter];
+
+            // ================================================!
+            //  Calcula Approx.                                !
+            // ================================================!
+            real x;
+            for (int i = 0; i < N; i++)
+            {
+                x = i * delta_x;
+                real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (V[lim(i - 1, N)] - 2.0f * V[i] + V[lim(i + 1, N)]);
+
+#ifdef AFHN
+                real RHS_V_term = RHS_V(V[i], W[i]);
+#endif // AFHN
+
+                Vtilde[i] = V[i] + diff_term + (0.5f * delta_t * (- RHS_V_term));
+
+// Preparing part of the RHS of the following linear systems
+#ifdef AFHN
+                // Calculate W approximation
+                real RHS_Vtilde_term = RHS_V(Vtilde[i], W[i]);
+#endif // AFHN
+
+                partRHS[i] = delta_t * (- RHS_Vtilde_term);
+
+#ifdef AFHN
+                // Update Wn+1
+                real RHS_W_term = RHS_W(V[i], W[i]);
+                real Wtilde = W[i] + (0.5f * delta_t * RHS_W_term);
+                W[i] = W[i] + delta_t * RHS_W(Vtilde[i], Wtilde);
+#endif // AFHN
+            }
+
+            // ================================================!
+            //  Calcula V em n + 1 -> Resultado vai para V     !
+            // ================================================!
+            for (int i = 0; i < N; i++)
+            {
+                d[i] = V[i] + partRHS[i];
+            }
+
+            tridiag(la, lb, lc, c_prime, d_prime, N, d, result);
+            for (int i = 0; i < N; i++)
+            {
+                V[i] = result[i];
+            }
+
+            // Update time step counter
+            timeStepCounter++;
+        }
+    }
+#endif // not CABLEEQ
+
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
 
@@ -358,7 +446,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     FILE *fpInfos = fopen(infosFilePath, "w");
     printf("Infos saved to %s\n", infosFilePath);
     fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, totalTime);
+    #ifndef CABLEEQ
     fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N * N);
+    #else
+    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d\n", delta_x, N);
+    #endif // not CABLEEQ
     fprintf(fpInfos, "delta_t = %lf, Time steps = %d\n", delta_t, M);
     fprintf(fpInfos, "Method %s\n", method);
     fprintf(fpInfos, "\nTotal execution time = %lf\n", elapsedTime);
@@ -382,6 +474,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     FILE *fpErrors = fopen(errorsFilePath, "w");
     printf("Errors saved to %s\n", errorsFilePath);
 #endif // CONVERGENCE_ANALYSIS
+#ifndef CABLEEQ
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
@@ -398,6 +491,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         fprintf(fpErrors, "\n");
 #endif // CONVERGENCE_ANALYSIS
     }
+#else
+    for (int i = 0; i < N; i++)
+    {
+        fprintf(fpLast, "%e ", V[i]);
+    }
+#endif // not CABLEEQ
     fclose(fpLast);
 #ifdef CONVERGENCE_ANALYSIS
     fclose(fpExact);
@@ -407,6 +506,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     // Free memory
     free(time);
 
+#ifndef CABLEEQ
     for (int i = 0; i < N; i++)
     {
         free(V[i]);
@@ -420,6 +520,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // AFHN
 #endif // MONODOMAIN
     }
+#endif // not CABLEEQ
     free(V);
     free(Vtilde);
     free(RHS);
@@ -433,11 +534,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     free(lb);
     free(lc);
     free(pathToSaveData);
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifdef AFHN
     free(W);
 #endif // AFHN
-#endif // MONODOMAIN
+#endif // MONODOMAIN || CABLEEQ
 
     return;
 }
