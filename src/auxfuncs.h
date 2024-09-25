@@ -41,6 +41,51 @@ void initialize2DVariableWithValue(real **Var, int N, real value)
     }
 }
 
+void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    int baseN = round(L / 0.0005f) + 1;
+    int rate = round(delta_x / 0.0005f);
+
+    int sizeFile = 0;
+    int sizeVar = 0;
+    real value;
+
+    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+
+    for (int i = 0; i < baseN; ++i)
+    {
+// Read value from file to variable
+// If i and j are multiples of rate, read value to Var
+#ifdef USE_FLOAT
+        fscanf(file, "%e", &value);
+#else
+        fscanf(file, "%le", &value);
+#endif
+        if (i % rate == 0)
+        {
+            Var[int(i / rate)] = value;
+            if (isnan(value))
+            {
+                printf("At var index [%d], file index %d, value is NaN\n", int(i / rate), i);
+                exit(1);
+            }
+            sizeVar++;
+        }
+        sizeFile++;
+        
+    }
+    fclose(file);
+
+    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+}
+
 void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_x, char *varName)
 {
     FILE *file = fopen(filename, "r");
@@ -86,6 +131,27 @@ void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_
     fclose(file);
 
     printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+}
+
+void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
+{
+    real *temp = (real *)malloc(N * sizeof(real));
+    for (int i = 0; i < N; i++)
+    {
+        temp[i] = Var[i];
+    }
+    
+    int lengthIndex = round(length / delta_x) + 1;
+    for (int i = 0; i < N - lengthIndex; i++)
+    {
+        Var[i] = temp[i + lengthIndex];
+    }
+    for (int i = N - lengthIndex; i < N; i++)
+    {
+        Var[i] = initValue;
+    }
+    free(temp);
+    printf("Variable %s shifted to the left by %f cm\n", varName, length);
 }
 
 real calculateNorm2Error(real **V, real **exact, int N, real totalTime, real delta_x)
@@ -237,6 +303,7 @@ void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, 
     }
 }
 
+#ifndef CABLEEQ
 void saveFrame(FILE *file, real actualTime, real **V, int N)
 {
     fprintf(file, "%lf\n", actualTime);
@@ -249,6 +316,17 @@ void saveFrame(FILE *file, real actualTime, real **V, int N)
         fprintf(file, "\n");
     }
 }
+#else
+void saveFrame(FILE *file, real actualTime, real *V, int N)
+{
+    fprintf(file, "%lf\n", actualTime);
+    for (int i = 0; i < N; i++)
+    {
+        fprintf(file, "%e ", V[i]);
+    }
+    fprintf(file, "\n");
+}
+#endif // not CABLEEQ
 #endif // SERIAL
 
 #ifdef GPU
@@ -470,7 +548,7 @@ int lim(int num, int N)
     return num;
 }
 
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS
 void populateStimuli(Stimulus *stimuli, real delta_x)
 {
@@ -488,284 +566,6 @@ void populateStimuli(Stimulus *stimuli, real delta_x)
     }
 }
 #endif // not CONVERGENCE_ANALYSIS
+#endif // MONODOMAIN || CABLEEQ
 
-void initialize2DStateVariablesWithInitialConditions(stateVariables *sV, int N)
-{
-    int index;
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            index = i * N + j;
-#ifdef AFHN
-            sV[index].W = W_init;
-#endif // AFHN
-
-#ifdef TT2
-            sV[index].X_r1 = X_r1_init;
-            sV[index].X_r2 = X_r2_init;
-            sV[index].X_s = X_s_init;
-            sV[index].m = m_init;
-            sV[index].h = h_init;
-            sV[index].j = j_init;
-            sV[index].d = d_init;
-            sV[index].f = f_init;
-            sV[index].f2 = f2_init;
-            sV[index].fCaSS = fCaSS_init;
-            sV[index].s = s_init;
-            sV[index].r = r_init;
-            sV[index].Ca_i = Ca_i_init;
-            sV[index].Ca_SR = Ca_SR_init;
-            sV[index].Ca_SS = Ca_SS_init;
-            sV[index].R_prime = R_prime_init;
-            sV[index].Na_i = Na_i_init;
-            sV[index].K_i = K_i_init;
-#endif // TT2
-        }
-    }
-}
-
-#ifndef CONVERGENCE_ANALYSIS
-void initialize2DStateVariablesWithSpiral(stateVariables *sV, int N, real delta_x)
-{
-    real *var = (real *)malloc(N * N * sizeof(real));
-    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-
-#ifdef AFHN
-    char *varName = "W";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].W = var[index];
-        }
-    }
-#endif // AFHN
-
-#ifdef TT2
-    char *varName = "X_r1";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].X_r1 = var[index];
-        }
-    }
-
-    varName = "X_r2";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].X_r2 = var[index];
-        }
-    }
-
-    varName = "X_s";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].X_s = var[index];
-        }
-    }
-
-    varName = "m";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].m = var[index];
-        }
-    }
-
-    varName = "h";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].h = var[index];
-        }
-    }
-
-    varName = "j";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].j = var[index];
-        }
-    }
-
-    varName = "d";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].d = var[index];
-        }
-    }
-
-    varName = "f";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].f = var[index];
-        }
-    }
-
-    varName = "f2";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].f2 = var[index];
-        }
-    }
-
-    varName = "fCaSS";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].fCaSS = var[index];
-        }
-    }
-
-    varName = "s";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].s = var[index];
-        }
-    }
-
-    varName = "r";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].r = var[index];
-        }
-    }
-
-    varName = "Ca_i";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].Ca_i = var[index];
-        }
-    }
-
-    varName = "Ca_SR";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].Ca_SR = var[index];
-        }
-    }
-
-    varName = "Ca_SS";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].Ca_SS = var[index];
-        }
-    }
-
-    varName = "R_prime";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].R_prime = var[index];
-        }
-    }
-
-    varName = "Na_i";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].Na_i = var[index];
-        }
-    }
-
-    varName = "K_i";
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/last%s_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL, varName);
-    initialize2DVariableFromFile(var, N, pathToSpiralFiles, delta_x, varName);
-    for (int i = 0; i < N; ++i)
-    {
-        for (int j = 0; j < N; ++j)
-        {
-            int index = i * N + j;
-            sV[index].K_i = var[index];
-        }
-    }
-#endif // TT2
-
-    free(var);
-    free(pathToSpiralFiles);
-}
-#endif // not CONVERGENCE_ANALYSIS
-#endif // MONODOMAIN
 #endif // AUXFUNCS_H

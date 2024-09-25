@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
     printf("Problem: DIFF -> Linear diffusion (2D)\n");
     #elif defined(MONODOMAIN)
     printf("Problem: MONODOMAIN -> Monodomain with %s (2D)\n", CELL_MODEL);
+    #elif defined(CABLEEQ)
+    printf("Problem: CABLEEQ -> Cable equation with %s (1D)\n", CELL_MODEL);
     #else
     printf("Problem not yet implemented\n");
     return 1;

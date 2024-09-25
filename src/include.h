@@ -14,9 +14,9 @@
 // #define ENDO
 // #define GPU
 // #define MONODOMAIN
-#define AFHN
-#define CABLEEQ
-#define SERIAL
+// #define AFHN
+// #define CABLEEQ
+// #define SERIAL
 
 #define MAX_STRING_SIZE 200
 
@@ -113,7 +113,7 @@ typedef float real;
 #endif // CABLEEQ
 
 // Define aux structures for MONODOMAIN
-#ifdef MONODOMAIN
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 typedef struct
 {
     real strength;
@@ -124,34 +124,7 @@ typedef struct
     int yMaxDisc;
     int yMinDisc;
 } Stimulus;
-
-typedef struct
-{
-#ifdef AFHN
-    real W;
-#endif // AFHN
-#ifdef TT2
-    real X_r1;
-    real X_r2;
-    real X_s;
-    real m;
-    real h;
-    real j;
-    real d;
-    real f;
-    real f2;
-    real fCaSS;
-    real s;
-    real r;
-    real Ca_i;
-    real Ca_SR;
-    real Ca_SS;
-    real R_prime;
-    real Na_i;
-    real K_i;
-#endif // TT2
-} stateVariables;
-#endif // MONODOMAIN
+#endif // MONODOMAIN || CABLEEQ
 
 // If defined SERIAL, constants are defined only as const for CPU
 #ifdef SERIAL

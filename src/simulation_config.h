@@ -3,51 +3,20 @@
 
 #include "include.h"
 
-#ifdef SERIAL
-const int L = 1;     // Length of each side (cm)
-const real totalTime = 0.1f; // Total time (ms)
-
-#if defined(MONODOMAIN) || defined(CABLEEQ)
-// Stimulation parameters
-const real stimStrength = 100.0f;
-
-// S1
-const real stim1Begin = 0.0f;    // S1 start time -> ms
-const real stim1Duration = 2.0f; // Stimulation duration -> ms
-const real stim1xLimit = 0.2f;   // Stimulation x limit -> cm
-const real stim1yLimit = 2.0f;   // Stimulation y limit -> cm ( = L)
-
-// S2
-const real stim2Begin = 120.0f;  // S2 start time -> ms
-const real stim2Duration = 2.0f; // Stimulation duration -> ms
-const real stim2xMax = 1.0f;     // Stimulation x max -> cm
-const real stim2yMax = 1.0f;     // Stimulation y max -> cm
-const real stim2xMin = 0.0f;     // Stimulation x min -> cm
-const real stim2yMin = 0.0f;     // Stimulation y min -> cm
-
-// Initial conditions
-#ifdef AFHN
-const real V_init = 0.0f;
-const real W_init = 0.0f;
-#endif // AFHN
-#endif                           // MONODOMAIN || CABLEEQ
-#endif                           // SERIAL
-
-#ifdef GPU
-const __constant__ int L = 5; // Length of each side (cm)
-const real totalTime = 1000.0f;        // Total time (ms)
-
 #ifdef SAVE_FRAMES
 // Save frames parameters
-const int frameSaveRate = 300;
+const int frameSaveRate = 500;
 #endif // SAVE_FRAMES
 
-#ifdef MONODOMAIN
+const __constant__ int L = 5;     // Length of each side (cm)
+const real totalTime = 100.0f; // Total time (ms)
+
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 // Stimulation parameters
 const __constant__ int numberOfStimuli = 2; // Number of stimuli
 const real stimuliStrength = -38.0f;          // Stimulation strength -> (amplitude)
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
-const real stimuliBegin[] = {0.0f, 250.0f}; // Stimuli begin time -> ms
+const real stimuliBegin[] = {0.0f, 1250.0f}; // Stimuli begin time -> ms
 const real stimulixMax[] = {0.2f, 2.5f};    // Stimuli x max -> cm
 const real stimulixMin[] = {0.0f, 0.0f};    // Stimuli x min -> cm
 const real stimuliyMax[] = {5.0f, 2.5f};    // Stimuli y max -> cm
@@ -107,7 +76,6 @@ const real Na_i_init = 7.67f;     // Initial intracellular Na+ concentration -> 
 const real K_i_init = 138.3f;     // Initial intracellular K+ concentration -> mM
 #endif                            // ENDO || MCELL
 #endif                            // TT2
-#endif                            // MONODOMAIN
-#endif                            // GPU
+#endif                            // MONODOMAIN || CABLEEQ
 
 #endif // SIMULATION_CONFIG_H

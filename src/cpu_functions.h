@@ -50,6 +50,7 @@ real forcingTerm(real x, real y, real t, real W)
     return (exactV * (-(chi*Cm) + 2.0f*(sigma/(chi*Cm))*_pi*_pi/(L*L))) + (chi*reaction);
 }
 #endif // AFHN
+
 #endif // MONODOMAIN || CABLEEQ
 
 #endif // CPU_FUNCTIONS_H

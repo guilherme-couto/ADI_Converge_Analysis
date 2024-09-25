@@ -78,7 +78,7 @@ def calculate_slopes(errors, dts):
         slopes.append(f'{(slope):.3f}')
     return slopes
 
-def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if method == 'theta-ADI':
         save_dir += f'/{theta}'
@@ -91,6 +91,77 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
     if problem == 'MONODOMAIN' and cell_model == 'AFHN':
         max_value = 100.0
         min_value = 0.0
+    
+    if cell_model == 'AFHN':
+        variables = ['V', 'W']
+    elif cell_model == 'TT2':
+        variables = ['V', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
+    
+    for variable in variables:
+        if method != 'theta-ADI':
+            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last{variable}_{dt}_{dx}.txt'
+            title = f'Last frame {variable} dt={dt} dx={dx}'
+        else:
+            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last{variable}_{dt}_{dx}.txt'
+            title = f'Last frame {variable} ({theta}) dt={dt} dx={dx}'
+            
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        # Read data from the text file
+        data_last = np.genfromtxt(file_path, dtype=float)
+
+        max_value = data_last.max()
+        max_value = max_value + 0.2 * abs(max_value)
+        min_value = data_last.min()
+        min_value = min_value - 0.2 * abs(min_value)
+
+        if problem == 'CABLEEQ':
+            plt.figure()
+            # Criando o vetor x
+            x = np.arange(0, (len(data_last)-1) * float(dx), float(dx))
+            x = np.append(x, (len(data_last)-1) * float(dx))
+            
+            if cell_model == 'AFHN':
+                plt.plot(x, data_last)
+            elif cell_model == 'TT2':
+                plt.plot(x, data_last)
+            plt.ylim(min_value, max_value)
+            plt.title(f'{title}')
+            plt.ylabel('V (mV)')
+            plt.xlabel('L (cm)')
+        
+        else:
+            # Plot the last
+            plt.figure(figsize=(6, 6))
+            plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
+            plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+            plt.xticks([])
+            plt.yticks([])
+            plt.title(f'{title}')
+            plt.tight_layout()
+        
+        plt.savefig(f'{save_dir}/last{variable}_{dt}_{dx}.png')
+        plt.close()
+        
+        print(f'Last frame of {variable} saved to {save_dir}/last{variable}_{dt}_{dx}.png')
+
+def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+    
+    max_value = 0.0
+    min_value = 0.0
+    
+    if cell_model == 'AFHN':
+        max_value = 100.0
+        min_value = 0.0
+    elif cell_model == 'TT2':
+        max_value = 100.0
+        min_value = -90.0
     
     if method != 'theta-ADI':
         file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
@@ -110,17 +181,35 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         max_value = data_last.max()
         # Get the minimum value to be the vmin
         min_value = data_last.min()
+
+    if problem == 'CABLEEQ':
+        plt.figure()
+        # Criando o vetor x
+        x = np.arange(0, (len(data_last)-1) * float(dx), float(dx))
+        x = np.append(x, (len(data_last)-1) * float(dx))
         
-    # Plot the last
-    plt.figure(figsize=(6, 6))
-    plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
-    plt.colorbar(label='Value', fraction=0.04, pad=0.04)
-    plt.xticks([])
-    plt.yticks([])
-    plt.title(f'{title}')
-    plt.tight_layout()
-    plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
-    plt.close()
+        if cell_model == 'AFHN':
+            plt.plot(x, data_last)
+        elif cell_model == 'TT2':
+            plt.plot(x, data_last)
+        plt.ylim(min_value, max_value)
+        plt.title(f'{title}')
+        plt.ylabel('V (mV)')
+        plt.xlabel('L (cm)')
+        plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+        plt.close()
+    
+    else:
+        # Plot the last
+        plt.figure(figsize=(6, 6))
+        plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
+        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(f'{title}')
+        plt.tight_layout()
+        plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+        plt.close()
     
     print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
 
@@ -332,18 +421,39 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
             for i in range(len(frame)):
                 frame[i] = [float(x) for x in frame[i]]
             
-            plt.figure(figsize=(6, 6))
-            if cell_model == 'AFHN':
-                plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
-            elif cell_model == 'TT2':
-                plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=50, origin='lower')
-            plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04)
-            plt.title(f'{title} ({times[frame_count]:.2f} ms)')
-            plt.xticks([])
-            plt.yticks([])
-            plt.tight_layout()
-            plt.savefig(frame_name)
-            plt.close()
+            if problem == 'CABLEEQ':
+                plt.figure()
+                # Criando o vetor x
+                x = np.arange(0, (len(frame[0])-1) * float(dx), float(dx))
+                x = np.append(x, (len(frame[0])-1) * float(dx))
+                
+                if cell_model == 'AFHN':
+                    # plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
+                    plt.plot(x, frame[0])
+                    plt.ylim(0.0, 100.0)
+                elif cell_model == 'TT2':
+                    plt.plot(x, frame[0])
+                    plt.ylim(-90.0, 100.0)
+                plt.title(f'{title} ({times[frame_count]:.2f} ms)')
+                # plt.tight_layout()
+                plt.ylabel('V (mV)')
+                plt.xlabel('L (cm)')
+                plt.savefig(frame_name)
+                plt.close()
+            
+            else:
+                plt.figure(figsize=(6, 6))
+                if cell_model == 'AFHN':
+                    plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
+                elif cell_model == 'TT2':
+                    plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
+                plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04)
+                plt.title(f'{title} ({times[frame_count]:.2f} ms)')
+                plt.xticks([])
+                plt.yticks([])
+                plt.tight_layout()
+                plt.savefig(frame_name)
+                plt.close()
             
             frame_count += 1
 
@@ -360,7 +470,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
             os.remove(png)
             
     print(f'Gif saved to {gif_path}')
-    
+      
 def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
     graph_dir = f'./simulation_files/graphs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}'
     if not os.path.exists(graph_dir):

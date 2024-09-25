@@ -1,16 +1,18 @@
 from functions import *
 
 def main():
-    dts = ['0.0050', '0.0100', '0.0200', '0.0300', '0.0400', '0.0500']
-    dxs = ['0.0050', '0.0100', '0.0200']
+    dts = ['0.00500', '0.01000', '0.02000', '0.03000', '0.04000', '0.05000']
+    dxs = ['0.00500', '0.01000', '0.02000']
     methods = ['SSI-ADI', 'theta-ADI']
+    methods = ['SSI-CN']
     thetas = ['0.50', '0.66', '1.00']
     
-    real_type = 'float'
-    serial_or_gpu = 'GPU'
-    problem = 'MONODOMAIN'
-    cell_model = 'AFHN'
-    init = 'spiral'
+    real_type = 'double'
+    serial_or_gpu = 'SERIAL'
+    problem = 'CABLEEQ'
+    cell_model = 'TT2'
+    # init = 'spiral'
+    init = 'solution_and_shift'
     frames = True
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
@@ -21,14 +23,20 @@ def main():
         compile_command += '-DUSE_FLOAT '
     if serial_or_gpu == 'GPU':
         compile_command += '-DGPU '
-    elif serial_or_gpu == 'CPU':
+    elif serial_or_gpu == 'SERIAL':
         compile_command += '-DSERIAL '
     if problem == 'MONODOMAIN':
         compile_command += '-DMONODOMAIN '
+    elif problem == 'CABLEEQ':
+        compile_command += '-DCABLEEQ '
     if cell_model == 'AFHN':
         compile_command += '-DAFHN '
+    elif cell_model == 'TT2':
+        compile_command += '-DTT2 -DENDO '
     if init == 'spiral':
         compile_command += '-DINIT_WITH_SPIRAL '
+    elif init == 'solution_and_shift':
+        compile_command += '-DINIT_WITH_SOLUTION_AND_SHIFT '
     if frames:
         compile_command += '-DSAVE_FRAMES '
     print(f'Compiling {compile_command}...')
@@ -38,7 +46,7 @@ def main():
         for i in range(len(dts)):
             dt = dts[i]
             # dx = dxs[i]
-            dx = '0.0100'
+            dx = '0.01000'
             
             if method == 'SSI-ADI':
                 tts = ['0.00']

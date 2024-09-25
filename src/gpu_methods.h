@@ -76,7 +76,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
     free(pathToSpiralFiles);
-    initialize2DStateVariablesWithSpiral(sV, N, delta_x);
+#ifdef AFHN
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W");
+#endif // AFHN
+    free(pathToSpiralFiles);
 #endif // INIT_WITH_SPIRAL
 
     // Auxiliary arrays for Thomas algorithm
@@ -206,7 +209,6 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     FILE *fpFrames;
     snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames/frames_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     fpFrames = fopen(framesPath, "w");
-
 #endif // SAVE_FRAMES
 
     int timeStepCounter = 0;
@@ -309,7 +311,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
             computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
 #elif defined(AFHN)
-            computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_sV, d_stimuli);
+            computeApproxthetaADI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, theta, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W, d_stimuli);
 #endif // CONVERGENCE_ANALYSIS
             cudaDeviceSynchronize();
 

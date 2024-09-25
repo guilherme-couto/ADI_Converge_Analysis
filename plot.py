@@ -7,6 +7,7 @@ options = {
     "lastframe": functions.plot_last_frame,
     "exact": functions.plot_exact,
     "errors": functions.plot_errors,
+    "lastframe_statevariables": functions.plot_last_frame_state_variables,
 }
 
 def main():

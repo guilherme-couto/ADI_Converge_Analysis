@@ -3,15 +3,16 @@ import os
 from functions import *
 
 def main():
-    dts = ['0.0050', '0.0100', '0.0200', '0.0300', '0.0400', '0.0500']
-    dxs = ['0.0050', '0.0100', '0.0200']
-    methods = ['SSI-ADI', 'theta-ADI']
+    dts = ['0.00500', '0.01000', '0.02000', '0.03000', '0.04000', '0.05000']
+    dxs = ['0.00500', '0.01000', '0.02000']
+    # methods = ['SSI-ADI', 'theta-ADI']
+    methods = ['SSI-CN']
     thetas = ['0.50', '0.66', '1.00']
     
-    real_type = 'float'
-    serial_or_gpu = 'GPU'
-    problem = 'MONODOMAIN'
-    cell_model = 'AFHN'
+    real_type = 'double'
+    serial_or_gpu = 'SERIAL'
+    problem = 'CABLEEQ'
+    cell_model = 'TT2'
     
     # Find the largest dx to use as base for the read rate
     base_dx = 0
@@ -21,7 +22,7 @@ def main():
     base_dx = 0.01
     
     # Read reference solution
-    reference_discr = '0.0005'
+    reference_discr = '0.00050'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_discr}_{reference_discr}.txt'
     
     if not os.path.exists(reference_solution_path):
@@ -53,7 +54,7 @@ def main():
             for i in range(len(dts)):
                 dt = dts[i]
                 # dx = dxs[i]
-                dx = '0.0100'
+                dx = '0.01000'
                                     
                 simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
                 if not os.path.exists(simulation_path):
@@ -66,7 +67,8 @@ def main():
                 
                 # Plot difference map between reference and simulation
                 difference = np.array(simulation_data) - np.array(reference_data)
-                plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx)                
+                if problem != 'CABLEEQ':
+                    plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx)                
                 
                 # Calculate the N-2 error
                 n2_error = np.linalg.norm(difference, 2) * float(dx)
@@ -98,7 +100,7 @@ def main():
                 for i in range(len(dts)):
                     dt = dts[i]
                     # dx = dxs[i]
-                    dx = '0.0100'
+                    dx = '0.01000'
                                         
                     simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
                     if not os.path.exists(simulation_path):
@@ -111,7 +113,8 @@ def main():
                     
                     # Plot difference map between reference and simulation
                     difference = np.array(simulation_data) - np.array(reference_data)
-                    plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)                
+                    if problem != 'CABLEEQ':
+                        plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)                
                     
                     # Calculate the N-2 error
                     n2_error = np.linalg.norm(difference, 2) * float(dx)
