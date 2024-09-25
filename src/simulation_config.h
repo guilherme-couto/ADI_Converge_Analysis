@@ -5,16 +5,21 @@
 
 #ifdef SAVE_FRAMES
 // Save frames parameters
-const int frameSaveRate = 500;
+const int frameSaveRate = 1000;
 #endif // SAVE_FRAMES
 
 const __constant__ int L = 5;     // Length of each side (cm)
-const real totalTime = 100.0f; // Total time (ms)
+const real totalTime = 80.0f; // Total time (ms)
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 // Stimulation parameters
 const __constant__ int numberOfStimuli = 2; // Number of stimuli
+#ifdef AFHN
+const real stimuliStrength = 100.0f;          // Stimulation strength -> (amplitude)
+#endif // AFHN
+#ifdef TT2
 const real stimuliStrength = -38.0f;          // Stimulation strength -> (amplitude)
+#endif // TT2
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
 const real stimuliBegin[] = {0.0f, 1250.0f}; // Stimuli begin time -> ms
 const real stimulixMax[] = {0.2f, 2.5f};    // Stimuli x max -> cm

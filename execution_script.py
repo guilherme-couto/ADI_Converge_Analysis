@@ -10,10 +10,11 @@ def main():
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'CABLEEQ'
-    cell_model = 'TT2'
+    cell_model = 'AFHN'
     # init = 'spiral'
-    init = 'solution_and_shift'
+    init = 'restore_state_and_shift'
     frames = True
+    save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -w '
@@ -35,10 +36,12 @@ def main():
         compile_command += '-DTT2 -DENDO '
     if init == 'spiral':
         compile_command += '-DINIT_WITH_SPIRAL '
-    elif init == 'solution_and_shift':
-        compile_command += '-DINIT_WITH_SOLUTION_AND_SHIFT '
+    elif init == 'restore_state_and_shift':
+        compile_command += '-DRESTORE_STATE_AND_SHIFT '
     if frames:
         compile_command += '-DSAVE_FRAMES '
+    if save_last_state:
+        compile_command += '-DSAVE_LAST_STATE '
     print(f'Compiling {compile_command}...')
     os.system(compile_command)
     
