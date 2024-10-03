@@ -73,11 +73,11 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef INIT_WITH_SPIRAL
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
-    free(pathToSpiralFiles);
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.00050_0.01000.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", 0.01f);
 #ifdef AFHN
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W");
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.00050_0.01000.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W", 0.01f);
 #endif // AFHN
     free(pathToSpiralFiles);
 #endif // INIT_WITH_SPIRAL
@@ -366,6 +366,14 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // Copy memory of d_V from device to host V
     CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
+    #ifdef SAVE_LAST_STATE
+    #ifdef AFHN
+    CUDA_CALL(cudaMemcpy(W, d_W, N * N * sizeof(real), cudaMemcpyDeviceToHost));
+    #endif // AFHN
+    //#ifdef TT2 TODO
+    // CUDA_CALL TODO
+    //#endif // TT2 TODO
+    #endif // SAVE_LAST_STATE
 
 // Calculate exact solution
 #ifdef CONVERGENCE_ANALYSIS
@@ -401,6 +409,83 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/last_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
     printf("Last frame saved to %s\n", lastFrameFilePath);
+
+    #ifdef SAVE_LAST_STATE
+    #ifdef AFHN
+    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
+
+    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastV_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastW_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+
+    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    printf("Last V frame saved to %s\n", lastFrameFilePathV);
+    FILE *fpLastW = fopen(lastFrameFilePathW, "w");
+    printf("Last W frame saved to %s\n", lastFrameFilePathW);
+    #endif // AFHN
+    #ifdef TT2
+    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE], lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE], lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE], lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE], lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
+    
+    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastV_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_r1_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_r2_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_s_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathm, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastm_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathh, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lasth_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathj, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastj_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathd, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastd_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathf, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastf_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathf2, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastf2_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathfCaSS, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastfCaSS_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lasts_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathr, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastr_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathR_prime, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastR_prime_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathCa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathCa_SR, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_SR_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathCa_SS, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_SS_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastNa_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastK_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+
+    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    printf("Last V frame saved to %s\n", lastFrameFilePathV);
+    FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
+    printf("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
+    FILE *fpLastX_r2 = fopen(lastFrameFilePathX_r2, "w");
+    printf("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
+    FILE *fpLastX_s = fopen(lastFrameFilePathX_s, "w");
+    printf("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
+    FILE *fpLastm = fopen(lastFrameFilePathm, "w");
+    printf("Last m frame saved to %s\n", lastFrameFilePathm);
+    FILE *fpLasth = fopen(lastFrameFilePathh, "w");
+    printf("Last h frame saved to %s\n", lastFrameFilePathh);
+    FILE *fpLastj = fopen(lastFrameFilePathj, "w");
+    printf("Last j frame saved to %s\n", lastFrameFilePathj);
+    FILE *fpLastd = fopen(lastFrameFilePathd, "w");
+    printf("Last d frame saved to %s\n", lastFrameFilePathd);
+    FILE *fpLastf = fopen(lastFrameFilePathf, "w");
+    printf("Last f frame saved to %s\n", lastFrameFilePathf);
+    FILE *fpLastf2 = fopen(lastFrameFilePathf2, "w");
+    printf("Last f2 frame saved to %s\n", lastFrameFilePathf2);
+    FILE *fpLastfCaSS = fopen(lastFrameFilePathfCaSS, "w");
+    printf("Last fCaSS frame saved to %s\n", lastFrameFilePathfCaSS);
+    FILE *fpLasts = fopen(lastFrameFilePaths, "w");
+    printf("Last s frame saved to %s\n", lastFrameFilePaths);
+    FILE *fpLastr = fopen(lastFrameFilePathr, "w");
+    printf("Last r frame saved to %s\n", lastFrameFilePathr);
+    FILE *fpLastR_prime = fopen(lastFrameFilePathR_prime, "w");
+    printf("Last R_prime frame saved to %s\n", lastFrameFilePathR_prime);
+    FILE *fpLastCa_i = fopen(lastFrameFilePathCa_i, "w");
+    printf("Last Ca_i frame saved to %s\n", lastFrameFilePathCa_i);
+    FILE *fpLastCa_SR = fopen(lastFrameFilePathCa_SR, "w");
+    printf("Last Ca_SR frame saved to %s\n", lastFrameFilePathCa_SR);
+    FILE *fpLastCa_SS = fopen(lastFrameFilePathCa_SS, "w");
+    printf("Last Ca_SS frame saved to %s\n", lastFrameFilePathCa_SS);
+    FILE *fpLastNa_i = fopen(lastFrameFilePathNa_i, "w");
+    printf("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
+    FILE *fpLastK_i = fopen(lastFrameFilePathK_i, "w");
+    printf("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
+    #endif // TT2
+    #endif // SAVE_LAST_STATE
+             
 #ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact/exact_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
@@ -421,18 +506,99 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             fprintf(fpExact, "%e ", exact[i][j]);
             fprintf(fpErrors, "%e ", abs(V[index] - exact[i][j]));
 #endif // CONVERGENCE_ANALYSIS
+#ifdef SAVE_LAST_STATE
+            #ifdef AFHN
+            fprintf(fpLastV, "%e ", V[index]);
+            fprintf(fpLastW, "%e ", W[index]);
+            #endif // AFHN
+            #ifdef TT2
+            fprintf(fpLastV, "%e ", V[index]);
+            fprintf(fpLastX_r1, "%e ", X_r1[index]);
+            fprintf(fpLastX_r2, "%e ", X_r2[index]);
+            fprintf(fpLastX_s, "%e ", X_s[index]);
+            fprintf(fpLastm, "%e ", m[index]);
+            fprintf(fpLasth, "%e ", h[index]);
+            fprintf(fpLastj, "%e ", j[index]);
+            fprintf(fpLastd, "%e ", d[index]);
+            fprintf(fpLastf, "%e ", f[index]);
+            fprintf(fpLastf2, "%e ", f2[index]);
+            fprintf(fpLastfCaSS, "%e ", fCaSS[index]);
+            fprintf(fpLasts, "%e ", s[index]);
+            fprintf(fpLastr, "%e ", r[index]);
+            fprintf(fpLastR_prime, "%e ", R_prime[index]);
+            fprintf(fpLastCa_i, "%e ", Ca_i[index]);
+            fprintf(fpLastCa_SR, "%e ", Ca_SR[index]);
+            fprintf(fpLastCa_SS, "%e ", Ca_SS[index]);
+            fprintf(fpLastNa_i, "%e ", Na_i[index]);
+            fprintf(fpLastK_i, "%e ", K_i[index]);
+            #endif // TT2
+#endif // SAVE_LAST_STATE
         }
         fprintf(fpLast, "\n");
 #ifdef CONVERGENCE_ANALYSIS
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
 #endif // CONVERGENCE_ANALYSIS
+#ifdef SAVE_LAST_STATE
+        #ifdef AFHN
+        fprintf(fpLastV, "\n");
+        fprintf(fpLastW, "\n");
+        #endif // AFHN
+        #ifdef TT2
+        fprintf(fpLastV, "\n");
+        fprintf(fpLastX_r1, "\n");
+        fprintf(fpLastX_r2, "\n");
+        fprintf(fpLastX_s, "\n");
+        fprintf(fpLastm, "\n");
+        fprintf(fpLasth, "\n");
+        fprintf(fpLastj, "\n");
+        fprintf(fpLastd, "\n");
+        fprintf(fpLastf, "\n");
+        fprintf(fpLastf2, "\n");
+        fprintf(fpLastfCaSS, "\n");
+        fprintf(fpLasts, "\n");
+        fprintf(fpLastr, "\n");
+        fprintf(fpLastR_prime, "\n");
+        fprintf(fpLastCa_i, "\n");
+        fprintf(fpLastCa_SR, "\n");
+        fprintf(fpLastCa_SS, "\n");
+        fprintf(fpLastNa_i, "\n");
+        fprintf(fpLastK_i, "\n");
+        #endif // TT2
+#endif // SAVE_LAST_STATE
     }
     fclose(fpLast);
 #ifdef CONVERGENCE_ANALYSIS
     fclose(fpExact);
     fclose(fpErrors);
 #endif // CONVERGENCE_ANALYSIS
+#ifdef SAVE_LAST_STATE
+    #ifdef AFHN
+    fclose(fpLastV);
+    fclose(fpLastW);
+    #endif // AFHN
+    #ifdef TT2
+    fclose(fpLastV);
+    fclose(fpLastX_r1);
+    fclose(fpLastX_r2);
+    fclose(fpLastX_s);
+    fclose(fpLastm);
+    fclose(fpLasth);
+    fclose(fpLastj);
+    fclose(fpLastd);
+    fclose(fpLastf);
+    fclose(fpLastf2);
+    fclose(fpLastfCaSS);
+    fclose(fpLasts);
+    fclose(fpLastr);
+    fclose(fpLastR_prime);
+    fclose(fpLastCa_i);
+    fclose(fpLastCa_SR);
+    fclose(fpLastCa_SS);
+    fclose(fpLastNa_i);
+    fclose(fpLastK_i);
+    #endif // TT2
+#endif // SAVE_LAST_STATE
 
     // Free memory
     free(time);

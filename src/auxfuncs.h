@@ -41,7 +41,7 @@ void initialize2DVariableWithValue(real **Var, int N, real value)
     }
 }
 
-void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName)
+void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName, real reference_dx)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -50,8 +50,8 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
         exit(1);
     }
 
-    int baseN = round(L / 0.0005f) + 1;
-    int rate = round(delta_x / 0.0005f);
+    int baseN = round(L / reference_dx) + 1;
+    int rate = round(delta_x / reference_dx);
 
     int sizeFile = 0;
     int sizeVar = 0;
@@ -86,7 +86,7 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
     printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
-void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_x, char *varName)
+void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_x, char *varName, real reference_dx)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -95,8 +95,8 @@ void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_
         exit(1);
     }
 
-    int baseN = round(L / 0.0005f) + 1;
-    int rate = round(delta_x / 0.0005f);
+    int baseN = round(L / reference_dx) + 1;
+    int rate = round(delta_x / reference_dx);
 
     int sizeFile = 0;
     int sizeVar = 0;
@@ -343,7 +343,7 @@ void initialize2DVariableWithValue(real *Var, int N, real value)
     }
 }
 
-void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName)
+void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName, real reference_dx)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -352,8 +352,8 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
         exit(1);
     }
 
-    int baseN = round(L / 0.0005f) + 1;
-    int rate = round(delta_x / 0.0005f);
+    int baseN = round(L / reference_dx) + 1;
+    int rate = round(delta_x / reference_dx);
 
     int sizeFile = 0;
     int sizeVar = 0;
@@ -524,6 +524,10 @@ void createDirectories(char *method, real theta, char *pathToSaveData)
     snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/errors", path);
     system(command);
 #endif // CONVERGENCE_ANALYSIS
+#ifdef CABLEEQ
+    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/AP", path);
+    system(command);
+#endif // CABLEEQ
 
     // Update pathToSaveData
     strcpy(pathToSaveData, path);
@@ -563,6 +567,16 @@ void populateStimuli(Stimulus *stimuli, real delta_x)
         stimuli[i].xMinDisc = round(stimulixMin[i] / delta_x);
         stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_x);
         stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
+
+        #if defined(INIT_WITH_SPIRAL) || defined(RESTORE_STATE_AND_SHIFT)
+        stimuli[i].strength = 0.0f;
+        #endif // INIT_WITH_SPIRAL || RESTORE_STATE_AND_SHIFT
+
+        #ifdef CABLEEQ
+        // Only one stimulus for CABLEEQ
+        if (i > 0)
+            stimuli[i].strength = 0.0f;
+        #endif // CABLEEQ
     }
 }
 #endif // not CONVERGENCE_ANALYSIS

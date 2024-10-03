@@ -37,9 +37,9 @@ typedef float real;
 // TODO: editar depois. Fazendo apenas para testes
 // O ideal vai ser colocar #ifndef GPU, define SERIAL, MONODOMAIN e AFHN
 // assim SERIAL fica como padrão e GPU só é definido se for passado como argumento
-#ifndef SERIAL
-#define MONODOMAIN
-#endif // not SERIAL
+// #ifndef SERIAL
+// #define MONODOMAIN
+// #endif // not SERIAL
 
 #ifdef SERIAL
 #define EXECUTION_TYPE "SERIAL"

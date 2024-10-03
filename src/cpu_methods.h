@@ -20,14 +20,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     RHS = (real **)malloc(N * sizeof(real *));
     partRHS = (real **)malloc(N * sizeof(real *));
     exact = (real **)malloc(N * sizeof(real *));
-#else
+#else // if def CABLEEQ
     // Allocate 1D arrays for variables
-    real *V, *Vtilde, *RHS, *partRHS, *exact;
+    real *V, *Vtilde, *RHS, *partRHS, *exact, *AP;
     V = (real *)malloc(N * sizeof(real));
     Vtilde = (real *)malloc(N * sizeof(real));
     RHS = (real *)malloc(N * sizeof(real));
     partRHS = (real *)malloc(N * sizeof(real));
     exact = (real *)malloc(N * sizeof(real));
+    AP = (real *)malloc(M * sizeof(real));
 #endif // not CABLEEQ
     real *c_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
@@ -82,10 +83,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef CONVERGENCE_ANALYSIS
     initialize2DVariableWithExactSolution(V, N, delta_x);
-#else
+#else // if not def CONVERGENCE_ANALYSIS
 #ifndef CABLEEQ
     initialize2DVariableWithValue(V, N, V_init);
-#else // if not def CABLEEQ
+#else // if def CABLEEQ
     initialize1DVariableWithValue(V, N, V_init);
 #endif // not CABLEEQ
 #endif // CONVERGENCE_ANALYSIS
@@ -122,64 +123,68 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // CABLEEQ
 
 #ifdef INIT_WITH_SPIRAL
+    char* reference_dx = "0.01000";
+    real real_ref_dx = 0.01f;
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.0005_0.0005.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W");
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);
+    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastW_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W", real_ref_dx);
     free(pathToSpiralFiles);
 #endif // INIT_WITH_SPIRAL
 
 #ifdef RESTORE_STATE_AND_SHIFT
     // Initialize variables with a solution
-    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastV_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V");
+    char* reference_dx = "0.01000";
+    real real_ref_dx = 0.01f;
+    char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(V, N, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
 
     #ifdef AFHN
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastW_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W");
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(W, N, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
     #endif // AFHN
     #ifdef TT2
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastX_r1_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(X_r1, N, pathToSpiralFiles, delta_x, "X_r1");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastX_r2_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(X_r2, N, pathToSpiralFiles, delta_x, "X_r2");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastX_s_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(X_s, N, pathToSpiralFiles, delta_x, "X_s");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastm_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(m, N, pathToSpiralFiles, delta_x, "m");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lasth_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(h, N, pathToSpiralFiles, delta_x, "h");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastj_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(j, N, pathToSpiralFiles, delta_x, "j");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastd_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(d, N, pathToSpiralFiles, delta_x, "d");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastf_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(f, N, pathToSpiralFiles, delta_x, "f");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastf2_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(f2, N, pathToSpiralFiles, delta_x, "f2");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastfCaSS_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(fCaSS, N, pathToSpiralFiles, delta_x, "fCaSS");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lasts_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(s, N, pathToSpiralFiles, delta_x, "s");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastr_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(r, N, pathToSpiralFiles, delta_x, "r");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastCa_i_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(Ca_i, N, pathToSpiralFiles, delta_x, "Ca_i");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastCa_SR_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(Ca_SR, N, pathToSpiralFiles, delta_x, "Ca_SR");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastCa_SS_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(Ca_SS, N, pathToSpiralFiles, delta_x, "Ca_SS");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastR_prime_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(R_prime, N, pathToSpiralFiles, delta_x, "R_prime");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastNa_i_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(Na_i, N, pathToSpiralFiles, delta_x, "Na_i");
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./reference_solutions/%s/%s/%s/save_state/lastK_i_0.00050_0.00050.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(K_i, N, pathToSpiralFiles, delta_x, "K_i");
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r1_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(X_r1, N, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r2_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(X_r2, N, pathToRestoreStateFiles, delta_x, "X_r2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_s_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(X_s, N, pathToRestoreStateFiles, delta_x, "X_s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastm_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(m, N, pathToRestoreStateFiles, delta_x, "m", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(h, N, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(j, N, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(d, N, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(f, N, pathToRestoreStateFiles, delta_x, "f", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf2_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(f2, N, pathToRestoreStateFiles, delta_x, "f2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastfCaSS_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(fCaSS, N, pathToRestoreStateFiles, delta_x, "fCaSS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasts_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(s, N, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastr_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(r, N, pathToRestoreStateFiles, delta_x, "r", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_i_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(Ca_i, N, pathToRestoreStateFiles, delta_x, "Ca_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SR_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(Ca_SR, N, pathToRestoreStateFiles, delta_x, "Ca_SR", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SS_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(Ca_SS, N, pathToRestoreStateFiles, delta_x, "Ca_SS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastR_prime_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(R_prime, N, pathToRestoreStateFiles, delta_x, "R_prime", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastNa_i_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(Na_i, N, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i_0.00050_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dx);
+    initialize1DVariableFromFile(K_i, N, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
     #endif // TT2
 
-    free(pathToSpiralFiles);
+    free(pathToRestoreStateFiles);
 
     // Shift variables
     real lengthToShift = 3.0f;
@@ -251,6 +256,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames/frames_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     fpFrames = fopen(framesPath, "w");
 #endif // SAVE_FRAMES
+
+#ifdef CABLEEQ
+    // Choose cell at 0.5 cm to measure Action Potential
+    int APCellIndex = round(0.5f/delta_x);
+#endif // CABLEEQ
 
     int timeStepCounter = 0;
     real actualTime = 0.0f;
@@ -516,13 +526,18 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
 #endif // LINMONO || MONODOMAIN
 
-#else
+#else // if def CABLEEQ
     if (strcmp(method, "SSI-CN") == 0)
     {
         while (timeStepCounter < M)
         {
             // Get time step
             actualTime = time[timeStepCounter];
+
+            #ifdef CABLEEQ
+            // Get info for Action Potential
+            AP[timeStepCounter] = V[APCellIndex]; 
+            #endif // CABLEEQ
 
             // ================================================!
             //  Calcula Approx.                                !
@@ -552,7 +567,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
                 // Preparing part of the RHS of the following linear systems
                 real RHS_Vtilde_term = RHS_V(Vtilde[i], Wtilde);
-                partRHS[i] = diff_term + delta_t * (stim - RHS_Vtilde_term);
+                partRHS[i] = diff_term + 0.5f * delta_t * (stim - RHS_Vtilde_term);
 
                 // Update Wn+1
                 W[i] = W[i] + delta_t * RHS_W(Vtilde[i], Wtilde);
@@ -776,7 +791,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
                 // RHS of the main equation with Vtilde
                 real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-                partRHS[i] = delta_t * (-stim - RHS_Vtilde_term);
+                partRHS[i] = 0.5f * delta_t * (-stim - RHS_Vtilde_term);
 
                 // Update state variables
                 // RHS of the state variables with tilde approximations
@@ -1036,6 +1051,14 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // TT2
     #endif // SAVE_LAST_STATE
     
+    // Save Action Potential
+    #ifdef CABLEEQ
+    char APFilePath[MAX_STRING_SIZE];
+    snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP/AP_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    FILE *fpAP = fopen(APFilePath, "w");
+    printf("Action Potential saved to %s\n", APFilePath);
+    #endif // CABLEEQ
+
 #ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact/exact_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
@@ -1063,7 +1086,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         fprintf(fpErrors, "\n");
 #endif // CONVERGENCE_ANALYSIS
     }
-#else // CABLEEQ
+#else // if CABLEEQ
     for (int i = 0; i < N; i++)
     {
         fprintf(fpLast, "%e ", V[i]);
@@ -1094,6 +1117,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         fprintf(fpLastK_i, "%e ", K_i[i]);
         #endif // TT2
         #endif // SAVE_LAST_STATE 
+    }
+
+    for (int i = 0; i < M; i++)
+    {
+        fprintf(fpAP, "%e ", AP[i]);
     }
 #endif // not CABLEEQ
     fclose(fpLast);
@@ -1164,6 +1192,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifndef CONVERGENCE_ANALYSIS
     free(stimuli);
 #endif // not CONVERGENCE_ANALYSIS
+#ifdef CABLEEQ
+    free(AP);
+    fclose(fpAP);
+#endif // CABLEEQ
 #ifdef AFHN
     free(W);
 #endif // AFHN

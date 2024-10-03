@@ -1,0 +1,6 @@
+Domain Length = 5, Time = 300.000000
+delta_x = 0.010000, Space steps N = 501
+delta_t = 0.000500, Time steps = 600000
+Method SSI-CN
+
+Total execution time = 6.512293

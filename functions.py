@@ -188,15 +188,36 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         x = np.arange(0, (len(data_last)-1) * float(dx), float(dx))
         x = np.append(x, (len(data_last)-1) * float(dx))
         
-        if cell_model == 'AFHN':
-            plt.plot(x, data_last)
-        elif cell_model == 'TT2':
-            plt.plot(x, data_last)
+        plt.plot(x, data_last)
         plt.ylim(min_value, max_value)
         plt.title(f'{title}')
         plt.ylabel('V (mV)')
         plt.xlabel('L (cm)')
         plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+        plt.close()
+
+        # Plot AP too
+        if method != 'theta-ADI':
+            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/AP/AP_{dt}_{dx}.txt'
+            title = f'AP of cell 0.5 cm dt={dt} dx={dx}'
+        else:
+            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/AP/AP_{dt}_{dx}.txt'
+            title = f'AP of cell 0.5 cm ({theta}) dt={dt} dx={dx}'
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f'File {file_path} not found')
+        
+        # Read data from the text file
+        data_AP = np.genfromtxt(file_path, dtype=float)
+
+        plt.figure()
+        t = [float(dt)*i for i in range(0,len(data_AP))]
+        plt.plot(t, data_AP)
+        plt.ylim(min_value, max_value)
+        plt.title(title)
+        plt.ylabel('V (mV)')
+        plt.xlabel('t (ms)')
+        plt.savefig(f'{save_dir}/AP_{dt}_{dx}.png')
         plt.close()
     
     else:
@@ -212,6 +233,9 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.close()
     
     print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
+    if problem == 'CABLEEQ':
+        os.remove(file_path)
+        print(f'Action potential saved to {save_dir}/AP_{dt}_{dx}.png')
 
 def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -357,7 +381,7 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
     
     # Plot the data
     plt.figure(figsize=(6, 6))
-    plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=40)
+    plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=25)
     plt.colorbar(label='Value', fraction=0.04, pad=0.04)
     plt.xticks([])
     plt.yticks([])
@@ -367,6 +391,37 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
     plt.close()
     
     print(f'Difference map saved to {save_dir}/diffmap_{dt}_{dx}.png')
+
+def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+    save_dir = f'./simulation_files/difference_vector/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if method == 'theta-ADI':
+        save_dir += f'/{theta}'
+    if not os.path.exists(f'{save_dir}'):
+        os.makedirs(f'{save_dir}')
+    
+    # Absolute value
+    data = abs(data)
+    
+    if method != 'theta-ADI':
+        title = f'DiffVec dt={dt} dx={dx}'
+    else:
+        title = f'DiffVec ({theta}) dt={dt} dx={dx}'
+    
+    # x-axis
+    xaxis = [i * float(dx) for i in range(len(data))]
+    
+    # Plot the data
+    plt.figure()
+    plt.plot(xaxis, data, linestyle='-', color='b')
+    plt.xlabel(f'L (cm)')
+    plt.ylabel('|Diff| (mV)')
+    plt.axhline(0, color='gray', linewidth=0.5, linestyle='--')
+    plt.grid()
+    plt.title(f'{title} (max_error={(data.max()):.2f})')
+    plt.savefig(f'{save_dir}/diff_{dt}_{dx}.png')
+    plt.close()
+    
+    print(f'Difference vector saved to {save_dir}/diff_{dt}_{dx}.png')
 
 def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     # Create gif directory
@@ -468,7 +523,8 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     for png in set(frames):
         if png.find('lastframe') == -1:
             os.remove(png)
-            
+    
+    os.remove(frames_file)
     print(f'Gif saved to {gif_path}')
       
 def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):

@@ -1,18 +1,19 @@
 from functions import *
 
 def main():
-    dts = ['0.00500', '0.01000', '0.02000', '0.03000', '0.04000', '0.05000']
+    dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.16000']
     dxs = ['0.00500', '0.01000', '0.02000']
-    methods = ['SSI-ADI', 'theta-ADI']
-    methods = ['SSI-CN']
+    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
-    
+
+    # dts = ['0.00050']
+    methods = ['SSI-CN']
+
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'CABLEEQ'
-    cell_model = 'AFHN'
-    # init = 'spiral'
-    init = 'restore_state_and_shift'
+    cell_model = 'TT2' # 'AFHN', 'TT2'
+    init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
     frames = True
     save_last_state = False
     
@@ -36,7 +37,7 @@ def main():
         compile_command += '-DTT2 -DENDO '
     if init == 'spiral':
         compile_command += '-DINIT_WITH_SPIRAL '
-    elif init == 'restore_state_and_shift':
+    elif init == 'restore_and_shift':
         compile_command += '-DRESTORE_STATE_AND_SHIFT '
     if frames:
         compile_command += '-DSAVE_FRAMES '
@@ -51,14 +52,17 @@ def main():
             # dx = dxs[i]
             dx = '0.01000'
             
-            if method == 'SSI-ADI':
+            if method != 'theta-ADI':
                 tts = ['0.00']
             else:
                 tts = thetas
             for theta in tts:
                 os.system(f'./convergence {method} {dt} {dx} {theta}')
                 plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
-                create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
+                if save_last_state:
+                    plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
+                if frames:
+                    create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
 
 if __name__ == '__main__':
     main()

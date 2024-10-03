@@ -186,13 +186,14 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real Vtilde = actualV + diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
         d_Vtilde[index] = Vtilde;
 
-        // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW);
-        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
-
         // Calculate approximation for state variables
         real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
+
+        // Preparing part of the RHS of the following linear systems
+        // real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW); // RHS with V* and W
+        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde); // RHS with V* and W*
+        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
 
         // Update state variables
         real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
@@ -241,19 +242,23 @@ __global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta,
             }
         }
         // TODO: temp
-        real RHS_V_term = 0;
-        real RHS_Vtilde_term = 0;
+        // real RHS_V_term = 0;
+        // real RHS_Vtilde_term = 0;
 
+        // Calculate Vtilde
         real Vtilde = actualV + diff_term + (delta_t * (stim - RHS_V_term));
         d_Vtilde[index] = Vtilde;
 
+        // Calculate approximation for state variables
+        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
+        real Wtilde = actualW + (delta_t * RHS_W_term);
+
         // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW);
+        // real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW); // RHS with V* and W
+        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde); // RHS with V* and W*
         d_partRHS[index] = delta_t * (stim - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
 
         // Update state variables
-        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
-        real Wtilde = actualW + (delta_t * RHS_W_term);
         real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
     }
