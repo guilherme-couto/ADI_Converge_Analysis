@@ -500,7 +500,7 @@ void createDirectories(char *method, real theta, char *pathToSaveData)
     snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/outputs/%s/%s/%s/%s/%s", EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
 
     // Add theta to the path
-    if (strcmp(method, "theta-ADI") == 0)
+    if (strstr(method, "theta") != NULL)
     {
         char thetaPath[MAX_STRING_SIZE];
         snprintf(thetaPath, MAX_STRING_SIZE * sizeof(char), "%.2lf", theta);

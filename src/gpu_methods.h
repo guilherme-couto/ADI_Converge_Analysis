@@ -98,7 +98,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
         populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * (sigma / (chi)));
 #endif // TT2
     }
-    else if (strcmp(method, "theta-ADI") == 0)
+    else if (strstr(method, "theta") != NULL)
     {
         populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / (Cm * chi)));
     }
@@ -298,7 +298,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
         }
     }
 
-    else if (strcmp(method, "theta-ADI") == 0)
+    else if (strstr(method, "theta") != NULL)
     {
         while (timeStepCounter < M)
         {

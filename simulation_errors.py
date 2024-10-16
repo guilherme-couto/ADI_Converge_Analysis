@@ -3,9 +3,10 @@ import os
 from functions import *
 
 def main():
-    dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.16000']
+    dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000', '0.12000']
+    dts = ['0.04000', '0.08000', '0.10000', '0.12000']
     dxs = ['0.00500', '0.01000', '0.02000']
-    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ)
+    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     # dts = ['0.00050']
@@ -17,31 +18,36 @@ def main():
     cell_model = 'TT2' # 'AFHN', 'TT2'
     
     # Find the largest dx to use as base for the read rate
-    base_dx = 0
-    for dx in dxs:
-        if float(dx) > base_dx:
-            base_dx = float(dx)
-    base_dx = 0.01
+    # base_dx = 0
+    # for dx in dxs:
+    #     if float(dx) > base_dx:
+    #         base_dx = float(dx)
+    # base_dx = 0.01
     
     # Read reference solution
-    reference_dt = '0.00050'
-    reference_dx = '0.01000'
+    reference_dt = '0.00010'
+    reference_dx = '0.00050'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
     
     if not os.path.exists(reference_solution_path):
         raise FileNotFoundError(f'Reference solution not found at {reference_solution_path}')
     
+    base_dx = float(reference_dx)
     print(f'Reading reference solution from {reference_solution_path}')
     reference_data = read_values_with_rate(reference_solution_path, int(base_dx/float(reference_dx)))
     print(f'Reference solution read successfully. Total size: {len(reference_data)}')
-    print(reference_data)
     print()
     
-    dx = '0.01000'
+    dx = '0.00050'
     rate = int(base_dx/float(dx))
     print(f'Reading files with rate {rate}')
+
     plt.figure()
     plt.plot(reference_data, label='ref')
+
+    # Initialize lists to store dt and n2_error values
+    n2_errors = []
+
     for method in methods:
         # Create error analysis file
         error_analysis_dir = f'./simulation_files/analysis/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -54,7 +60,7 @@ def main():
         # Prepare error analysis file
         ea_file.write(f'For method {method}\n')
         
-        if method != 'theta-ADI':
+        if 'theta' not in method:
             ea_file.write(f'dt \t\t| dx \t\t| N-2 Error \t| slope\n')
             ea_file.write('---------------------------------------------------------\n')
                 
@@ -63,7 +69,7 @@ def main():
             for i in range(len(dts)):
                 dt = dts[i]
                 # dx = dxs[i]
-                dx = '0.01000'
+                #dx = '0.01000'
                                     
                 simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
                 if not os.path.exists(simulation_path):
@@ -99,6 +105,9 @@ def main():
                 ea_file.write(f'{dt}\t| {dx}\t| {(n2_error):.6f} \t| {slope}\n')
                 
                 prev_error = n2_error
+
+                # Store dt and n2_error for later plotting
+                n2_errors.append(n2_error)
                 
             ea_file.write('\n\n')
         
@@ -113,7 +122,7 @@ def main():
                 for i in range(len(dts)):
                     dt = dts[i]
                     # dx = dxs[i]
-                    dx = '0.01000'
+                    #dx = '0.01000'
                                         
                     simulation_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
                     if not os.path.exists(simulation_path):
@@ -147,13 +156,48 @@ def main():
                     ea_file.write(f'{dt}\t| {dx}\t| {(n2_error):.6f} \t| {slope}\n')
                     
                     prev_error = n2_error
+
+                    # Store dt and n2_error for later plotting
+                    n2_errors.append(n2_error)
                     
                 ea_file.write('\n\n')
     
     plt.grid()
     plt.legend()
-    plt.savefig('comp_cable.png')
+    plt.title('Last Frame Comparative')
+    plt.savefig(f'{error_analysis_dir}/error_comparative.png')
     plt.close()
+
+    # Convert dt_values and n2_errors to numpy arrays
+    dt_values = np.array(dts, dtype=float)
+    n2_errors = np.array(n2_errors)
+
+    # Calculate the logarithms of dt_values and n2_errors
+    log_dt_values = np.log10(dt_values)
+    log_n2_errors = np.log10(n2_errors)
+
+    # Fit a line to the log-log data (least squares method)
+    coefficients = np.polyfit(log_dt_values, log_n2_errors, 1)  # 1 indicates a linear fit
+    line_slope = coefficients[0]
+
+    # Create the linear fit function in log-log space
+    linear_fit = np.poly1d(coefficients)
+
+    # Plot the data of N2-error vs dt in log-log scale
+    plt.figure()
+    plt.loglog(dt_values, n2_errors, 'o', color='blue', label='N-2 Error')
+    plt.loglog(dt_values, 10**linear_fit(log_dt_values), color='red', label='Linear Fit', linestyle='--')
+    plt.xlabel('dt')
+    plt.ylabel('N-2 Error')
+    plt.title('N-2 Error vs dt (Log-Log Scale)')
+    plt.legend()
+    plt.grid()
+    plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog.png')
+    plt.close()
+
+    # Write the slope of the fitted line to the file
+    ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n')
+
 
 if __name__ == '__main__':
     main()

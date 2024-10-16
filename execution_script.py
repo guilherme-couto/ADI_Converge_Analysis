@@ -1,12 +1,14 @@
 from functions import *
 
 def main():
-    dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.16000']
+    dts = ['0.00010', '0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000', '0.12000']
     dxs = ['0.00500', '0.01000', '0.02000']
-    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ)
+    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
-    # dts = ['0.00050']
+    # refs
+    # dts = ['0.00010']
+    dxs = ['0.00050']
     methods = ['SSI-CN']
 
     real_type = 'double'
@@ -14,7 +16,7 @@ def main():
     problem = 'CABLEEQ'
     cell_model = 'TT2' # 'AFHN', 'TT2'
     init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
-    frames = True
+    frames = False
     save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
@@ -50,9 +52,9 @@ def main():
         for i in range(len(dts)):
             dt = dts[i]
             # dx = dxs[i]
-            dx = '0.01000'
+            dx = '0.00050'
             
-            if method != 'theta-ADI':
+            if 'theta' not in method:
                 tts = ['0.00']
             else:
                 tts = thetas

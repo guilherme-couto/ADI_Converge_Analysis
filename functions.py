@@ -41,7 +41,7 @@ def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, probl
         dt = dts[i]
         tts = []
         
-        if method != 'theta-ADI':
+        if 'theta' not in method:
             tts = ['0.00']
         else:
             tts = thetas 
@@ -57,7 +57,7 @@ def read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs,
         dx = dxs[i]
         
         infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/infos/infos_{dt}_{dx}.txt'
-        if method == 'theta-ADI':
+        if 'theta' in method:
             infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/infos/infos_{dt}_{dx}.txt'
         
         if not os.path.exists(infos_path):
@@ -80,7 +80,7 @@ def calculate_slopes(errors, dts):
 
 def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
@@ -98,7 +98,7 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
         variables = ['V', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
     
     for variable in variables:
-        if method != 'theta-ADI':
+        if 'theta' not in method:
             file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last{variable}_{dt}_{dx}.txt'
             title = f'Last frame {variable} dt={dt} dx={dx}'
         else:
@@ -148,7 +148,7 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
 
 def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
@@ -163,7 +163,7 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         max_value = 100.0
         min_value = -90.0
     
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
         title = f'Last frame dt={dt} dx={dx}'
     else:
@@ -197,7 +197,7 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.close()
 
         # Plot AP too
-        if method != 'theta-ADI':
+        if 'theta' not in method:
             file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/AP/AP_{dt}_{dx}.txt'
             title = f'AP of cell 0.5 cm dt={dt} dx={dx}'
         else:
@@ -239,13 +239,13 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
 
 def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
         
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         file_path_last = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
         file_path_exact = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
         title_last = f'Last frame dt={dt} dx={dx}'
@@ -301,12 +301,12 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
 
 def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
         title = f'Exact dt={dt} dx={dx}'
     else:
@@ -333,12 +333,12 @@ def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     
 def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/errors_figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/errors/errors_{dt}_{dx}.txt'
         title = f'Errors dt={dt} dx={dx}'
     else:
@@ -365,7 +365,7 @@ def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, t
 
 def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/difference_maps/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
@@ -374,7 +374,7 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
     data = abs(data)
     data = data.reshape((side_length, side_length))
     
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         title = f'DiffMap dt={dt} dx={dx}'
     else:
         title = f'DiffMap ({theta}) dt={dt} dx={dx}'
@@ -394,7 +394,7 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
 
 def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/difference_vector/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
@@ -402,7 +402,7 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
     # Absolute value
     data = abs(data)
     
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         title = f'DiffVec dt={dt} dx={dx}'
     else:
         title = f'DiffVec ({theta}) dt={dt} dx={dx}'
@@ -426,7 +426,7 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
 def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     # Create gif directory
     save_dir = f'./simulation_files/gifs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
-    if method == 'theta-ADI':
+    if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
@@ -435,7 +435,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     frame = []
     frames = []
 
-    if method != 'theta-ADI':
+    if 'theta' not in method:
         frames_file = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/frames/frames_{dt}_{dx}.txt'
         title = f'Simulation dt={dt} dx={dx}'
     else:
@@ -544,7 +544,7 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
         
         run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas)
 
-        if method == 'theta-ADI':
+        if 'theta' in method:
             for theta in thetas:
                 errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, theta)
                 slopes = calculate_slopes(errors, dts)
