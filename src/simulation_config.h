@@ -9,7 +9,7 @@ const int frameSaveRate = 200;
 #endif // SAVE_FRAMES
 
 const __constant__ int L = 5;     // Length of each side (cm)
-const real totalTime = 100.0f; // Total time (ms)
+const real totalTime = 50.0f; // Total time (ms) # 60 and 50
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 // Stimulation parameters

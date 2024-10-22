@@ -2,14 +2,13 @@ from functions import *
 
 def main():
     dts = ['0.00010', '0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000', '0.12000']
-    dxs = ['0.00500', '0.01000', '0.02000']
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
     # dts = ['0.00010']
-    dxs = ['0.00050']
-    methods = ['SSI-CN']
+    dx = '0.00050'
+    methods = ['theta-RK2']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
@@ -51,13 +50,13 @@ def main():
     for method in methods:
         for i in range(len(dts)):
             dt = dts[i]
-            # dx = dxs[i]
-            dx = '0.00050'
             
             if 'theta' not in method:
                 tts = ['0.00']
             else:
                 tts = thetas
+                if dt == '0.00010':
+                    tts = ['0.50']
             for theta in tts:
                 os.system(f'./convergence {method} {dt} {dx} {theta}')
                 plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
