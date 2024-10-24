@@ -185,7 +185,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize1DVariableFromFile(K_i, N, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
     #endif // TT2
-
     free(pathToRestoreStateFiles);
 
     // Shift variables
@@ -237,13 +236,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifndef TT2
         populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / (Cm * chi)));
 #else // if not def TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / (chi)));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / chi));
 #endif // not TT2
     }
-
-    // Create directories
-    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    createDirectories(method, theta, pathToSaveData);
 
 #ifndef CONVERGENCE_ANALYSIS
 #if defined(MONODOMAIN) || defined(CABLEEQ)
@@ -252,6 +247,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     populateStimuli(stimuli, delta_x);
 #endif // MONODOMAIN || CABLEEQ
 #endif // not CONVERGENCE_ANALYSIS
+
+    // Create directories
+    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    createDirectories(method, theta, pathToSaveData);
 
 #ifdef SAVE_FRAMES
     // Save frames
@@ -553,15 +552,16 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calcula Approx.                                !
             // ================================================!
+            real diff_term = 0.0f;
             for (int i = 0; i < N; i++)
             {
 #ifdef AFHN
                 real actualV = V[i];
                 real D = (sigma / (chi * Cm));
-                real diff_term = D * phi * (V[lim(i - 1, N)] - 2.0f * actualV + V[lim(i + 1, N)]);
-                real RHS_V_term = RHS_V(actualV, W[i]);
+                diff_term = D * phi * (V[lim(i - 1, N)] - 2.0f * actualV + V[lim(i + 1, N)]);
+                real RHS_V_term = RHS_V(actualV, W[i]) / (Cm * chi);
 
-                // Stimulus
+                // Stimulation
                 real stim = 0.0f;
                 for (int si = 0; si < numberOfStimuli; si++)
                 {
@@ -581,7 +581,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
                 // Preparing part of the RHS of the following linear systems
                 real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde);
-                partRHS[i] = (1.0 - theta) * diff_term + delta_t * (stim - RHS_Vtilde_term);
+                partRHS[i] = delta_t * (stim - RHS_Vtilde_term);
 
                 // Update Wn+1 with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
                 W[i] = W[i] + delta_t * RHS_W(actualVtilde, Wtilde);
@@ -591,8 +591,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 real im1V = V[lim(i - 1, N)];
                 real ip1V = V[lim(i + 1, N)];
 
-                real D = (sigma / (chi));
-                real diff_term = D * phi * (im1V - 2 * actualV + ip1V);
+                real D = (sigma / chi);
+                diff_term = D * phi * (im1V - 2 * actualV + ip1V);
 
                 // State variables
                 real actualX_r1 = X_r1[i];
@@ -802,9 +802,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - actualVtilde) / 5.98f));
                 real IbCatilde = G_bCa * (actualVtilde - E_Catilde);
 
-                // RHS of the main equation with Vtilde and (1-theta)
+                // part of RHS of the main equation with Vtilde
                 real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-                partRHS[i] = (1.0 - theta) * diff_term + (delta_t * (-stim - RHS_Vtilde_term));
+                partRHS[i] = delta_t * (-stim - RHS_Vtilde_term);
 
                 // Update state variables
                 // RHS of the state variables with tilde approximations
@@ -930,7 +930,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             for (int i = 0; i < N; i++)
             {
-                LS_b[i] = V[i] + partRHS[i];
+                LS_b[i] = V[i] + (1.0 - theta) * diff_term + partRHS[i];
             }
 
             tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
@@ -952,10 +952,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
+                real begin = 2.0f;
+                real end = 3.0f;
+
                 if (!aux_stim_velocity_flag)
                 {
-                    int first_point_index = round(2 / delta_x) + 1;
-                    if (V[first_point_index] > 0.0)
+                    int first_point_index = round(begin / delta_x) + 1;
+                    if (V[first_point_index] > 10.0)
                     {
                         first_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -963,14 +966,14 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 }
                 else
                 {
-                    int last_point_index = round(3 / delta_x) + 1;
-                    if (V[last_point_index] > 0.0)
+                    int last_point_index = round(end / delta_x) + 1;
+                    if (V[last_point_index] > 10.0)
                     {
                         last_point_time = actualTime;
-                        stim_velocity = (3 - 2) / (last_point_time - first_point_time); // cm/ms
+                        stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
                         stim_velocity = stim_velocity * 10.0; // m/s
                         stim_velocity_measured = true;
-                        printf("Stim velocity (measured from 2 to 3 cm) is %lf m/s\n", stim_velocity);
+                        printf("Stim velocity (measured from %f to %f cm) is %lf m/s\n", begin, end, stim_velocity);
                     }
                 }
             }
@@ -999,7 +1002,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #ifndef CABLEEQ
     fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N * N);
     #else // if not def CABLEEQ
-    fprintf(fpInfos, "Stimulus velocity (measured from 2 to 3 cm) = %lf m/s\n", stim_velocity);
+    fprintf(fpInfos, "Stimulus velocity = %lf m/s\n", stim_velocity);
     fprintf(fpInfos, "delta_x = %lf, Space steps N = %d\n", delta_x, N);
     #endif // not CABLEEQ
     fprintf(fpInfos, "delta_t = %lf, Time steps = %d\n", delta_t, M);

@@ -137,8 +137,8 @@ __global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta,
     }
 }
 #elif defined(AFHN)
-// Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
-__global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+// Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
+__global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -162,15 +162,16 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
-
+        
         real D = (sigma / (chi * Cm));
+        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
-        real diff_term = D * 0.5f * phi * (jm1V + im1V - 4 * actualV + jp1V + ip1V);
-
-        // State variables
+        // State variable
         real actualW = d_W[index];
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
 
+        // Calculate RHS_V at actual time
+        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
+        
         // Stimulation
         real stim = 0.0f;
         for (int si = 0; si < numberOfStimuli; si++)
@@ -182,90 +183,26 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
             }
         }
 
-        // Calculate Vtilde
-        real Vtilde = actualV + diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
-        d_Vtilde[index] = Vtilde;
+        // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
 
         // Calculate approximation for state variables
         real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
         // Preparing part of the RHS of the following linear systems
-        // real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW); // RHS with V* and W
         real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde); // RHS with V* and W*
-        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
+        d_partRHS[index] = delta_t * (stim - RHS_Vtilde_term);
 
-        // Update state variables
-        real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
-        d_W[index] = actualW + delta_t * RHS_Wtilde_term;
-    }
-}
-
-// Kernel to compute the approximate solution of the reaction-diffusion system using the theta-ADI
-__global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index < N * N)
-    {
-        int i = index / N;
-        int j = index % N;
-
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
-
-        (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == N) ? (index_ip1 = index_im1) : index_ip1;
-        (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == N) ? (index_jp1 = index_jm1) : index_jp1;
-
-        real actualV = d_V[index];
-        real im1V = d_V[index_im1];
-        real ip1V = d_V[index_ip1];
-        real jm1V = d_V[index_jm1];
-        real jp1V = d_V[index_jp1];
-        real diff_term = (sigma / (chi * Cm)) * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
-
-        // State variables
-        real actualW = d_W[index];
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
-
-        real stim = 0.0f;
-        for (int si = 0; si < numberOfStimuli; si++)
-        {
-            if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
-            {
-                stim = d_stimuli[si].strength;
-                break;
-            }
-        }
-        // TODO: temp
-        // real RHS_V_term = 0;
-        // real RHS_Vtilde_term = 0;
-
-        // Calculate Vtilde
-        real Vtilde = actualV + diff_term + (delta_t * (stim - RHS_V_term));
-        d_Vtilde[index] = Vtilde;
-
-        // Calculate approximation for state variables
-        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
-        real Wtilde = actualW + (delta_t * RHS_W_term);
-
-        // Preparing part of the RHS of the following linear systems
-        // real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW); // RHS with V* and W
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde); // RHS with V* and W*
-        d_partRHS[index] = delta_t * (stim - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
-
-        // Update state variables
+        // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
         real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
     }
 }
 #endif // AFHN (previously CONVERGENCE_ANALYSIS && AFHN)
 #ifdef TT2
-__global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
+// Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
+__global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -289,9 +226,9 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
-
-        real D = (sigma / (chi));
-        real diff_term = D * 0.5f * phi * (jm1V + im1V - 4 * actualV + jp1V + ip1V);
+        
+        real D = (sigma / chi);
+        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
         // State variables
         real actualX_r1 = d_X_r1[index];
@@ -340,9 +277,8 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real IpK = (G_pK * VmEK) / (1.0f + exp((25.0f - actualV) / 5.98f));
         real IbCa = G_bCa * (actualV - E_Ca);
 
-        // RHS of the main equation
+        // RHS_V at actual time
         real RHS_V_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
-
 
         real stim = 0.0f;
         for (int si = 0; si < numberOfStimuli; si++)
@@ -354,42 +290,10 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
             }
         }
 
-        // Calculate Vtilde
-        real Vtilde = actualV + diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
-        d_Vtilde[index] = Vtilde;
+        // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
 
         // Preparing part of the RHS of the following linear systems
-        // Auxiliary variables with Vtilde
-        real VmENatilde = Vtilde - (RTONF * log(Na_o / actualNa_i));
-        real E_Ktilde = (RTONF * log(K_o / actualK_i));
-        real VmEKtilde = Vtilde - E_Ktilde;
-        real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (Vtilde - E_Ktilde - 200.0f)));
-        real beta_K1tilde = (3.0f * exp(0.0002f * (Vtilde - E_Ktilde + 100.0f)) + exp(0.1f * (Vtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (Vtilde - E_Ktilde)));
-        real E_Kstilde = (RTONF * log((K_o + p_KNa * Na_o) / (actualK_i + p_KNa * actualNa_i)));
-        real E_Catilde = 0.5f * RTONF * log(Ca_o / actualCa_i);
-
-        // Currents with Vtilde
-        real INatilde = G_Na * (actualm * actualm * actualm) * actualh * actualj * VmENatilde;
-        real IbNatilde = G_bNa * VmENatilde;
-        real IK1tilde = G_K1 * (alpha_K1tilde / (alpha_K1tilde + beta_K1tilde)) * VmEKtilde;
-        real Itotilde = G_to * actualr * actuals * VmEKtilde;
-        real IKrtilde = G_Kr * sqrt(K_o / 5.4f) * actualX_r1 * actualX_r2 * VmEKtilde;
-        real IKstilde = G_Ks * actualX_s * actualX_s * (Vtilde - E_Kstilde);
-        real ICaLtilde; // !!!
-        (Vtilde < 15.0f - 1.0e-5f)
-            ? (ICaLtilde = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 4.0f * (Vtilde - 15.0f) * (F * F) * (0.25f * actualCa_SS * exp(2.0f * (Vtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (Vtilde - 15.0f) * FONRT) - 1.0f)))
-            : (ICaLtilde = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 2.0f * F * (0.25f * actualCa_SS - Ca_o));
-        real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * actualNa_i) / (actualNa_i + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * Vtilde * FONRT))) + (0.0353f * exp(((-Vtilde) * FONRT))));
-        real INaCatilde; // !!!
-        INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * Vtilde * FONRT)) * (actualNa_i * actualNa_i * actualNa_i) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * Vtilde * FONRT)) * (Na_o * Na_o * Na_o) * actualCa_i * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*Vtilde * FONRT)))));
-        real IpCatilde = (G_pCa * actualCa_i) / (K_pCa + actualCa_i);
-        real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - Vtilde) / 5.98f));
-        real IbCatilde = G_bCa * (Vtilde - E_Catilde);
-
-        // RHS of the main equation with Vtilde
-        real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
-
         // Calculate approximation for state variables
         // Rush-Larsen method - auxiliary variables
         real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualV) / 7.0f));
@@ -428,7 +332,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
             ? (beta_j = (0.02424f * exp(-0.01052f * actualV)) / (1.0f + exp(-0.1378f * (actualV + 40.14f))))
             : (beta_j = (0.6f * exp(0.057f * actualV)) / (1.0f + exp(-0.1f * (actualV + 32.0f))));
 
-        real d_inf = 1.0f / (1.0f + exp((-8.0f - actualV) / 7.5f));
+        real inf = 1.0f / (1.0f + exp((-8.0f - actualV) / 7.5f));
         real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualV) / 13.0f)) + 0.25f;
         real beta_d = 1.4f / (1.0f + exp((actualV + 5.0f) / 5.0f));
         real gamma_d = 1.0f / (1.0f + exp((50.0f - actualV) / 20.0f));
@@ -491,7 +395,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real mtilde = m_inf - (m_inf - actualm) * exp(-(0.5f * delta_t) / (alpha_m * beta_m));
         real htilde = h_inf - (h_inf - actualh) * exp(-(0.5f * delta_t) * (alpha_h + beta_h));
         real jtilde = j_inf - (j_inf - actualj) * exp(-(0.5f * delta_t) * (alpha_j + beta_j));
-        real dtilde = d_inf - (d_inf - actuald) * exp(-(0.5f * delta_t) / (alpha_d * beta_d + gamma_d));
+        real dtilde = inf - (inf - actuald) * exp(-(0.5f * delta_t) / (alpha_d * beta_d + gamma_d));
         real ftilde = f_inf - (f_inf - actualf) * exp(-(0.5f * delta_t) / (alpha_f + beta_f + gamma_f));
         real f2tilde = f2_inf - (f2_inf - actualf2) * exp(-(0.5f * delta_t) / (alpha_f2 + beta_f2 + gamma_f2));
         real fCaSStilde = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-(0.5f * delta_t) / tau_fCaSS);
@@ -505,6 +409,37 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real Ca_SStilde = actualCa_SS + (0.5f * delta_t * RHS_Ca_SS_term);
         real Na_itilde = actualNa_i + (0.5f * delta_t * RHS_Na_i_term);
         real K_itilde = actualK_i + (0.5f * delta_t * RHS_K_i_term);
+
+        // Auxiliary variables with Vtilde
+        real VmENatilde = Vtilde - (RTONF * log(Na_o / Na_itilde));
+        real E_Ktilde = (RTONF * log(K_o / K_itilde));
+        real VmEKtilde = Vtilde - E_Ktilde;
+        real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (Vtilde - E_Ktilde - 200.0f)));
+        real beta_K1tilde = (3.0f * exp(0.0002f * (Vtilde - E_Ktilde + 100.0f)) + exp(0.1f * (Vtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (Vtilde - E_Ktilde)));
+        real E_Kstilde = (RTONF * log((K_o + p_KNa * Na_o) / (K_itilde + p_KNa * Na_itilde)));
+        real E_Catilde = 0.5f * RTONF * log(Ca_o / Ca_itilde);
+
+        // Currents with Vtilde
+        real INatilde = G_Na * (mtilde * mtilde * mtilde) * htilde * jtilde * VmENatilde;
+        real IbNatilde = G_bNa * VmENatilde;
+        real IK1tilde = G_K1 * (alpha_K1tilde / (alpha_K1tilde + beta_K1tilde)) * VmEKtilde;
+        real Itotilde = G_to * rtilde * stilde * VmEKtilde;
+        real IKrtilde = G_Kr * sqrt(K_o / 5.4f) * X_r1tilde * X_r2tilde * VmEKtilde;
+        real IKstilde = G_Ks * X_stilde * X_stilde * (Vtilde - E_Kstilde);
+        real ICaLtilde; // !!!
+        (Vtilde < 15.0f - 1.0e-5f)
+            ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (Vtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (Vtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (Vtilde - 15.0f) * FONRT) - 1.0f)))
+            : (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 2.0f * F * (0.25f * Ca_SStilde - Ca_o));
+        real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * Vtilde * FONRT))) + (0.0353f * exp(((-Vtilde) * FONRT))));
+        real INaCatilde; // !!!
+        INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * Vtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * Vtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*Vtilde * FONRT)))));
+        real IpCatilde = (G_pCa * Ca_itilde) / (K_pCa + Ca_itilde);
+        real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - Vtilde) / 5.98f));
+        real IbCatilde = G_bCa * (Vtilde - E_Catilde);
+
+        // RHS of the main equation with Vtilde
+        real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
+        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
 
         // Update state variables
         // RHS of the state variables with tilde approximations
@@ -626,7 +561,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
 }
 #endif // TT2
 
-__global__ void prepareRHSwithiDiff(int N, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithiDiff(int N, real phi, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -647,15 +582,15 @@ __global__ void prepareRHSwithiDiff(int N, real tau, real *d_V, real *d_RHS, rea
         real D = (sigma / (chi * Cm));
         #endif // AFHN
         #ifdef TT2
-        real D = (sigma / (chi));
+        real D = (sigma / chi);
         #endif // TT2
 
-        real diff_term = D * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
-        d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index];
+        real diff_term = D * phi * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
+        d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // 0.5f is associated to a two dimension case of ADI
     }
 }
 
-__global__ void prepareRHSwithjDiff(int N, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithjDiff(int N, real phi, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -678,11 +613,11 @@ __global__ void prepareRHSwithjDiff(int N, real tau, real *d_V, real *d_RHS, rea
         real D = (sigma / (chi * Cm));
         #endif // AFHN
         #ifdef TT2
-        real D = (sigma / (chi));
+        real D = (sigma / chi);
         #endif // TT2
 
-        real diff_term = D * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
-        d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index];
+        real diff_term = D * phi * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
+        d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // 0.5f is associated to a two dimension case of ADI
     }
 }
 
