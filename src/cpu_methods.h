@@ -300,7 +300,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // LINMONO || DIFF
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int i = 0; i < N; i++)
                 {
                     RHS[i][j] = result[i];
@@ -321,7 +321,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // LINMONO || DIFF
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int j = 0; j < N; j++)
                 {
                     V[i][j] = result[j];
@@ -406,7 +406,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     LS_b[i] = V[i][j] + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int i = 0; i < N; i++)
                 {
                     RHS[i][j] = result[i];
@@ -424,7 +424,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     LS_b[j] = RHS[i][j] + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int j = 0; j < N; j++)
                 {
                     V[i][j] = result[j];
@@ -505,7 +505,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     LS_b[i] = V[i][j] + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int i = 0; i < N; i++)
                 {
                     RHS[i][j] = result[i];
@@ -523,7 +523,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     LS_b[j] = RHS[i][j] + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, prime, N, LS_b, result);
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
                 for (int j = 0; j < N; j++)
                 {
                     V[i][j] = result[j];
