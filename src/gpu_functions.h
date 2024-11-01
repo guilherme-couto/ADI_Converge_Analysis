@@ -72,23 +72,27 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
-        real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+
+        real D = sigma / (chi * Cm);
+        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
         real actualW = d_W[index];
 
         real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
         real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
-        d_Vtilde[index] = actualV + diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
+        d_Vtilde[index] = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
 
         real Vtilde = d_Vtilde[index];
 
-        // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW);
-        d_partRHS[index] = delta_t * (for_term - RHS_Vtilde_term);
-
-        // Update Wn+1
+        // Calculate approximation for state variables
         real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
+
+        // Preparing part of the RHS of the following linear systems
+        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde);
+        d_partRHS[index] = delta_t * (for_term - RHS_Vtilde_term);
+
+        // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
         d_W[index] = actualW + delta_t * (eta2 * ((Vtilde / vp) - (eta3 * Wtilde)));
     }
 }
@@ -291,7 +295,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
         }
 
         // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
+        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
 
         // Preparing part of the RHS of the following linear systems
         // Calculate approximation for state variables
@@ -439,7 +443,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
 
         // RHS of the main equation with Vtilde
         real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-        d_partRHS[index] = delta_t * (-stim - RHS_Vtilde_term);
+        d_partRHS[index] = delta_t * (stim - RHS_Vtilde_term);
 
         // Update state variables
         // RHS of the state variables with tilde approximations
@@ -586,7 +590,7 @@ __global__ void prepareRHSwithiDiff(int N, real phi, real tau, real *d_V, real *
         #endif // TT2
 
         real diff_term = D * phi * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
-        d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // 0.5f is associated to a two dimension case of ADI
+        d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
 
@@ -617,7 +621,7 @@ __global__ void prepareRHSwithjDiff(int N, real phi, real tau, real *d_V, real *
         #endif // TT2
 
         real diff_term = D * phi * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
-        d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // 0.5f is associated to a two dimension case of ADI
+        d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
 

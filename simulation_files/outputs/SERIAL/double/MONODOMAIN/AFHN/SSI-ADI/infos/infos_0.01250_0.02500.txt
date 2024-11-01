@@ -3,6 +3,6 @@ delta_x = 0.025000, Space steps N = 41, N*N = 1681
 delta_t = 0.012500, Time steps = 8
 Method SSI-ADI
 
-Total execution time = 0.001096
+Total execution time = 0.000564
 
-Norm-2 Error = 0.000319
+Norm-2 Error = 0.000357

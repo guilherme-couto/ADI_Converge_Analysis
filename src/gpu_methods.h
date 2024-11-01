@@ -73,8 +73,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef INIT_WITH_SPIRAL
     char* reference_dt = "0.00010";
-    char* reference_dx = "0.01000";
-    real real_ref_dx = 0.01f;
+    char* reference_dx = "0.00500";
+    real real_ref_dx = 0.005f;
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);
@@ -129,7 +129,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     real *lc = (real *)malloc(N * sizeof(real)); // superdiagonal
 
     // Populate auxiliary arrays for Thomas algorithm
-    real phi = (delta_t / (delta_x * delta_x));
+    real phi = delta_t / (delta_x * delta_x);
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
 #ifdef AFHN
@@ -292,12 +292,12 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             // Get time step
             actualTime = time[timeStepCounter];
 
-// ================================================!
-//  Calculate Approx. and ODEs                     !
-// ================================================!
+            // ================================================!
+            //  Calculate Approx. and ODEs                     !
+            // ================================================!
+
 #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
-            if (strcmp(method, "SSI-ADI") == 0)
-                computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
+            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
 #elif defined(AFHN)
             computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_partRHS, d_W, d_stimuli);
 #endif // CONVERGENCE_ANALYSIS
@@ -357,8 +357,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                 CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
                 cudaDeviceSynchronize();
 
-                real begin = 0.5f;
-                real end = 0.7f;
+                real begin = L / 3.0f;
+                real end = 2.0f * begin;
 
                 if (!aux_stim_velocity_flag)
                 {
@@ -543,8 +543,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             int index = i * N + _j;
             fprintf(fpLast, "%e ", V[index]);
 #ifdef CONVERGENCE_ANALYSIS
-            fprintf(fpExact, "%e ", exact[i][j]);
-            fprintf(fpErrors, "%e ", abs(V[index] - exact[i][j]));
+            fprintf(fpExact, "%e ", exact[i][_j]);
+            fprintf(fpErrors, "%e ", abs(V[index] - exact[i][_j]));
 #endif // CONVERGENCE_ANALYSIS
 #ifdef SAVE_LAST_STATE
 #ifdef AFHN

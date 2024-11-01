@@ -8,13 +8,10 @@ def main():
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
-    # dts = ['0.00050']
-    methods = ['theta-RK2']
-
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
-    problem = 'CABLEEQ'
-    cell_model = 'TT2' # 'AFHN', 'TT2'
+    serial_or_gpu = 'GPU'
+    problem = 'MONODOMAIN'
+    cell_model = 'AFHN' # 'AFHN', 'TT2'
     
     # Find the largest dx to use as base for the read rate
     # base_dx = 0
@@ -25,7 +22,7 @@ def main():
     
     # Read reference solution
     reference_dt = '0.00010'
-    reference_dx = '0.00050'
+    reference_dx = '0.00500'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
     
     if not os.path.exists(reference_solution_path):
@@ -37,7 +34,7 @@ def main():
     print(f'Reference solution read successfully. Total size: {len(reference_data)}')
     print()
     
-    dx = '0.00050'
+    dx = '0.00500'
     rate = int(base_dx/float(dx))
     print(f'Reading files with rate {rate}')
 

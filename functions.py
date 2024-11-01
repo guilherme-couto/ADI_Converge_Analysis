@@ -561,7 +561,7 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
                 analysis_file.write('\n\n')
                 print('\n')
                 
-                plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method} ({theta})')
+                plt.loglog([float(dt) for dt in dts], errors, '-', marker='x', label=f'{method} ({theta})')
 
         else:
             errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs)
@@ -579,7 +579,7 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
             analysis_file.write('\n\n')
             print('\n')
             
-            plt.loglog([float(dt) for dt in dts], errors, '-o', label=f'{method}')
+            plt.loglog([float(dt) for dt in dts], errors, '-', marker='o', label=f'{method}')
     
     plt.xlabel('dt')
     plt.ylabel('Error')

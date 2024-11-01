@@ -222,7 +222,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real *lc = (real *)malloc(N * sizeof(real)); // superdiagonal
 
     // Populate auxiliary arrays for Thomas algorithm
-    real phi = (delta_t / (delta_x * delta_x));
+    real phi = delta_t / (delta_x * delta_x);
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
 #ifndef TT2
@@ -334,7 +334,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     }
 
 #if defined(LINMONO) || defined(MONODOMAIN)
-    else if (strcmp(method, "SSI-ADI") == 0)
+    else if (strcmp(method, "SSI-ADI") == 0 || strcmp(method, "theta-ADI") == 0)
     {
         while (timeStepCounter < M)
         {
@@ -342,9 +342,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             actualTime = time[timeStepCounter];
 
             // ================================================!
-            //  Calcula Approx.                                !
+            //  Calculate Approxs. and Update ODEs             !
             // ================================================!
             real x, y;
+            real diff_term = 0.0f;
             for (int i = 0; i < N; i++)
             {
                 for (int j = 0; j < N; j++)
@@ -353,156 +354,76 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     y = i * delta_x;
 
 #ifdef LINMONO
-                    real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+                    diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
                     real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
                     real reac_term = G * V[i][j] / Cm;
-                    Vtilde[i][j] = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
+                    real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
 
                     // Preparing part of the RHS of the following linear systems
-                    real reac_tilde_term = G * Vtilde[i][j] / Cm;
+                    real reac_tilde_term = G * actualVtilde / Cm;
                     partRHS[i][j] = delta_t * (for_term - reac_tilde_term);
 #endif // LINMONO
 
 #ifdef MONODOMAIN
-                    real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
-
 #ifdef AFHN
+                    real D = sigma / (chi * Cm);
+                    diff_term = D * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+                    real RHS_V_term = RHS_V(V[i][j], W[i][j]) / (Cm * chi);
+#ifdef CONVERGENCE_ANALYSIS
                     real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), W[i][j]) / (chi * Cm);
-                    real RHS_V_term = RHS_V(V[i][j], W[i][j]);
-#endif // AFHN
+#endif // CONVERGENCE_ANALYSIS
 
-                    Vtilde[i][j] = V[i][j] + diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
+#ifndef CONVERGENCE_ANALYSIS
+                    // Stimulation
+                    real stim = 0.0f;
+                    for (int si = 0; si < numberOfStimuli; si++)
+                    {
+                        if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
+                        {
+                            stim = d_stimuli[si].strength;
+                            break;
+                        }
+                    }
 
-// Preparing part of the RHS of the following linear systems
-#ifdef AFHN
-                    // Calculate W approximation
-                    // real RHS_W_term = RHS_W(V[i][j], W[i][j]);
-                    // real Wtilde = W[i][j] + (0.5f * delta_t * RHS_W_term);
-                    real RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
-#endif // AFHN
+                    real actualVtilde = V[i][j] + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
+#else
+                    real actualVtilde = V[i][j] + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
+#endif // not CONVERGENCE_ANALYSIS
 
-                    partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
-
-#ifdef AFHN
-                    // Update Wn+1
-                    real RHS_W_term = RHS_W(V[i][j], W[i][j]);
-                    real Wtilde = W[i][j] + (0.5f * delta_t * RHS_W_term);
-                    W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
-                    // RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde);
-#endif // AFHN
-                    // partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
-#endif // MONODOMAIN
-                }
-            }
-
-            // ================================================!
-            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
-            // ================================================!
-            for (int j = 0; j < N; j++)
-            {
-                for (int i = 0; i < N; i++)
-                {
-                    real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (V[i][lim(j - 1, N)] - 2.0f * V[i][j] + V[i][lim(j + 1, N)]);
-                    LS_b[i] = V[i][j] + diff_term + 0.5f * partRHS[i][j];
-                }
-
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int i = 0; i < N; i++)
-                {
-                    RHS[i][j] = result[i];
-                }
-            }
-
-            // ================================================!
-            //  Calcula V em n + 1 -> Resultado vai para V     !
-            // ================================================!
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < N; j++)
-                {
-                    real diff_term = (sigma / (chi * Cm)) * 0.5f * phi * (RHS[lim(i - 1, N)][j] - 2.0f * RHS[i][j] + RHS[lim(i + 1, N)][j]);
-                    LS_b[j] = RHS[i][j] + diff_term + 0.5f * partRHS[i][j];
-                }
-
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int j = 0; j < N; j++)
-                {
-                    V[i][j] = result[j];
-                }
-            }
-
-            // Update time step counter
-            timeStepCounter++;
-        }
-    }
-
-    else if (strstr(method, "theta") != NULL)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
-
-            // ================================================!
-            //  Calcula Approx.                                !
-            // ================================================!
-            real x, y;
-            for (int i = 0; i < N; i++)
-            {
-                for (int j = 0; j < N; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
-
-#ifdef LINMONO
-                    real diff_term = (sigma / (chi * Cm)) * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
-                    real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
-                    real reac_term = G * V[i][j] / Cm;
-                    Vtilde[i][j] = V[i][j] + diff_term + (delta_t * (for_term - reac_term));
+                    // Calculate approximation for state variables
+                    real Wtilde = W[i][j] + (0.5f * delta_t * RHS_W(V[i][j], W[i][j]));
 
                     // Preparing part of the RHS of the following linear systems
-                    real reac_tilde_term = G * Vtilde[i][j] / Cm;
-                    partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * reac_term) - (theta * reac_tilde_term));
-#endif // LINMONO
+                    real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde);
 
-#ifdef MONODOMAIN
-                    real diff_term = (sigma / (chi * Cm)) * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+                    #ifndef CONVERGENCE_ANALYSIS
+                    partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
+                    #else
+                    partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
+                    #endif // not CONVERGENCE_ANALYSIS
 
-#ifdef AFHN
-                    real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), W[i][j]) / (chi * Cm);
-                    real RHS_V_term = RHS_V(V[i][j], W[i][j]);
+                    // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
+                    W[i][j] = W[i][j] + delta_t * RHS_W(actualVtilde, Wtilde);
+
 #endif // AFHN
-
-                    Vtilde[i][j] = V[i][j] + diff_term + (delta_t * (for_term - RHS_V_term));
-
-// Preparing part of the RHS of the following linear systems
-#ifdef AFHN
-                    real RHS_Vtilde_term = RHS_V(Vtilde[i][j], W[i][j]);
-#endif // AFHN
-
-                    partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
-
-#ifdef AFHN
-                    // Update Wn+1
-                    real RHS_W_term = RHS_W(V[i][j], W[i][j]);
-                    real Wtilde = W[i][j] + (delta_t * RHS_W_term);
-                    W[i][j] = W[i][j] + delta_t * RHS_W(Vtilde[i][j], Wtilde);
-                    // RHS_Vtilde_term = RHS_V(Vtilde[i][j], Wtilde);
-#endif // AFHN
-                    // partRHS[i][j] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
 #endif // MONODOMAIN
                 }
             }
 
             // ================================================!
-            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
+            //  Calculate V at n+1/2 -> Result goes to RHS     !
             // ================================================!
             for (int j = 0; j < N; j++)
             {
                 for (int i = 0; i < N; i++)
                 {
-                    real diff_term = (sigma / (chi * Cm)) * (1.0f - theta) * phi * (V[i][lim(j - 1, N)] - 2.0f * V[i][j] + V[i][lim(j + 1, N)]);
-                    LS_b[i] = V[i][j] + diff_term + 0.5f * partRHS[i][j];
+                    real D = sigma / (chi * Cm);
+                    if (strcmp(method, "SSI-ADI") == 0)
+                        diff_term =  D * 0.5f * phi * (V[i][lim(j - 1, N)] - 2.0f * V[i][j] + V[i][lim(j + 1, N)]);
+                    else if (strcmp(method, "theta-ADI") == 0)
+                        diff_term =  D * (1.0f - theta) * phi * (V[i][lim(j - 1, N)] - 2.0f * V[i][j] + V[i][lim(j + 1, N)]);    
+                    
+                    LS_b[i] = V[i][j] + diff_term + 0.5f * partRHS[i][j];  // this 0.5f is associated to a two dimension case of ADI
                 }
 
                 tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
@@ -513,13 +434,18 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             }
 
             // ================================================!
-            //  Calcula V em n + 1 -> Resultado vai para V     !
+            //  Calculate V at n+1 -> Result goes to V         !
             // ================================================!
             for (int i = 0; i < N; i++)
             {
                 for (int j = 0; j < N; j++)
                 {
-                    real diff_term = (sigma / (chi * Cm)) * (1.0f - theta) * phi * (RHS[lim(i - 1, N)][j] - 2.0f * RHS[i][j] + RHS[lim(i + 1, N)][j]);
+                    real D = sigma / (chi * Cm);
+                    if (strcmp(method, "SSI-ADI") == 0)
+                        diff_term = D * 0.5f * phi * (RHS[lim(i - 1, N)][j] - 2.0f * RHS[i][j] + RHS[lim(i + 1, N)][j]);
+                    else if (strcmp(method, "theta-ADI") == 0)
+                        diff_term = D * (1.0f - theta) * phi * (RHS[lim(i - 1, N)][j] - 2.0f * RHS[i][j] + RHS[lim(i + 1, N)][j]);
+                    
                     LS_b[j] = RHS[i][j] + diff_term + 0.5f * partRHS[i][j];
                 }
 
@@ -655,7 +581,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 }
 
                 // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (-stim - RHS_V_term));
+                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
                 Vtilde[i] = actualVtilde;
 
                 // Preparing part of the RHS of the following linear systems
@@ -804,7 +730,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
                 // part of RHS of the main equation with Vtilde
                 real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-                partRHS[i] = delta_t * (-stim - RHS_Vtilde_term);
+                partRHS[i] = delta_t * (stim - RHS_Vtilde_term);
 
                 // Update state variables
                 // RHS of the state variables with tilde approximations
@@ -952,8 +878,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
-                real begin = 2.0f;
-                real end = 3.0f;
+                real begin = L / 3.0f;
+                real end = 2.0f * begin;
 
                 if (!aux_stim_velocity_flag)
                 {

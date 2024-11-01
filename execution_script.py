@@ -1,20 +1,20 @@
 from functions import *
 
 def main():
-    dts = ['0.00010', '0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000', '0.12000']
+    dts = ['0.00500', '0.01000', '0.02000', '0.04000']
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
     # dts = ['0.00010']
-    dx = '0.00050'
-    methods = ['theta-RK2']
+    dx = '0.00500'
+    # methods = ['theta-ADI']
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
-    problem = 'CABLEEQ'
-    cell_model = 'TT2' # 'AFHN', 'TT2'
-    init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
+    serial_or_gpu = 'GPU'
+    problem = 'MONODOMAIN'
+    cell_model = 'AFHN' # 'AFHN', 'TT2'
+    init = 'spiral' #'spiral', 'initial_conditions', 'restore_and_shift'
     frames = False
     save_last_state = False
     

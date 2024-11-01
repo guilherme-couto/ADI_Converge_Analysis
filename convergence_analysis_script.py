@@ -7,7 +7,7 @@ def main():
     real_type = 'double'
     problem = 'MONODOMAIN' # DIFF, LINMONO
     cell_model = 'AFHN' # AFHN
-    serial_or_gpu = 'SERIAL' # SERIAL, GPU
+    serial_or_gpu = 'GPU' # SERIAL, GPU
     serial_or_gpu = serial_or_gpu.upper()
 
     dts = [0.025, 0.0125, 0.00625] # Works for DIFF and MONODOMAIN (with AFHN)
