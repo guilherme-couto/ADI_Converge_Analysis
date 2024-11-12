@@ -93,12 +93,12 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef MONODOMAIN
 #ifdef AFHN
-    initialize2DVariableWithValue(W, N, 0.0f);
+    initialize2DVariableWithValue(W, N, W_init);
 #endif // AFHN
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
-    initialize1DVariableWithValue(W, N, 0.0f);
+    initialize1DVariableWithValue(W, N, W_init);
 #endif // AFHN
 #ifdef TT2
     initialize1DVariableWithValue(X_r1, N, X_r1_init);
@@ -124,8 +124,8 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef INIT_WITH_SPIRAL
     char* reference_dt = "0.00010";
-    char* reference_dx = "0.01000";
-    real real_ref_dx = 0.01f;
+    char* reference_dx = "0.00500";
+    real real_ref_dx = 0.05f;
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);

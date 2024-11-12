@@ -1,0 +1,7 @@
+Domain Length = 5, Time = 60.000000
+Stimulus velocity = 0.000000 m/s
+delta_x = 0.000500, Space steps N = 10001
+delta_t = 0.000100, Time steps = 600000
+Method theta-RK2
+
+Total execution time = 149.777782

@@ -5,12 +5,12 @@ from functions import *
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = ['0.00500', '0.01000', '0.02000', '0.04000']
-    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
+    methods = ['theta-RK2'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
-    serial_or_gpu = 'GPU'
-    problem = 'MONODOMAIN'
+    serial_or_gpu = 'SERIAL'
+    problem = 'CABLEEQ'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     
     # Find the largest dx to use as base for the read rate
@@ -22,7 +22,7 @@ def main():
     
     # Read reference solution
     reference_dt = '0.00010'
-    reference_dx = '0.00500'
+    reference_dx = '0.00050'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
     
     if not os.path.exists(reference_solution_path):
@@ -34,7 +34,7 @@ def main():
     print(f'Reference solution read successfully. Total size: {len(reference_data)}')
     print()
     
-    dx = '0.00500'
+    dx = reference_dx
     rate = int(base_dx/float(dx))
     print(f'Reading files with rate {rate}')
 
@@ -144,6 +144,7 @@ def main():
             ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
         
         else:
+            thetas_linear_fits = []
             for theta in thetas:
                 ea_file.write(f'with theta={theta}\n')
                 ea_file.write(f'dt \t\t| dx \t\t| N-2 Error \t| slope\n')
@@ -235,8 +236,21 @@ def main():
                 plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog_{theta}.png')
                 plt.close()
 
+                thetas_linear_fits.append(10**linear_fit(log_dt_values))
+
                 # Write the slope of the fitted line to the file
                 ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
+            
+            plt.figure()
+            for t in range(len(thetas)):
+                plt.loglog(dt_values, thetas_linear_fits[t], label=f'theta={thetas[t]}', linestyle='-')
+            plt.xlabel('dt')
+            plt.ylabel('N-2 Error')
+            plt.title(f'N-2 Error vs dt for {method}')
+            plt.legend()
+            plt.grid()
+            plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog.png')
+            plt.close()
 
 if __name__ == '__main__':
     main()

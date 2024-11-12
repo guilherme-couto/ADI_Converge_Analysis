@@ -11,11 +11,16 @@ const int frameSaveRate = 20000;
 
 
 #ifndef  CONVERGENCE_ANALYSIS
+#ifdef CABLEEQ
+const __constant__ int L = 5;     // Length of each side (cm)
+const real totalTime = 60.0f; // Total time (ms)
+#else
 const __constant__ int L = 2;     // Length of each side (cm)
-const real totalTime = 100.0f; // Total time (ms) # 60 and 50
+const real totalTime = 100.0f; // Total time (ms)
+#endif // CABLEEQ
 #else
 const __constant__ int L = 1;     // Length of each side (cm)
-const real totalTime = 0.1f; // Total time (ms) # 60 and 50
+const real totalTime = 0.1f; // Total time (ms)
 #endif // not CONVERGENCE_ANALYSIS
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
