@@ -130,22 +130,27 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // Populate auxiliary arrays for Thomas algorithm
     real phi = delta_t / (delta_x * delta_x);
+    #ifndef TT2
+    real diff_coeff = sigma / (Cm * chi);
+    #else
+    real diff_coeff = sigma / chi;
+    #endif // not TT2
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
 #ifdef AFHN
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * (sigma / (Cm * chi)));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
 #endif // AFHN
 #ifdef TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * (sigma / (chi)));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
 #endif // TT2
     }
     else if (strstr(method, "theta") != NULL)
     {
 #ifdef AFHN
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / (Cm * chi)));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
 #endif // AFHN
 #ifdef TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * (sigma / chi));
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
 #endif // TT2
     }
 
@@ -297,12 +302,12 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
 
 #if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
-            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
+            computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
 #elif defined(AFHN)
-            computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_partRHS, d_W, d_stimuli);
+            computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_partRHS, d_W, d_stimuli);
 #endif // CONVERGENCE_ANALYSIS
 #ifdef TT2
-            computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, delta_x, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+            computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
 #endif // TT2
             cudaDeviceSynchronize();
 
@@ -311,8 +316,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  diffusion implicit in y and explicit in x      !
             // ================================================!
             (strcmp(method, "SSI-ADI") == 0)
-                ? prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, 0.5f, d_V, d_RHS, d_partRHS)
-                : prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, (1.0f - theta), d_V, d_RHS, d_partRHS);
+                ? prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, diff_coeff, 0.5f, d_V, d_RHS, d_partRHS)
+                : prepareRHSwithjDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, diff_coeff, (1.0f - theta), d_V, d_RHS, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_RHS, d_la, d_lb, d_lc);
@@ -329,8 +334,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  diffusion implicit in x and explicit in y      !
             // ================================================!
             (strcmp(method, "SSI-ADI") == 0)
-                ? prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, 0.5f, d_Vtilde, d_V, d_partRHS)
-                : prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, (1.0f - theta), d_Vtilde, d_V, d_partRHS);
+                ? prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, diff_coeff, 0.5f, d_Vtilde, d_V, d_partRHS)
+                : prepareRHSwithiDiff<<<GRID_SIZE, BLOCK_SIZE>>>(N, phi, diff_coeff, (1.0f - theta), d_Vtilde, d_V, d_partRHS);
             cudaDeviceSynchronize();
 
             parallelThomas<<<numBlocks, blockSize>>>(N, d_V, d_la, d_lb, d_lc);

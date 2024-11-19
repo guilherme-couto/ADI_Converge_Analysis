@@ -11,7 +11,7 @@ def main():
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'CABLEEQ'
-    cell_model = 'AFHN' # 'AFHN', 'TT2'
+    cell_model = 'TT2' # 'AFHN', 'TT2'
     
     # Find the largest dx to use as base for the read rate
     # base_dx = 0

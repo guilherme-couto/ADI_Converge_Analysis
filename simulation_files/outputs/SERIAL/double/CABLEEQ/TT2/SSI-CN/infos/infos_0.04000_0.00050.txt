@@ -1,7 +1,0 @@
-Domain Length = 5, Time = 100.000000
-Stimulus velocity (measured from 2 to 3 cm) = 0.003285 m/s
-delta_x = 0.000500, Space steps N = 10001
-delta_t = 0.040000, Time steps = 2500
-Method SSI-CN
-
-Total execution time = 13.774056

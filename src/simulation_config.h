@@ -8,12 +8,10 @@
 const int frameSaveRate = 20000;
 #endif // SAVE_FRAMES
 
-
-
 #ifndef  CONVERGENCE_ANALYSIS
 #ifdef CABLEEQ
 const __constant__ int L = 5;     // Length of each side (cm)
-const real totalTime = 60.0f; // Total time (ms)
+const real totalTime = 50.0f; // Total time (ms)
 #else
 const __constant__ int L = 2;     // Length of each side (cm)
 const real totalTime = 100.0f; // Total time (ms)
@@ -32,6 +30,9 @@ const real stimuliStrength = 100.0f;          // Stimulation strength -> (amplit
 #ifdef TT2
 const real stimuliStrength = 38.0f;          // Stimulation strength -> (amplitude)
 #endif // TT2
+#ifdef MV
+const real stimuliStrength = 1.0f;          // Stimulation strength -> (amplitude)
+#endif // MV
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
 const real stimuliBegin[] = {0.0f, 120.0f}; // Stimuli begin time -> ms
 const real stimulixMax[] = {0.2f, 1.0f};    // Stimuli x max -> cm
@@ -93,6 +94,13 @@ const real Na_i_init = 7.67f;     // Initial intracellular Na+ concentration -> 
 const real K_i_init = 138.3f;     // Initial intracellular K+ concentration -> mM
 #endif                            // ENDO || MCELL
 #endif                            // TT2
+
+#ifdef MV
+const real U_init = 0.0f;
+const real V_init = 1.0f;
+const real W_init = 1.0f;
+const real S_init = 0.0f;
+#endif // MV
 #endif                            // MONODOMAIN || CABLEEQ
 
 #endif // SIMULATION_CONFIG_H

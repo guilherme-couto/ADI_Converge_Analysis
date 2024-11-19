@@ -45,7 +45,7 @@ __device__ real forcingTerm(real x, real y, real t, real W)
 }
 
 // Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
-__global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
+__global__ void computeApproxSSI(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -73,8 +73,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
 
-        real D = sigma / (chi * Cm);
-        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
         real actualW = d_W[index];
 
@@ -89,7 +88,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
         // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde);
+        real RHS_Vtilde_term = ((G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde)) / (Cm * chi);
         d_partRHS[index] = delta_t * (for_term - RHS_Vtilde_term);
 
         // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
@@ -97,52 +96,9 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real delta_x, re
     }
 }
 
-// Kernel to compute the approximate solution of the reaction-diffusion system using the theta-ADI
-__global__ void computeApproxthetaADI(int N, real delta_t, real phi, real theta, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index < N * N)
-    {
-        int i = index / N;
-        int j = index % N;
-
-        real x = j * delta_x;
-        real y = i * delta_x;
-
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
-
-        real actualV = d_V[index];
-        real im1V = d_V[index_im1];
-        real ip1V = d_V[index_ip1];
-        real jm1V = d_V[index_jm1];
-        real jp1V = d_V[index_jp1];
-        real diff_term = (sigma / (chi * Cm)) * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
-
-        real actualW = d_W[index];
-
-        real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
-        d_Vtilde[index] = actualV + diff_term + (delta_t * (for_term - RHS_V_term));
-
-        real Vtilde = d_Vtilde[index];
-
-        // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * actualW);
-        d_partRHS[index] = delta_t * (for_term - ((1.0f - theta) * RHS_V_term) - (theta * RHS_Vtilde_term));
-
-        // Update Wn+1
-        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
-        real Wtilde = actualW + (delta_t * RHS_W_term);
-        d_W[index] = actualW + delta_t * (eta2 * ((Vtilde / vp) - (eta3 * Wtilde)));
-    }
-}
 #elif defined(AFHN)
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+__global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -167,8 +123,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
         
-        real D = (sigma / (chi * Cm));
-        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
         // State variable
         real actualW = d_W[index];
@@ -195,7 +150,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
         // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = (G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde); // RHS with V* and W*
+        real RHS_Vtilde_term = ((G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde)) / (Cm * chi); // RHS with V* and W*
         d_partRHS[index] = delta_t * (stim - RHS_Vtilde_term);
 
         // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
@@ -206,7 +161,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
 #endif // AFHN (previously CONVERGENCE_ANALYSIS && AFHN)
 #ifdef TT2
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
+__global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -231,8 +186,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
         
-        real D = (sigma / chi);
-        real diff_term = D * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
 
         // State variables
         real actualX_r1 = d_X_r1[index];
@@ -565,7 +519,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real delta_x, real 
 }
 #endif // TT2
 
-__global__ void prepareRHSwithiDiff(int N, real phi, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithiDiff(int N, real phi, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -582,19 +536,12 @@ __global__ void prepareRHSwithiDiff(int N, real phi, real tau, real *d_V, real *
 
         real actualV = d_V[index];
 
-        #ifdef AFHN
-        real D = (sigma / (chi * Cm));
-        #endif // AFHN
-        #ifdef TT2
-        real D = (sigma / chi);
-        #endif // TT2
-
-        real diff_term = D * phi * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
+        real diff_term = diff_coeff * phi * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
 
-__global__ void prepareRHSwithjDiff(int N, real phi, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithjDiff(int N, real phi, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -613,14 +560,7 @@ __global__ void prepareRHSwithjDiff(int N, real phi, real tau, real *d_V, real *
 
         real actualV = d_V[index];
 
-        #ifdef AFHN
-        real D = (sigma / (chi * Cm));
-        #endif // AFHN
-        #ifdef TT2
-        real D = (sigma / chi);
-        #endif // TT2
-
-        real diff_term = D * phi * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
+        real diff_term = diff_coeff * phi * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
         d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }

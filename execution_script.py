@@ -7,17 +7,17 @@ def main():
 
     # refs
     dx = '0.00050'
-    dts = ['0.00010']
+    # dts = ['0.00010']
     methods = ['theta-RK2']
-    thetas = ['0.50']
+    # thetas = ['0.50']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'CABLEEQ'
-    cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'initial_conditions' #'spiral', 'initial_conditions', 'restore_and_shift'
-    frames = True
-    save_last_state = True
+    cell_model = 'TT2' # 'AFHN', 'TT2'
+    init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
+    frames = False
+    save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -w '
@@ -59,9 +59,12 @@ def main():
                 tts = ['0.00']
             else:
                 tts = thetas
+
             for theta in tts:
+
                 if dt == '0.00010' and theta != '0.50':
                     continue
+
                 os.system(f'./convergence {method} {dt} {dx} {theta}')
                 plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
                 if save_last_state:
