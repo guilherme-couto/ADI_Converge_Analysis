@@ -390,6 +390,34 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
     printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
+void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
+{
+    real *temp = (real *)malloc(N * sizeof(real));
+    int index;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            index = i * N + j;
+            temp[j] = Var[index];
+        }
+
+        int lengthIndex = round(length / delta_x) + 1;
+        for (int j = 0; j < N - lengthIndex; j++)
+        {
+            index = i * N + j;
+            Var[index] = temp[j + lengthIndex];
+        }
+        for (int j = N - lengthIndex; j < N; j++)
+        {
+            index = i * N + j;
+            Var[index] = initValue;
+        }
+    }
+    free(temp);
+    printf("Variable %s shifted to the left by %f cm\n", varName, length);
+}
+
 void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
 {
 

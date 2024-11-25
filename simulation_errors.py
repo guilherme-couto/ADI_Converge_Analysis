@@ -5,12 +5,12 @@ from functions import *
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = ['0.00500', '0.01000', '0.02000', '0.04000']
-    methods = ['theta-RK2'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
+    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
-    problem = 'CABLEEQ'
+    serial_or_gpu = 'GPU'
+    problem = 'MONODOMAIN'
     cell_model = 'TT2' # 'AFHN', 'TT2'
     
     # Find the largest dx to use as base for the read rate
@@ -22,7 +22,7 @@ def main():
     
     # Read reference solution
     reference_dt = '0.00010'
-    reference_dx = '0.00050'
+    reference_dx = '0.00500'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
     
     if not os.path.exists(reference_solution_path):
@@ -151,8 +151,9 @@ def main():
                 ea_file.write('---------------------------------------------------------\n')
                 
                 # Comparative plot
-                plt.figure()
-                plt.plot(reference_data, label='ref')
+                if problem != 'MONODOMAIN':
+                    plt.figure()
+                    plt.plot(reference_data, label='ref')
 
                 # Initialize lists to store dt and n2_error values
                 n2_errors = []
@@ -169,16 +170,15 @@ def main():
                     # Read simulation file
                     print(f'Reading simulation file from {simulation_path}')
                     simulation_data = read_values_with_rate(simulation_path, rate)
-                    print(f'Simulation file read successfully. Total size: {len(simulation_data)}')
-                    
-                    # Plot data to compare
-                    plt.plot(simulation_data, label=f'dt={dt}')
+                    print(f'Simulation file read successfully. Total size: {len(simulation_data)}')                        
 
                     # Plot difference map between reference and simulation
                     difference = np.array(simulation_data) - np.array(reference_data)
                     if problem != 'CABLEEQ':
                         plot_difference_map_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)
                     else:
+                        # Plot data to compare
+                        plt.plot(simulation_data, label=f'dt={dt}')
                         plot_difference_vector_from_data(difference, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta)               
                     
                     # Calculate the N-2 error
@@ -203,11 +203,12 @@ def main():
                     
                 ea_file.write('\n')
 
-                plt.grid()
-                plt.legend()
-                plt.title(f'Last Frame Comparative for {method} (theta={theta})')
-                plt.savefig(f'{error_analysis_dir}/lastframe_comparative_{theta}.png')
-                plt.close()
+                if problem != 'MONODOMAIN':
+                    plt.grid()
+                    plt.legend()
+                    plt.title(f'Last Frame Comparative for {method} (theta={theta})')
+                    plt.savefig(f'{error_analysis_dir}/lastframe_comparative_{theta}.png')
+                    plt.close()
 
                 # Convert dt_values and n2_errors to numpy arrays
                 dt_values = np.array(dts, dtype=float)

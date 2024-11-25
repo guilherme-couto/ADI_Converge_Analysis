@@ -14,7 +14,7 @@ const __constant__ int L = 5;     // Length of each side (cm)
 const real totalTime = 50.0f; // Total time (ms)
 #else
 const __constant__ int L = 2;     // Length of each side (cm)
-const real totalTime = 100.0f; // Total time (ms)
+const real totalTime = 14.0f; // Total time (ms)
 #endif // CABLEEQ
 #else
 const __constant__ int L = 1;     // Length of each side (cm)

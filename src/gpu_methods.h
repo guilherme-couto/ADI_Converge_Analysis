@@ -123,6 +123,89 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(pathToSpiralFiles);
 #endif // INIT_WITH_SPIRAL
 
+#ifdef RESTORE_STATE_AND_SHIFT
+    // Initialize variables with a solution
+    char* reference_dt = "0.00010";
+    char* reference_dx = "0.00500";
+    real real_ref_dx = 0.005f;
+    char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(V, N, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
+
+    #ifdef AFHN
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(W, N, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
+    #endif // AFHN
+    #ifdef TT2
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r1_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(X_r1, N, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(X_r2, N, pathToRestoreStateFiles, delta_x, "X_r2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_s_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(X_s, N, pathToRestoreStateFiles, delta_x, "X_s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastm_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(m, N, pathToRestoreStateFiles, delta_x, "m", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(h, N, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(j, N, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(d, N, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(f, N, pathToRestoreStateFiles, delta_x, "f", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(f2, N, pathToRestoreStateFiles, delta_x, "f2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastfCaSS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(fCaSS, N, pathToRestoreStateFiles, delta_x, "fCaSS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasts_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(s, N, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastr_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(r, N, pathToRestoreStateFiles, delta_x, "r", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(Ca_i, N, pathToRestoreStateFiles, delta_x, "Ca_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SR_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(Ca_SR, N, pathToRestoreStateFiles, delta_x, "Ca_SR", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(Ca_SS, N, pathToRestoreStateFiles, delta_x, "Ca_SS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastR_prime_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(R_prime, N, pathToRestoreStateFiles, delta_x, "R_prime", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastNa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(Na_i, N, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    initialize2DVariableFromFile(K_i, N, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
+    #endif // TT2
+    free(pathToRestoreStateFiles);
+
+    // Shift variables
+    real lengthToShift = 1.0f;
+    shift2DVariableToLeft(V, N, lengthToShift, delta_x, V_init, "V");
+
+    #ifdef AFHN
+    shift2DVariableToLeft(W, N, lengthToShift, delta_x, W_init, "W");
+    #endif // AFHN
+    #ifdef TT2
+    shift2DVariableToLeft(X_r1, N, lengthToShift, delta_x, X_r1_init, "X_r1");
+    shift2DVariableToLeft(X_r2, N, lengthToShift, delta_x, X_r2_init, "X_r2");
+    shift2DVariableToLeft(X_s, N, lengthToShift, delta_x, X_s_init, "X_s");
+    shift2DVariableToLeft(m, N, lengthToShift, delta_x, m_init, "m");
+    shift2DVariableToLeft(h, N, lengthToShift, delta_x, h_init, "h");
+    shift2DVariableToLeft(j, N, lengthToShift, delta_x, j_init, "j");
+    shift2DVariableToLeft(d, N, lengthToShift, delta_x, d_init, "d");
+    shift2DVariableToLeft(f, N, lengthToShift, delta_x, f_init, "f");
+    shift2DVariableToLeft(f2, N, lengthToShift, delta_x, f2_init, "f2");
+    shift2DVariableToLeft(fCaSS, N, lengthToShift, delta_x, fCaSS_init, "fCaSS");
+    shift2DVariableToLeft(s, N, lengthToShift, delta_x, s_init, "s");
+    shift2DVariableToLeft(r, N, lengthToShift, delta_x, r_init, "r");
+    shift2DVariableToLeft(Ca_i, N, lengthToShift, delta_x, Ca_i_init, "Ca_i");
+    shift2DVariableToLeft(Ca_SR, N, lengthToShift, delta_x, Ca_SR_init, "Ca_SR");
+    shift2DVariableToLeft(Ca_SS, N, lengthToShift, delta_x, Ca_SS_init, "Ca_SS");
+    shift2DVariableToLeft(R_prime, N, lengthToShift, delta_x, R_prime_init, "R_prime");
+    shift2DVariableToLeft(Na_i, N, lengthToShift, delta_x, Na_i_init, "Na_i");
+    shift2DVariableToLeft(K_i, N, lengthToShift, delta_x, K_i_init, "K_i");
+    #endif // TT2
+#endif // RESTORE_STATE_AND_SHIFT
+
+
     // Auxiliary arrays for Thomas algorithm
     real *la = (real *)malloc(N * sizeof(real)); // subdiagonal
     real *lb = (real *)malloc(N * sizeof(real)); // diagonal

@@ -381,7 +381,7 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
     
     # Plot the data
     plt.figure(figsize=(6, 6))
-    plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=25)
+    plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=100)
     plt.colorbar(label='Value', fraction=0.04, pad=0.04)
     plt.xticks([])
     plt.yticks([])

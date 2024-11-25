@@ -6,14 +6,14 @@ def main():
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
-    dx = '0.00050'
+    dx = '0.00500'
     # dts = ['0.00010']
-    methods = ['theta-RK2']
+    # methods = ['theta-ADI']
     # thetas = ['0.50']
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
-    problem = 'CABLEEQ'
+    serial_or_gpu = 'GPU'
+    problem = 'MONODOMAIN'
     cell_model = 'TT2' # 'AFHN', 'TT2'
     init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
     frames = False
