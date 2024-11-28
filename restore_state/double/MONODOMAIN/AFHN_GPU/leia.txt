@@ -1,0 +1,1 @@
+feito com 0.5 partRHS em cada etapa do ADI

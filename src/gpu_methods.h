@@ -220,21 +220,11 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     #endif // not TT2
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
-#ifdef AFHN
         populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
-#endif // AFHN
-#ifdef TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
-#endif // TT2
     }
     else if (strstr(method, "theta") != NULL)
     {
-#ifdef AFHN
         populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
-#endif // AFHN
-#ifdef TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
-#endif // TT2
     }
 
     // Prefactorization

@@ -10,6 +10,6 @@ Total threads: 448
 For Thomas -> Grid size: 1, Block size: 32
 Total threads: 32
 
-Total execution time = 0.001895
+Total execution time = 0.000405
 
 Norm-2 Error = 0.002178

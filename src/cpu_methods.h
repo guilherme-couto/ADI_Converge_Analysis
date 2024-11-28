@@ -30,6 +30,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     exact = (real *)malloc(N * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 #endif // not CABLEEQ
+    // Aux variables for the Linear System resolution (Thomas)
     real *c_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
     real *d_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
     real *LS_b = (real *)malloc(N * sizeof(real));
@@ -230,19 +231,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // not TT2
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
-#ifndef TT2
         populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
-#else // if not def TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
-#endif // not TT2
     }
     else if (strstr(method, "theta") != NULL)
     {
-#ifndef TT2
         populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
-#else // if not def TT2
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
-#endif // not TT2
     }
 
 #ifndef CONVERGENCE_ANALYSIS
@@ -268,6 +261,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifdef CABLEEQ
     // Choose cell at 0.5 cm to measure Action Potential
     int APCellIndex = round(0.5f/delta_x);
+#endif // CABLEEQ
 
     // Measure velocity
     real stim_velocity = 0.0;
@@ -275,7 +269,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real last_point_time = 0.0;
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
-#endif // CABLEEQ
 
     int timeStepCounter = 0;
     real actualTime = 0.0f;
@@ -384,9 +377,9 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     real stim = 0.0f;
                     for (int si = 0; si < numberOfStimuli; si++)
                     {
-                        if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
+                        if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                         {
-                            stim = d_stimuli[si].strength;
+                            stim = stimuli[si].strength;
                             break;
                         }
                     }
@@ -419,15 +412,46 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             // ================================================!
+            // Explicit diffusion in j
+            for (int i = 0; i < N; i++)
+            {
+                for (int j = 0; j < N; j++)
+                {
+                    real actualV = V[i][j];
+                    real tau = 0.5f;
+                    if (strcmp(method, "theta-ADI") == 0)
+                        tau =  1.0f - theta; 
+                    
+                    diff_term =  diff_coeff * tau * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]); 
+                    RHS[i][j] = actualV + diff_term + 0.5f * partRHS[i][j];
+                }
+            }
+
+            for (int i = 0; i < N; i++)
+            {
+                for (int j = 0; j < N; j++)
+                {
+                    LS_b[j] = RHS[i][j];
+                }
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
+                for (int j = 0; j < N; j++)
+                {
+                    V[i][j] = result[j];
+                }
+            }
+
+            /*//////// antigo
             for (int j = 0; j < N; j++)
             {
                 for (int i = 0; i < N; i++)
                 {
-                    real actualV = actualV;
+                    real actualV = V[i][j];
                     if (strcmp(method, "SSI-ADI") == 0)
                         diff_term =  diff_coeff * 0.5f * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]);
+                        // diff_term = diff_coeff * 0.5f * phi * (V[lim(i - 1, N)][j] - 2.0f * actualV + V[lim(i + 1, N)][j]);
                     else if (strcmp(method, "theta-ADI") == 0)
-                        diff_term =  diff_coeff * (1.0f - theta) * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]);    
+                        diff_term =  diff_coeff * (1.0f - theta) * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]); 
+                        // diff_term = diff_coeff * (1.0f - theta) * phi * (V[lim(i - 1, N)][j] - 2.0f * actualV + V[lim(i + 1, N)][j]);    
                     
                     LS_b[i] = actualV + diff_term + 0.5f * partRHS[i][j];  // this 0.5f is associated to a two dimension case of ADI
                 }
@@ -437,30 +461,101 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 {
                     RHS[i][j] = result[i];
                 }
-            }
+            } */
 
             // ================================================!
             //  Calculate V at n+1 -> Result goes to V         !
             // ================================================!
+            // Explicit diffusion in i
             for (int i = 0; i < N; i++)
             {
                 for (int j = 0; j < N; j++)
                 {
-                    real actualV = actualV;
-                    if (strcmp(method, "SSI-ADI") == 0)
-                        diff_term = diff_coeff * 0.5f * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
-                    else if (strcmp(method, "theta-ADI") == 0)
-                        diff_term = diff_coeff * (1.0f - theta) * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
+                    real actualV = V[i][j];
+                    real tau = 0.5f;
+                    if (strcmp(method, "theta-ADI") == 0)
+                        tau = 1.0f - theta; 
                     
-                    LS_b[j] = actualV + diff_term + 0.5f * partRHS[i][j];
-                }
-
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int j = 0; j < N; j++)
-                {
-                    V[i][j] = result[j];
+                    diff_term = diff_coeff * tau * phi * (V[lim(i - 1, N)][j] - 2.0f * actualV + V[lim(i + 1, N)][j]);
+                    RHS[i][j] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
             }
+
+            for (int j = 0; j < N; j++)
+            {
+                for (int i = 0; i < N; i++)
+                {
+                    LS_b[i] = RHS[i][j];
+                }
+                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
+                for (int i = 0; i < N; i++)
+                {
+                    V[i][j] = result[i];
+                }
+            }
+
+            ///////////// antigo
+            // for (int i = 0; i < N; i++)
+            // {
+            //     for (int j = 0; j < N; j++)
+            //     {
+            //         real actualV = RHS[i][j];
+            //         if (strcmp(method, "SSI-ADI") == 0)
+            //             diff_term = diff_coeff * 0.5f * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
+            //             // diff_term =  diff_coeff * 0.5f * phi * (RHS[i][lim(j - 1, N)] - 2.0f * actualV + RHS[i][lim(j + 1, N)]);
+            //         else if (strcmp(method, "theta-ADI") == 0)
+            //             diff_term = diff_coeff * (1.0f - theta) * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
+            //             // diff_coeff * (1.0f - theta) * phi * (RHS[i][lim(j - 1, N)] - 2.0f * actualV + RHS[i][lim(j + 1, N)]);
+                    
+            //         LS_b[j] = actualV + diff_term + 0.5f * partRHS[i][j];
+            //     }
+
+            //     tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
+            //     for (int j = 0; j < N; j++)
+            //     {
+            //         V[i][j] = result[j];
+            //     }
+            // }
+
+#ifdef SAVE_FRAMES
+            // If save frames is true and time step is multiple of frame save rate
+            if (timeStepCounter % frameSaveRate == 0)
+            {
+                // Save frame
+                saveFrame(fpFrames, actualTime, V, N);
+                printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
+            }
+#endif // SAVE_FRAMES
+#ifndef CONVERGENCE_ANALYSIS
+            // Calculate stim velocity
+            if (!stim_velocity_measured)
+            {
+                real begin = L / 3.0f;
+                real end = 2.0f * begin;
+
+                if (!aux_stim_velocity_flag)
+                {
+                    int first_point_index = round(begin / delta_x) + 1;
+                    if (V[0][first_point_index] > 10.0f)
+                    {
+                        first_point_time = actualTime;
+                        aux_stim_velocity_flag = true;
+                    }
+                }
+                else
+                {
+                    int last_point_index = round(end / delta_x) + 1;
+                    if (V[0][last_point_index] > 10.0f)
+                    {
+                        last_point_time = actualTime;
+                        stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
+                        stim_velocity = stim_velocity * 10.0f; // m/s
+                        stim_velocity_measured = true;
+                        printf("Stim velocity (measured from %f to %f cm) is %lf m/s\n", begin, end, stim_velocity);
+                    }
+                }
+            }
+#endif // not CONVERGENCE_ANALYSIS
 
             // Update time step counter
             timeStepCounter++;
@@ -588,7 +683,6 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
                 // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
                 real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
-                Vtilde[i] = actualVtilde;
 
                 // Preparing part of the RHS of the following linear systems
                 // Calculate approximation for state variables
@@ -865,7 +959,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 real actualV = V[i];
                 diff_term = diff_coeff * phi * (V[lim(i - 1, N)] - 2.0f * actualV + V[lim(i + 1, N)]);
                 
-                LS_b[i] = actualV + (1.0 - theta) * diff_term + partRHS[i];
+                LS_b[i] = actualV + (1.0f - theta) * diff_term + partRHS[i];
             }
 
             tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
@@ -893,7 +987,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 if (!aux_stim_velocity_flag)
                 {
                     int first_point_index = round(begin / delta_x) + 1;
-                    if (V[first_point_index] > 10.0)
+                    if (V[first_point_index] > 10.0f)
                     {
                         first_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -902,11 +996,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 else
                 {
                     int last_point_index = round(end / delta_x) + 1;
-                    if (V[last_point_index] > 10.0)
+                    if (V[last_point_index] > 10.0f)
                     {
                         last_point_time = actualTime;
                         stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 10.0; // m/s
+                        stim_velocity = stim_velocity * 10.0f; // m/s
                         stim_velocity_measured = true;
                         printf("Stim velocity (measured from %f to %f cm) is %lf m/s\n", begin, end, stim_velocity);
                     }
@@ -1054,12 +1148,24 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         for (int j = 0; j < N; j++)
         {
             fprintf(fpLast, "%e ", V[i][j]);
+            #ifdef SAVE_LAST_STATE
+            #ifdef AFHN
+            fprintf(fpLastV, "%e ", V[i][j]);
+            fprintf(fpLastW, "%e ", W[i][j]);
+            #endif // AFHN
+            #endif // SAVE_LAST_STATE
 #ifdef CONVERGENCE_ANALYSIS
             fprintf(fpExact, "%e ", exact[i][j]);
             fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
 #endif // CONVERGENCE_ANALYSIS
         }
         fprintf(fpLast, "\n");
+        #ifdef SAVE_LAST_STATE
+        #ifdef AFHN
+        fprintf(fpLastV, "\n");
+        fprintf(fpLastW, "\n");
+        #endif // AFHN
+        #endif // SAVE_LAST_STATE
 #ifdef CONVERGENCE_ANALYSIS
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");

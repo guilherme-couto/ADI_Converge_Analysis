@@ -3,6 +3,6 @@ delta_x = 0.050000, Space steps N = 21, N*N = 441
 delta_t = 0.025000, Time steps = 4
 Method theta-ADI
 
-Total execution time = 0.000086
+Total execution time = 0.000088
 
-Norm-2 Error = 0.003811
+Norm-2 Error = 662640810218785642750539107637553746341196381929075330351633765061949593617432576.000000

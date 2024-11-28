@@ -1,23 +1,24 @@
 from functions import *
 
 def main():
-    dts = ['0.00010', '0.00500', '0.01000', '0.02000', '0.04000']
+    dts = ['0.00500', '0.01000', '0.02000', '0.04000']
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
-    dx = '0.00500'
-    # dts = ['0.00010']
-    # methods = ['theta-ADI']
-    # thetas = ['0.50']
+    # dx = '0.00500'
+    dx = '0.01000'
+    dts = ['0.00010']
+    methods = ['theta-ADI']
+    thetas = ['0.50']
 
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
-    cell_model = 'TT2' # 'AFHN', 'TT2'
-    init = 'restore_and_shift' #'spiral', 'initial_conditions', 'restore_and_shift'
-    frames = False
-    save_last_state = False
+    cell_model = 'AFHN' # 'AFHN', 'TT2'
+    init = 'initial_conditions' # 'spiral', 'initial_conditions', 'restore_and_shift'
+    frames = True
+    save_last_state = True
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -w '
@@ -52,9 +53,6 @@ def main():
         for i in range(len(dts)):
             dt = dts[i]
             
-            # if dt == '0.00010' and method != '0.50':
-            #     continue
-
             if 'theta' not in method:
                 tts = ['0.00']
             else:

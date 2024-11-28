@@ -1,13 +1,15 @@
-Domain Length = 2, Time = 14.000000
-delta_x = 0.005000, Space steps N = 401, N*N = 160801
-delta_t = 0.000100, Time steps = 140000
-Stimulus velocity = 0.732432 m/s
+Domain Length = 1, Time = 0.100000
+delta_x = 0.005000, Space steps N = 201, N*N = 40401
+delta_t = 0.000100, Time steps = 1000
+Stimulus velocity = 0.000000 m/s
 Method theta-ADI
 
-For Approx, ODEs and Transpose -> Grid size 5026, Block size 32
-Total threads: 160832
+For Approx, ODEs and Transpose -> Grid size 1263, Block size 32
+Total threads: 40416
 
-For Thomas -> Grid size: 4, Block size: 128
-Total threads: 512
+For Thomas -> Grid size: 2, Block size: 128
+Total threads: 256
 
-Total execution time = 78.510168
+Total execution time = 0.267356
+
+Norm-2 Error = 0.000008
