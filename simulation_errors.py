@@ -5,12 +5,12 @@ from functions import *
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = ['0.00500', '0.01000', '0.02000', '0.04000'] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-    # dts = ['0.00050', '0.00080', '0.00100', '0.00160']
+    dts = ['0.00500', '0.00800', '0.01000', '0.01600']
     methods = ['theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
+    serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     

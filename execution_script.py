@@ -8,15 +8,16 @@ def main():
 
     # refs
     dx = '0.00050'
-    dts = ['0.01000']
+    dts = ['0.00010']
+    dts = ['0.00500']
     methods = ['theta-ADI']
-    thetas = ['0.66']
+    thetas = ['0.50']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'initial_conditions' # 'spiral', 'initial_conditions', 'restore_and_shift'
+    init = 'restore_and_shift' # 'spiral', 'initial_conditions', 'restore_and_shift'
     frames = False
     save_last_state = False
     

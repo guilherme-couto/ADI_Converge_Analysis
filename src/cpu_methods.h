@@ -480,7 +480,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     if (strcmp(method, "theta-ADI") == 0)
                         tau =  1.0f - theta;
                     
-                    diff_term =  diff_coeff * tau * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]); 
+                    diff_term =  diff_coeff * tau * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]);
                     LS_b[i] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 
@@ -503,7 +503,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     if (strcmp(method, "theta-ADI") == 0)
                         tau =  1.0f - theta;
                     
-                    diff_term =  diff_coeff * tau * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]); 
+                    diff_term =  diff_coeff * tau * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
                     LS_b[j] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 

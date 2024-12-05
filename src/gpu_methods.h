@@ -177,7 +177,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(pathToRestoreStateFiles);
 
     // Shift variables
-    real lengthToShift = 1.0f;
+    real lengthToShift = 0.1f;
     shift2DVariableToLeft(V, N, lengthToShift, delta_x, V_init, "V");
 
     #ifdef AFHN
