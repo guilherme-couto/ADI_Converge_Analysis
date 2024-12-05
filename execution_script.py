@@ -8,16 +8,16 @@ def main():
 
     # refs
     dx = '0.00050'
-    dts = ['0.02000']
+    dts = ['0.01000']
     methods = ['theta-ADI']
-    thetas = ['0.50']
+    thetas = ['0.66']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'restore_and_shift' # 'spiral', 'initial_conditions', 'restore_and_shift'
-    frames = True
+    init = 'initial_conditions' # 'spiral', 'initial_conditions', 'restore_and_shift'
+    frames = False
     save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
