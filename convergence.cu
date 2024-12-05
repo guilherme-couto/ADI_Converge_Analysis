@@ -23,12 +23,10 @@ int main(int argc, char *argv[])
     delta_x = atof(argv[3]);
     theta = atof(argv[4]);
 
+    // Configuration overview
     printf("CONFIGURATION:\n");
-    #ifdef USE_DOUBLE
-    printf("Real type: DOUBLE\n");
-    #else
-    printf("Real type: FLOAT\n");
-    #endif
+    printf("Real type: %s\n", REAL_TYPE);
+    printf("Execution: %s\n", EXECUTION_TYPE);
 
     #ifdef CONVERGENCE_ANALYSIS
     printf("CONVERGENCE ANALYSIS\n");
@@ -52,28 +50,24 @@ int main(int argc, char *argv[])
     printf("Problem not yet implemented\n");
     return 1;
     #endif
+    printf("\n");
+
+    // Parameters overview
+    printf("RUNNING simulation with parameters:\n");
+    printf("Method: %s\n", method);
+    printf("delta_t: %.5f\n", delta_t);
+    printf("delta_x: %.5f\n", delta_x);
+    if (strcmp(method, "theta-ADI") == 0)
+        printf("theta: %.2f\n", theta);
+    printf("\n");
 
     // Call function
     #ifdef SERIAL
-    printf("Execution: SERIAL\n\n");
-    printf("RUNNING simulation with parameters:\n");
-    printf("Method: %s\n", method);
-    printf("delta_t: %f\n", delta_t);
-    printf("delta_x: %f\n", delta_x);
-    printf("theta: %f\n", theta);
-    printf("\n");
     runSimulation(method, delta_t, delta_x, theta);
-    #endif
+    #endif // SERIAL
     #ifdef GPU
-    printf("Execution: GPU\n\n");
-    printf("RUNNING SIMULATION with parameters:\n");
-    printf("Method: %s\n", method);
-    printf("delta_t: %f\n", delta_t);
-    printf("delta_x: %f\n", delta_x);
-    printf("theta: %f\n", theta);
-    printf("\n");
     runSimulationGPU(method, delta_t, delta_x, theta);
-    #endif
+    #endif // GPU
 
     printf("\nSIMULATION FINISHED!\n");
 

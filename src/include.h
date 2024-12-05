@@ -10,14 +10,6 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-// #define TT2
-// #define ENDO
-// #define GPU
-// #define MONODOMAIN
-// #define AFHN
-// #define CABLEEQ
-// #define SERIAL
-
 #define MAX_STRING_SIZE 200
 
 #define BDIMX 16
@@ -32,14 +24,6 @@ typedef double real;
 typedef float real;
 #define REAL_TYPE "float"
 #endif
-
-// Define execution type via compile command line (-D{OPTION}, SERIAL or GPU)
-// TODO: editar depois. Fazendo apenas para testes
-// O ideal vai ser colocar #ifndef GPU, define SERIAL, MONODOMAIN e AFHN
-// assim SERIAL fica como padrão e GPU só é definido se for passado como argumento
-// #ifndef SERIAL
-// #define MONODOMAIN
-// #endif // not SERIAL
 
 #ifdef SERIAL
 #define EXECUTION_TYPE "SERIAL"

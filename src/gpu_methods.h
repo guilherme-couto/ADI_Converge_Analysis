@@ -73,8 +73,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
 #ifdef INIT_WITH_SPIRAL
     char* reference_dt = "0.00010";
-    char* reference_dx = "0.01000";
-    real real_ref_dx = 0.01f;
+    char* reference_dx = "0.00050";
+    real real_ref_dx = 0.0005f;
     char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);
@@ -126,8 +126,8 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #ifdef RESTORE_STATE_AND_SHIFT
     // Initialize variables with a solution
     char* reference_dt = "0.00010";
-    char* reference_dx = "0.00500";
-    real real_ref_dx = 0.005f;
+    char* reference_dx = "0.00050";
+    real real_ref_dx = 0.0005f;
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize2DVariableFromFile(V, N, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
@@ -424,7 +424,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
                 // Save frame
                 saveFrame(fpFrames, actualTime, V, N);
-                printf("Frame at time %lf ms saved to %s\n", actualTime, framesPath);
+                printf("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
             }
 #endif // SAVE_FRAMES
 
@@ -456,7 +456,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
                         stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
                         stim_velocity = stim_velocity * 10.0; // m/s
                         stim_velocity_measured = true;
-                        printf("Stim velocity (measured from %f to %f cm) is %lf m/s\n", begin, end, stim_velocity);
+                        printf("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
                     }
                 }
             }

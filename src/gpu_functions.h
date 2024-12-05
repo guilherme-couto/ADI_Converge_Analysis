@@ -536,7 +536,7 @@ __global__ void prepareRHSwithiDiff(int N, real phi, real diff_coeff, real tau, 
 
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * phi * tau * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
+        real diff_term = diff_coeff * tau * phi * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
@@ -560,7 +560,7 @@ __global__ void prepareRHSwithjDiff(int N, real phi, real diff_coeff, real tau, 
 
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * phi * tau * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
+        real diff_term = diff_coeff * tau * phi * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
         d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }

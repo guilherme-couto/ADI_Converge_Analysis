@@ -1,24 +1,24 @@
 from functions import *
 
 def main():
-    dts = ['0.00500', '0.01000', '0.02000', '0.04000']
+    dts = ['0.00010', '0.00500', '0.01000', '0.02000', '0.04000'] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
+    # dts = ['0.00050', '0.00080', '0.00100', '0.00160']
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
-    # dx = '0.00500'
-    dx = '0.01000'
-    dts = ['0.00010']
+    dx = '0.00050'
+    dts = ['0.02000']
     methods = ['theta-ADI']
     thetas = ['0.50']
 
     real_type = 'double'
-    serial_or_gpu = 'GPU'
+    serial_or_gpu = 'SERIAL'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'initial_conditions' # 'spiral', 'initial_conditions', 'restore_and_shift'
+    init = 'restore_and_shift' # 'spiral', 'initial_conditions', 'restore_and_shift'
     frames = True
-    save_last_state = True
+    save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -w '

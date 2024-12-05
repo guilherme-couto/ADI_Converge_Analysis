@@ -4,12 +4,13 @@ from functions import *
 
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
-    dts = ['0.00500', '0.01000', '0.02000', '0.04000']
-    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
+    dts = ['0.00500', '0.01000', '0.02000', '0.04000'] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
+    # dts = ['0.00050', '0.00080', '0.00100', '0.00160']
+    methods = ['theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
-    serial_or_gpu = 'GPU'
+    serial_or_gpu = 'SERIAL'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     
@@ -22,7 +23,7 @@ def main():
     
     # Read reference solution
     reference_dt = '0.00010'
-    reference_dx = '0.00500'
+    reference_dx = '0.00050'
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
     
     if not os.path.exists(reference_solution_path):

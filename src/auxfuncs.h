@@ -151,7 +151,31 @@ void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real ini
         Var[i] = initValue;
     }
     free(temp);
-    printf("Variable %s shifted to the left by %f cm\n", varName, length);
+    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
+}
+
+void shift2DVariableToLeft(real **Var, int N, real length, real delta_x, real initValue, char *varName)
+{
+    real *temp = (real *)malloc(N * sizeof(real));
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            temp[j] = Var[i][j];
+        }
+
+        int lengthIndex = round(length / delta_x) + 1;
+        for (int j = 0; j < N - lengthIndex; j++)
+        {
+            Var[i][j] = temp[j + lengthIndex];
+        }
+        for (int j = N - lengthIndex; j < N; j++)
+        {
+            Var[i][j] = initValue;
+        }
+    }
+    free(temp);
+    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
 real calculateNorm2Error(real **V, real **exact, int N, real totalTime, real delta_x)
@@ -197,62 +221,6 @@ void copyVectorToColumn(real **V, real *d, int N, int column_id)
     for (int i = 0; i < N; i++)
     {
         V[i][column_id] = d[i];
-    }
-}
-
-void prepareRHS_explicit_y(real **V, real **RHS, real **Rv, int N, real phi, real delta_t, real time, real delta_x)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            // Explicit diffusion in y
-            real diffusion = 0.0f;
-            if (i > 0 && i < N - 1)
-                diffusion = (V[i + 1][j] - 2.0f * V[i][j] + V[i - 1][j]);
-            else if (i == 0)
-                diffusion = (2.0 * V[i + 1][j] - 2.0f * V[i][j]);
-            else if (i == N - 1)
-                diffusion = (2.0f * V[i - 1][j] - 2.0f * V[i][j]);
-
-            real x = j * delta_x;
-            real y = i * delta_x;
-
-#ifdef LINMONO
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5f * delta_t * Rv[i][j]) + (0.5f * delta_t * forcingTerm(x, y, time) / (chi * Cm));
-#endif // LINMONO
-#ifdef DIFF
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5f * delta_t * forcingTerm(x, y, time));
-#endif // DIFF
-        }
-    }
-}
-
-void prepareRHS_explicit_x(real **V, real **RHS, real **Rv, int N, real phi, real delta_t, real time, real delta_x)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            // Explicit diffusion in x
-            real diffusion = 0.0f;
-            if (j > 0 && j < N - 1)
-                diffusion = (V[i][j + 1] - 2.0f * V[i][j] + V[i][j - 1]);
-            else if (j == 0)
-                diffusion = (2.0f * V[i][j + 1] - 2.0f * V[i][j]);
-            else if (j == N - 1)
-                diffusion = (2.0f * V[i][j - 1] - 2.0f * V[i][j]);
-
-            real x = j * delta_x;
-            real y = i * delta_x;
-
-#ifdef LINMONO
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5f * delta_t * Rv[i][j]) + (0.5f * delta_t * forcingTerm(x, y, time) / (chi * Cm));
-#endif // LINMONO
-#ifdef DIFF
-            RHS[i][j] = V[i][j] + (phi * diffusion) + (0.5f * delta_t * forcingTerm(x, y, time));
-#endif // DIFF
-        }
     }
 }
 
@@ -415,7 +383,7 @@ void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real ini
         }
     }
     free(temp);
-    printf("Variable %s shifted to the left by %f cm\n", varName, length);
+    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
 void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
