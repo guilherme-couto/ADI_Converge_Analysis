@@ -40,13 +40,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real **W = (real **)malloc(N * sizeof(real *));
 #endif // AFHN
 #ifdef TT2
-    real **X_r1, **X_r2, **X_s, **m, **h, **j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
+    real **X_r1, **X_r2, **X_s, **m, **h, **_j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
     X_r1 = (real **)malloc(N * sizeof(real *));
     X_r2 = (real **)malloc(N * sizeof(real *));
     X_s = (real **)malloc(N * sizeof(real *));
     m = (real **)malloc(N * sizeof(real *));
     h = (real **)malloc(N * sizeof(real *));
-    j = (real **)malloc(N * sizeof(real *));
+    _j = (real **)malloc(N * sizeof(real *));
     d = (real **)malloc(N * sizeof(real *));
     f = (real **)malloc(N * sizeof(real *));
     f2 = (real **)malloc(N * sizeof(real *));
@@ -66,13 +66,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     real *W = (real *)malloc(N * sizeof(real));
 #endif // AFHN
 #ifdef TT2
-    real *X_r1, *X_r2, *X_s, *m, *h, *j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
+    real *X_r1, *X_r2, *X_s, *m, *h, *_j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
     X_r1 = (real *)malloc(N * sizeof(real));
     X_r2 = (real *)malloc(N * sizeof(real));
     X_s = (real *)malloc(N * sizeof(real));
     m = (real *)malloc(N * sizeof(real));
     h = (real *)malloc(N * sizeof(real));
-    j = (real *)malloc(N * sizeof(real));
+    _j = (real *)malloc(N * sizeof(real));
     d = (real *)malloc(N * sizeof(real));
     f = (real *)malloc(N * sizeof(real));
     f2 = (real *)malloc(N * sizeof(real));
@@ -105,7 +105,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         X_s[i] = (real *)malloc(N * sizeof(real));
         m[i] = (real *)malloc(N * sizeof(real));
         h[i] = (real *)malloc(N * sizeof(real));
-        j[i] = (real *)malloc(N * sizeof(real));
+        _j[i] = (real *)malloc(N * sizeof(real));
         d[i] = (real *)malloc(N * sizeof(real));
         f[i] = (real *)malloc(N * sizeof(real));
         f2[i] = (real *)malloc(N * sizeof(real));
@@ -137,6 +137,26 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifdef AFHN
     initialize2DVariableWithValue(W, N, W_init);
 #endif // AFHN
+#ifdef TT2
+    initialize2DVariableWithValue(X_r1, N, X_r1_init);
+    initialize2DVariableWithValue(X_r2, N, X_r2_init);
+    initialize2DVariableWithValue(X_s, N, X_s_init);
+    initialize2DVariableWithValue(m, N, m_init);
+    initialize2DVariableWithValue(h, N, h_init);
+    initialize2DVariableWithValue(_j, N, j_init);
+    initialize2DVariableWithValue(d, N, d_init);
+    initialize2DVariableWithValue(f, N, f_init);
+    initialize2DVariableWithValue(f2, N, f2_init);
+    initialize2DVariableWithValue(fCaSS, N, fCaSS_init);
+    initialize2DVariableWithValue(s, N, s_init);
+    initialize2DVariableWithValue(r, N, r_init);
+    initialize2DVariableWithValue(Ca_i, N, Ca_i_init);
+    initialize2DVariableWithValue(Ca_SR, N, Ca_SR_init);
+    initialize2DVariableWithValue(Ca_SS, N, Ca_SS_init);
+    initialize2DVariableWithValue(R_prime, N, R_prime_init);
+    initialize2DVariableWithValue(Na_i, N, Na_i_init);
+    initialize2DVariableWithValue(K_i, N, K_i_init);
+#endif // TT2
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
@@ -148,7 +168,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     initialize1DVariableWithValue(X_s, N, X_s_init);
     initialize1DVariableWithValue(m, N, m_init);
     initialize1DVariableWithValue(h, N, h_init);
-    initialize1DVariableWithValue(j, N, j_init);
+    initialize1DVariableWithValue(_j, N, j_init);
     initialize1DVariableWithValue(d, N, d_init);
     initialize1DVariableWithValue(f, N, f_init);
     initialize1DVariableWithValue(f2, N, f2_init);
@@ -202,7 +222,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize1DVariableFromFile(h, N, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(j, N, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
+    initialize1DVariableFromFile(_j, N, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
     initialize1DVariableFromFile(d, N, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
@@ -252,7 +272,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     shift1DVariableToLeft(X_s, N, lengthToShift, delta_x, X_s_init, "X_s");
     shift1DVariableToLeft(m, N, lengthToShift, delta_x, m_init, "m");
     shift1DVariableToLeft(h, N, lengthToShift, delta_x, h_init, "h");
-    shift1DVariableToLeft(j, N, lengthToShift, delta_x, j_init, "j");
+    shift1DVariableToLeft(_j, N, lengthToShift, delta_x, j_init, "j");
     shift1DVariableToLeft(d, N, lengthToShift, delta_x, d_init, "d");
     shift1DVariableToLeft(f, N, lengthToShift, delta_x, f_init, "f");
     shift1DVariableToLeft(f2, N, lengthToShift, delta_x, f2_init, "f2");
@@ -289,11 +309,11 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // not TT2
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f*phi*diff_coeff);
     }
     else if (strstr(method, "theta") != NULL)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
+        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta*phi*diff_coeff);
     }
 
 #ifndef CONVERGENCE_ANALYSIS
@@ -462,7 +482,336 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                     W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde);
 #endif // AFHN
 #ifdef TT2
-                    // TODO
+                    real actualV = V[i][j];
+                    real actualX_r1 = X_r1[i][j];
+                    real actualX_r2 = X_r2[i][j];
+                    real actualX_s = X_s[i][j];
+                    real actualm = m[i][j];
+                    real actualh = h[i][j];
+                    real actualj = _j[i][j];
+                    real actuald = d[i][j];
+                    real actualf = f[i][j];
+                    real actualf2 = f2[i][j];
+                    real actualfCaSS = fCaSS[i][j];
+                    real actuals = s[i][j];
+                    real actualr = r[i][j];
+                    real actualCa_i = Ca_i[i][j];
+                    real actualCa_SR = Ca_SR[i][j];
+                    real actualCa_SS = Ca_SS[i][j];
+                    real actualR_prime = R_prime[i][j];
+                    real actualNa_i = Na_i[i][j];
+                    real actualK_i = K_i[i][j];
+
+                    diff_term = diff_coeff * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * actualV + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+
+                    // Auxiliary variables for the calculation of the RHS of the ODEs
+                    real VmENa = actualV - (RTONF * log(Na_o / actualNa_i));
+                    real E_K = (RTONF * log(K_o / actualK_i));
+                    real VmEK = actualV - E_K;
+                    real alpha_K1 = 0.1f / (1.0f + exp(0.06f * (actualV - E_K - 200.0f)));
+                    real beta_K1 = (3.0f * exp(0.0002f * (actualV - E_K + 100.0f)) + exp(0.1f * (actualV - E_K - 10.0f))) / (1.0f + exp(-0.5f * (actualV - E_K)));
+                    real E_Ks = (RTONF * log((K_o + p_KNa * Na_o) / (actualK_i + p_KNa * actualNa_i)));
+                    real E_Ca = 0.5f * RTONF * log(Ca_o / actualCa_i);
+
+                    // Currents
+                    real INa = G_Na * (actualm * actualm * actualm) * actualh * actualj * VmENa;
+                    real IbNa = G_bNa * VmENa;
+                    real IK1 = G_K1 * (alpha_K1 / (alpha_K1 + beta_K1)) * VmEK;
+                    real Ito = G_to * actualr * actuals * VmEK;
+                    real IKr = G_Kr * sqrt(K_o / 5.4f) * actualX_r1 * actualX_r2 * VmEK;
+                    real IKs = G_Ks * actualX_s * actualX_s * (actualV - E_Ks);
+                    real ICaL; // !!!
+                    (actualV < 15.0f - 1.0e-5f)
+                        ? (ICaL = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 4.0f * (actualV - 15.0f) * (F * F) * (0.25f * actualCa_SS * exp(2.0f * (actualV - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualV - 15.0f) * FONRT) - 1.0f)))
+                        : (ICaL = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 2.0f * F * (0.25f * actualCa_SS - Ca_o));
+                    real INaK = ((((p_KNa * K_o) / (K_o + K_mK)) * actualNa_i) / (actualNa_i + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualV * FONRT))) + (0.0353f * exp(((-actualV) * FONRT))));
+                    real INaCa; // !!!
+                    INaCa = (k_NaCa * ((exp((gamma_I_NaCa * actualV * FONRT)) * (actualNa_i * actualNa_i * actualNa_i) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualV * FONRT)) * (Na_o * Na_o * Na_o) * actualCa_i * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualV * FONRT)))));
+                    real IpCa = (G_pCa * actualCa_i) / (K_pCa + actualCa_i);
+                    real IpK = (G_pK * VmEK) / (1.0f + exp((25.0f - actualV) / 5.98f));
+                    real IbCa = G_bCa * (actualV - E_Ca);
+
+                    // RHS_V at actual time
+                    real RHS_V_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
+
+                    // Stimulation
+                    real stim = 0.0f;
+                    for (int si = 0; si < numberOfStimuli; si++)
+                    {
+                        if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                        {
+                            stim = stimuli[si].strength;
+                            break;
+                        }
+                    }
+
+                    // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+                    real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
+
+                    // Preparing part of the RHS of the following linear systems
+                    // Calculate approximation for state variables
+                    // Rush-Larsen method - auxiliary variables
+                    real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualV) / 7.0f));
+                    real alpha_X_r1 = 450.0f / (1.0f + exp((-45.0f - actualV) / 10.0f));
+                    real beta_X_r1 = 6.0f / (1.0f + exp((30.0f + actualV) / 11.5f));
+
+                    real X_r2_inf = 1.0f / (1.0f + exp((actualV + 88.0f) / 24.0f));
+                    real alpha_X_r2 = 3.0f / (1.0f + exp((-60.0f - actualV) / 20.0f));
+                    real beta_X_r2 = 1.12f / (1.0f + exp((actualV - 60.0f) / 20.0f));
+
+                    real X_s_inf = 1.0f / (1.0f + exp((-5.0f - actualV) / 14.0f));
+                    real alpha_X_s = 1400.0f / sqrt(1.0f + exp((5.0f - actualV) / 6.0f));
+                    real beta_X_s = 1.0f / (1.0f + exp((-35.0f + actualV) / 15.0f));
+
+                    real m_inf = 1.0f / ((1.0f + exp((-56.86 - actualV) / 9.03f)) * (1.0f + exp((-56.86f - actualV) / 9.03f)));
+                    real alpha_m = 1.0f / (1.0f + exp((-60.0f - actualV) / 5.0f));
+                    real beta_m = 0.1f / (1.0f + exp((actualV + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualV - 50.0f) / 200.0f)));
+
+                    real h_inf = 1.0f / ((1.0f + exp((actualV + 71.55f) / 7.43f)) * (1.0f + exp((actualV + 71.55f) / 7.43f)));
+                    real alpha_h;
+                    (actualV < -40.0f)
+                        ? (alpha_h = 0.057f * exp(-(actualV + 80.0f) / 6.8f))
+                        : (alpha_h = 0.0f);
+                    real beta_h;
+                    (actualV < -40.0f)
+                        ? (beta_h = 2.7f * exp(0.079f * actualV) + 3.1f * 1.0e5f * exp(0.3485f * actualV))
+                        : (beta_h = 0.77f / (0.13f * (1.0f + exp((actualV + 10.66f) / -11.1f))));
+
+                    real j_inf = 1.0f / ((1.0f + exp((actualV + 71.55f) / 7.43f)) * (1.0f + exp((actualV + 71.55f) / 7.43f)));
+                    real alpha_j;
+                    (actualV < -40.0f)
+                        ? (alpha_j = ((-25428.0f * exp(0.2444f * actualV) - (6.948e-6f * exp((-0.04391f) * actualV))) * (actualV + 37.78f)) / (1.0f + exp(0.311f * (actualV + 79.23f))))
+                        : (alpha_j = 0.0f);
+                    real beta_j;
+                    (actualV < -40.0f)
+                        ? (beta_j = (0.02424f * exp(-0.01052f * actualV)) / (1.0f + exp(-0.1378f * (actualV + 40.14f))))
+                        : (beta_j = (0.6f * exp(0.057f * actualV)) / (1.0f + exp(-0.1f * (actualV + 32.0f))));
+
+                    real inf = 1.0f / (1.0f + exp((-8.0f - actualV) / 7.5f));
+                    real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualV) / 13.0f)) + 0.25f;
+                    real beta_d = 1.4f / (1.0f + exp((actualV + 5.0f) / 5.0f));
+                    real gamma_d = 1.0f / (1.0f + exp((50.0f - actualV) / 20.0f));
+
+                    real f_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 7.0f));
+                    real alpha_f = 1102.5f * exp(-(actualV + 27.0f) * (actualV + 27.0f) / 225.0f);
+                    real beta_f = 200.0f / (1.0f + exp((13.0f - actualV) / 10.0f));
+                    real gamma_f = 180.0f / (1.0f + exp((actualV + 30.0f) / 10.0f)) + 20.0f;
+
+                    real f2_inf = 0.67f / (1.0f + exp((actualV + 35.0f) / 7.0f)) + 0.33f;
+                    real alpha_f2; // !!!
+                    alpha_f2 = 562.0f * exp(-(actualV + 27.0f) * (actualV + 27.0f) / 240.0f);
+                    real beta_f2 = 31.0f / (1.0f + exp((25.0f - actualV) / 10.0f));
+                    real gamma_f2; // !!!
+                    gamma_f2 = 80.0f / (1.0f + exp((30.0f + actualV) / 10.0f));
+
+                    real fCaSS_inf = 0.6f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 0.4f;
+                    real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
+
+            #if defined(EPI) || defined(MCELL)
+                    real s_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 5.0f));
+                    real tau_s = 85.0f * exp(-(actualV + 45.0f) * (actualV + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualV - 20.0f) / 5.0f)) + 3.0f;
+            #endif // EPI || MCELL
+            #ifdef ENDO
+                    real s_inf = 1.0f / (1.0f + exp((actualV + 28.0f) / 5.0f));
+                    real tau_s = 1000.0f * exp(-(actualV + 67.0f) * (actualV + 67.0f) / 1000.0f) + 8.0f;
+            #endif // ENDO
+
+                    real r_inf = 1.0f / (1.0f + exp((20.0f - actualV) / 6.0f));
+                    real tau_r = 9.5f * exp(-(actualV + 40.0f) * (actualV + 40.0f) / 1800.0f) + 0.8f;
+
+                    // Explicit method - auxiliary variables
+                    real Ileak = V_leak * (actualCa_SR - actualCa_i);
+                    real Iup = V_maxup / (1.0f + (K_up * K_up) / (actualCa_i * actualCa_i));
+                    real k_CaSR = max_SR - (max_SR - min_SR) / (1.0f + (EC / actualCa_SR) * (EC / actualCa_SR));
+                    real k1 = k1_prime / k_CaSR;
+                    real k2 = k2_prime * k_CaSR;
+                    real O = k1 * actualCa_SS * actualCa_SS * actualR_prime / (k3 + k1 * actualCa_SS * actualCa_SS);
+                    real Irel = V_rel * O * (actualCa_SR - actualCa_SS);
+                    real Ixfer = V_xfer * (actualCa_SS - actualCa_i);
+                    real Ca_i_bufC; // !!!
+                    Ca_i_bufC = 1.0f / (1.0f + bufC * K_bufC / ((K_bufC + actualCa_i) * (K_bufC + actualCa_i)));
+                    real Ca_SR_bufSR; // !!!
+                    Ca_SR_bufSR = 1.0f / (1.0f + bufSR * K_bufSR / ((K_bufSR + actualCa_SR) * (K_bufSR + actualCa_SR)));
+                    real Ca_SS_bufSS; // !!!
+                    Ca_SS_bufSS = 1.0f / (1.0f + bufSS * K_bufSS / ((K_bufSS + actualCa_SS) * (K_bufSS + actualCa_SS)));
+
+                    // Explicit method - RHS of the state variables
+                    real RHS_R_prime_term = (k4 * (1.0f - actualR_prime)) - k2 * actualCa_SS * actualR_prime;
+                    real RHS_Ca_i_term = Ca_i_bufC * ((((Ileak - Iup) * V_SR / V_C) + Ixfer) - (((IbCa + IpCa) - 2.0f * INaCa) * Cm / (2.0f * V_C * F)));
+                    real RHS_Ca_SR_term = Ca_SR_bufSR * (Iup - Ileak - Irel);
+                    real RHS_Ca_SS_term = Ca_SS_bufSS * (((-ICaL * Cm / (2.0 * V_SS * F)) + (Irel * V_SR / V_SS)) - (Ixfer * V_C / V_SS));
+                    real RHS_Na_i_term = -((INa + IbNa + 3.0f * INaK + 3.0f * INaCa) * Cm / (V_C * F));
+                    real RHS_K_i_term = -((IK1 + Ito + IKr + IKs - 2.0f * INaK + IpK + stim) * Cm / (V_C * F));
+
+                    // Rush-Larsen method - update approximations
+                    real X_r1tilde = X_r1_inf - (X_r1_inf - actualX_r1) * exp(-(0.5f * delta_t) / (alpha_X_r1 * beta_X_r1));
+                    real X_r2tilde = X_r2_inf - (X_r2_inf - actualX_r2) * exp(-(0.5f * delta_t) / (alpha_X_r2 * beta_X_r2));
+                    real X_stilde = X_s_inf - (X_s_inf - actualX_s) * exp(-(0.5f * delta_t) / (alpha_X_s * beta_X_s + 80.0f));
+                    real mtilde = m_inf - (m_inf - actualm) * exp(-(0.5f * delta_t) / (alpha_m * beta_m));
+                    real htilde = h_inf - (h_inf - actualh) * exp(-(0.5f * delta_t) * (alpha_h + beta_h));
+                    real jtilde = j_inf - (j_inf - actualj) * exp(-(0.5f * delta_t) * (alpha_j + beta_j));
+                    real dtilde = inf - (inf - actuald) * exp(-(0.5f * delta_t) / (alpha_d * beta_d + gamma_d));
+                    real ftilde = f_inf - (f_inf - actualf) * exp(-(0.5f * delta_t) / (alpha_f + beta_f + gamma_f));
+                    real f2tilde = f2_inf - (f2_inf - actualf2) * exp(-(0.5f * delta_t) / (alpha_f2 + beta_f2 + gamma_f2));
+                    real fCaSStilde = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-(0.5f * delta_t) / tau_fCaSS);
+                    real stilde = s_inf - (s_inf - actuals) * exp(-(0.5f * delta_t) / tau_s);
+                    real rtilde = r_inf - (r_inf - actualr) * exp(-(0.5f * delta_t) / tau_r);
+
+                    // Explicit method - update approximations
+                    real R_primetilde = actualR_prime + (0.5f * delta_t * RHS_R_prime_term);
+                    real Ca_itilde = actualCa_i + (0.5f * delta_t * RHS_Ca_i_term);
+                    real Ca_SRtilde = actualCa_SR + (0.5f * delta_t * RHS_Ca_SR_term);
+                    real Ca_SStilde = actualCa_SS + (0.5f * delta_t * RHS_Ca_SS_term);
+                    real Na_itilde = actualNa_i + (0.5f * delta_t * RHS_Na_i_term);
+                    real K_itilde = actualK_i + (0.5f * delta_t * RHS_K_i_term);
+
+                    // Auxiliary variables with actualVtilde
+                    real VmENatilde = actualVtilde - (RTONF * log(Na_o / Na_itilde));
+                    real E_Ktilde = (RTONF * log(K_o / K_itilde));
+                    real VmEKtilde = actualVtilde - E_Ktilde;
+                    real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (actualVtilde - E_Ktilde - 200.0f)));
+                    real beta_K1tilde = (3.0f * exp(0.0002f * (actualVtilde - E_Ktilde + 100.0f)) + exp(0.1f * (actualVtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (actualVtilde - E_Ktilde)));
+                    real E_Kstilde = (RTONF * log((K_o + p_KNa * Na_o) / (K_itilde + p_KNa * Na_itilde)));
+                    real E_Catilde = 0.5f * RTONF * log(Ca_o / Ca_itilde);
+
+                    // Currents with actualVtilde
+                    real INatilde = G_Na * (mtilde * mtilde * mtilde) * htilde * jtilde * VmENatilde;
+                    real IbNatilde = G_bNa * VmENatilde;
+                    real IK1tilde = G_K1 * (alpha_K1tilde / (alpha_K1tilde + beta_K1tilde)) * VmEKtilde;
+                    real Itotilde = G_to * rtilde * stilde * VmEKtilde;
+                    real IKrtilde = G_Kr * sqrt(K_o / 5.4f) * X_r1tilde * X_r2tilde * VmEKtilde;
+                    real IKstilde = G_Ks * X_stilde * X_stilde * (actualVtilde - E_Kstilde);
+                    real ICaLtilde; // !!!
+                    (actualVtilde < 15.0f - 1.0e-5f)
+                        ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (actualVtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (actualVtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualVtilde - 15.0f) * FONRT) - 1.0f)))
+                        : (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 2.0f * F * (0.25f * Ca_SStilde - Ca_o));
+                    real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualVtilde * FONRT))) + (0.0353f * exp(((-actualVtilde) * FONRT))));
+                    real INaCatilde; // !!!
+                    INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * actualVtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualVtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualVtilde * FONRT)))));
+                    real IpCatilde = (G_pCa * Ca_itilde) / (K_pCa + Ca_itilde);
+                    real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - actualVtilde) / 5.98f));
+                    real IbCatilde = G_bCa * (actualVtilde - E_Catilde);
+
+                    // RHS of the main equation with actualVtilde
+                    real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
+                    partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
+
+                    // Update state variables
+                    // RHS of the state variables with tilde approximations
+                    // Rush-Larsen method - auxiliary variables
+                    real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - actualVtilde) / 7.0f));
+                    real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - actualVtilde) / 10.0f));
+                    real beta_X_r1tilde = 6.0f / (1.0f + exp((30.0f + actualVtilde) / 11.5f));
+
+                    real X_r2_inftilde = 1.0f / (1.0f + exp((actualVtilde + 88.0f) / 24.0f));
+                    real alpha_X_r2tilde = 3.0f / (1.0f + exp((-60.0f - actualVtilde) / 20.0f));
+                    real beta_X_r2tilde = 1.12f / (1.0f + exp((actualVtilde - 60.0f) / 20.0f));
+
+                    real X_s_inftilde = 1.0f / (1.0f + exp((-5.0f - actualVtilde) / 14.0f));
+                    real alpha_X_stilde = 1400.0f / sqrt(1.0f + exp((5.0f - actualVtilde) / 6.0f));
+                    real beta_X_stilde = 1.0f / (1.0f + exp((-35.0f + actualVtilde) / 15.0f));
+
+                    real m_inftilde = 1.0f / ((1.0f + exp((-56.86 - actualVtilde) / 9.03f)) * (1.0f + exp((-56.86f - actualVtilde) / 9.03f)));
+                    real alpha_mtilde = 1.0f / (1.0f + exp((-60.0f - actualVtilde) / 5.0f));
+                    real beta_mtilde = 0.1f / (1.0f + exp((actualVtilde + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVtilde - 50.0f) / 200.0f)));
+
+                    real h_inftilde = 1.0f / ((1.0f + exp((actualVtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVtilde + 71.55f) / 7.43f)));
+                    real alpha_htilde;
+                    (actualVtilde < -40.0f)
+                        ? (alpha_htilde = 0.057f * exp(-(actualVtilde + 80.0f) / 6.8f))
+                        : (alpha_htilde = 0.0f);
+                    real beta_htilde;
+                    (actualVtilde < -40.0f)
+                        ? (beta_htilde = 2.7f * exp(0.079f * actualVtilde) + 3.1f * 1.0e5f * exp(0.3485f * actualVtilde))
+                        : (beta_htilde = 0.77f / (0.13f * (1.0f + exp((actualVtilde + 10.66f) / -11.1f))));
+
+                    real j_inftilde = 1.0f / ((1.0f + exp((actualVtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVtilde + 71.55f) / 7.43f)));
+                    real alpha_jtilde;
+                    (actualVtilde < -40.0f)
+                        ? (alpha_jtilde = ((-25428.0f * exp(0.2444f * actualVtilde) - (6.948e-6f * exp((-0.04391f) * actualVtilde))) * (actualVtilde + 37.78f)) / (1.0f + exp(0.311f * (actualVtilde + 79.23f))))
+                        : (alpha_jtilde = 0.0f);
+                    real beta_jtilde;
+                    (actualVtilde < -40.0f)
+                        ? (beta_jtilde = (0.02424f * exp(-0.01052f * actualVtilde)) / (1.0f + exp(-0.1378f * (actualVtilde + 40.14f))))
+                        : (beta_jtilde = (0.6f * exp(0.057f * actualVtilde)) / (1.0f + exp(-0.1f * (actualVtilde + 32.0f))));
+
+                    real d_inftilde = 1.0f / (1.0f + exp((-8.0f - actualVtilde) / 7.5f));
+                    real alpha_dtilde = 1.4f / (1.0f + exp((-35.0f - actualVtilde) / 13.0f)) + 0.25f;
+                    real beta_dtilde = 1.4f / (1.0f + exp((actualVtilde + 5.0f) / 5.0f));
+                    real gamma_dtilde = 1.0f / (1.0f + exp((50.0f - actualVtilde) / 20.0f));
+
+                    real f_inftilde = 1.0f / (1.0f + exp((actualVtilde + 20.0f) / 7.0f));
+                    real alpha_ftilde = 1102.5f * exp(-(actualVtilde + 27.0f) * (actualVtilde + 27.0f) / 225.0f);
+                    real beta_ftilde = 200.0f / (1.0f + exp((13.0f - actualVtilde) / 10.0f));
+                    real gamma_ftilde = 180.0f / (1.0f + exp((actualVtilde + 30.0f) / 10.0f)) + 20.0f;
+
+                    real f2_inftilde = 0.67f / (1.0f + exp((actualVtilde + 35.0f) / 7.0f)) + 0.33f;
+                    real alpha_f2tilde; // !!!
+                    alpha_f2tilde = 562.0f * exp(-(actualVtilde + 27.0f) * (actualVtilde + 27.0f) / 240.0f);
+                    real beta_f2tilde = 31.0f / (1.0f + exp((25.0f - actualVtilde) / 10.0f));
+                    real gamma_f2tilde; // !!!
+                    gamma_f2tilde = 80.0f / (1.0f + exp((30.0f + actualVtilde) / 10.0f));
+
+                    real fCaSS_inftilde = 0.6f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 0.4f;
+                    real tau_fCaSStilde = 80.0f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 2.0f;
+
+            #if defined(EPI) || defined(MCELL)
+                    real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 20.0f) / 5.0f));
+                    real tau_stilde = 85.0f * exp(-(actualVtilde + 45.0f) * (actualVtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVtilde - 20.0f) / 5.0f)) + 3.0f;
+            #endif // EPI || MCELL
+            #ifdef ENDO
+                    real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 28.0f) / 5.0f));
+                    real tau_stilde = 1000.0f * exp(-(actualVtilde + 67.0f) * (actualVtilde + 67.0f) / 1000.0f) + 8.0f;
+            #endif // ENDO
+
+                    real r_inftilde = 1.0f / (1.0f + exp((20.0f - actualVtilde) / 6.0f));
+                    real tau_rtilde = 9.5f * exp(-(actualVtilde + 40.0f) * (actualVtilde + 40.0f) / 1800.0f) + 0.8f;
+
+                    // Explicit method - auxiliary variables
+                    real Ileaktilde = V_leak * (Ca_SRtilde - Ca_itilde);
+                    real Iuptilde = V_maxup / (1.0f + (K_up * K_up) / (Ca_itilde * Ca_itilde));
+                    real k_CaSRtilde = max_SR - (max_SR - min_SR) / (1.0f + (EC / Ca_SRtilde) * (EC / Ca_SRtilde));
+                    real k1tilde = k1_prime / k_CaSRtilde;
+                    real k2tilde = k2_prime * k_CaSRtilde;
+                    real Otilde = k1tilde * Ca_SStilde * Ca_SStilde * R_primetilde / (k3 + k1tilde * Ca_SStilde * Ca_SStilde);
+                    real Ireltilde = V_rel * Otilde * (Ca_SRtilde - Ca_SStilde);
+                    real Ixfertilde = V_xfer * (Ca_SStilde - Ca_itilde);
+                    real Ca_i_bufCtilde; // !!!
+                    Ca_i_bufCtilde = 1.0f / (1.0f + bufC * K_bufC / ((K_bufC + Ca_itilde) * (K_bufC + Ca_itilde)));
+                    real Ca_SR_bufSRtilde; // !!!
+                    Ca_SR_bufSRtilde = 1.0f / (1.0f + bufSR * K_bufSR / ((K_bufSR + Ca_SRtilde) * (K_bufSR + Ca_SRtilde)));
+                    real Ca_SS_bufSStilde; // !!!
+                    Ca_SS_bufSStilde = 1.0f / (1.0f + bufSS * K_bufSS / ((K_bufSS + Ca_SStilde) * (K_bufSS + Ca_SStilde)));
+
+                    // Explicit method - RHS of the state variables
+                    real RHS_R_primetilde_term = (k4 * (1.0f - R_primetilde)) - k2tilde * Ca_SStilde * R_primetilde;
+                    real RHS_Ca_itilde_term = Ca_i_bufCtilde * ((((Ileaktilde - Iuptilde) * V_SR / V_C) + Ixfertilde) - (((IbCatilde + IpCatilde) - 2.0f * INaCatilde) * Cm / (2.0f * V_C * F)));
+                    real RHS_Ca_SRtilde_term = Ca_SR_bufSRtilde * (Iuptilde - Ileaktilde - Ireltilde);
+                    real RHS_Ca_SStilde_term = Ca_SS_bufSStilde * (((-ICaLtilde * Cm / (2.0 * V_SS * F)) + (Ireltilde * V_SR / V_SS)) - (Ixfertilde * V_C / V_SS));
+                    real RHS_Na_itilde_term = -((INatilde + IbNatilde + 3.0f * INaKtilde + 3.0f * INaCatilde) * Cm / (V_C * F));
+                    real RHS_K_itilde_term = -((IK1tilde + Itotilde + IKrtilde + IKstilde - 2.0f * INaKtilde + IpKtilde + stim) * Cm / (V_C * F));
+
+                    // Rush-Larsen method - update approximations
+                    X_r1[i][j] = X_r1_inftilde - (X_r1_inftilde - actualX_r1) * exp(-delta_t / (alpha_X_r1tilde * beta_X_r1tilde));
+                    X_r2[i][j] = X_r2_inftilde - (X_r2_inftilde - actualX_r2) * exp(-delta_t / (alpha_X_r2tilde * beta_X_r2tilde));
+                    X_s[i][j] = X_s_inftilde - (X_s_inftilde - actualX_s) * exp(-delta_t / (alpha_X_stilde * beta_X_stilde + 80.0f));
+                    m[i][j] = m_inftilde - (m_inftilde - actualm) * exp(-delta_t / (alpha_mtilde * beta_mtilde));
+                    h[i][j] = h_inftilde - (h_inftilde - actualh) * exp(-delta_t * (alpha_htilde + beta_htilde));
+                    _j[i][j] = j_inftilde - (j_inftilde - actualj) * exp(-delta_t * (alpha_jtilde + beta_jtilde));
+                    d[i][j] = d_inftilde - (d_inftilde - actuald) * exp(-delta_t / (alpha_dtilde * beta_dtilde + gamma_dtilde));
+                    f[i][j] = f_inftilde - (f_inftilde - actualf) * exp(-delta_t / (alpha_ftilde + beta_ftilde + gamma_ftilde));
+                    f2[i][j] = f2_inftilde - (f2_inftilde - actualf2) * exp(-delta_t / (alpha_f2tilde + beta_f2tilde + gamma_f2tilde));
+                    fCaSS[i][j] = fCaSS_inftilde - (fCaSS_inftilde - actualfCaSS) * exp(-delta_t / tau_fCaSStilde);
+                    s[i][j] = s_inftilde - (s_inftilde - actuals) * exp(-delta_t / tau_stilde);
+                    r[i][j] = r_inftilde - (r_inftilde - actualr) * exp(-delta_t / tau_rtilde);
+
+                    // Explicit method - update approximations
+                    R_prime[i][j] = actualR_prime + (delta_t * RHS_R_primetilde_term);
+                    Ca_i[i][j] = actualCa_i + (delta_t * RHS_Ca_itilde_term);
+                    Ca_SR[i][j] = actualCa_SR + (delta_t * RHS_Ca_SRtilde_term);
+                    Ca_SS[i][j] = actualCa_SS + (delta_t * RHS_Ca_SStilde_term);
+                    Na_i[i][j] = actualNa_i + (delta_t * RHS_Na_itilde_term);
+                    K_i[i][j] = actualK_i + (delta_t * RHS_K_itilde_term);
 #endif // TT2
 #endif // MONODOMAIN
                 }
@@ -624,7 +973,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 real actualX_s = X_s[i];
                 real actualm = m[i];
                 real actualh = h[i];
-                real actualj = j[i];
+                real actualj = _j[i];
                 real actuald = d[i];
                 real actualf = f[i];
                 real actualf2 = f2[i];
@@ -930,7 +1279,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                 X_s[i] = X_s_inftilde - (X_s_inftilde - actualX_s) * exp(-delta_t / (alpha_X_stilde * beta_X_stilde + 80.0f));
                 m[i] = m_inftilde - (m_inftilde - actualm) * exp(-delta_t / (alpha_mtilde * beta_mtilde));
                 h[i] = h_inftilde - (h_inftilde - actualh) * exp(-delta_t * (alpha_htilde + beta_htilde));
-                j[i] = j_inftilde - (j_inftilde - actualj) * exp(-delta_t * (alpha_jtilde + beta_jtilde));
+                _j[i] = j_inftilde - (j_inftilde - actualj) * exp(-delta_t * (alpha_jtilde + beta_jtilde));
                 d[i] = d_inftilde - (d_inftilde - actuald) * exp(-delta_t / (alpha_dtilde * beta_dtilde + gamma_dtilde));
                 f[i] = f_inftilde - (f_inftilde - actualf) * exp(-delta_t / (alpha_ftilde + beta_ftilde + gamma_ftilde));
                 f2[i] = f2_inftilde - (f2_inftilde - actualf2) * exp(-delta_t / (alpha_f2tilde + beta_f2tilde + gamma_f2tilde));
@@ -1150,6 +1499,27 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             fprintf(fpLastV, "%e ", V[i][j]);
             fprintf(fpLastW, "%e ", W[i][j]);
             #endif // AFHN
+            #ifdef TT2
+            fprintf(fpLastV, "%e ", V[i][j]);
+            fprintf(fpLastX_r1, "%e ", X_r1[i][j]);
+            fprintf(fpLastX_r2, "%e ", X_r2[i][j]);
+            fprintf(fpLastX_s, "%e ", X_s[i][j]);
+            fprintf(fpLastm, "%e ", m[i][j]);
+            fprintf(fpLasth, "%e ", h[i][j]);
+            fprintf(fpLastj, "%e ", _j[i][j]);
+            fprintf(fpLastd, "%e ", d[i][j]);
+            fprintf(fpLastf, "%e ", f[i][j]);
+            fprintf(fpLastf2, "%e ", f2[i][j]);
+            fprintf(fpLastfCaSS, "%e ", fCaSS[i][j]);
+            fprintf(fpLasts, "%e ", s[i][j]);
+            fprintf(fpLastr, "%e ", r[i][j]);
+            fprintf(fpLastR_prime, "%e ", R_prime[i][j]);
+            fprintf(fpLastCa_i, "%e ", Ca_i[i][j]);
+            fprintf(fpLastCa_SR, "%e ", Ca_SR[i][j]);
+            fprintf(fpLastCa_SS, "%e ", Ca_SS[i][j]);
+            fprintf(fpLastNa_i, "%e ", Na_i[i][j]);
+            fprintf(fpLastK_i, "%e ", K_i[i][j]);
+            #endif // TT2
             #endif // SAVE_LAST_STATE
 #ifdef CONVERGENCE_ANALYSIS
             fprintf(fpExact, "%e ", exact[i][j]);
@@ -1162,13 +1532,34 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         fprintf(fpLastV, "\n");
         fprintf(fpLastW, "\n");
         #endif // AFHN
+        #ifdef TT2
+        fprintf(fpLastV, "\n");
+        fprintf(fpLastX_r1, "\n");
+        fprintf(fpLastX_r2, "\n");
+        fprintf(fpLastX_s, "\n");
+        fprintf(fpLastm, "\n");
+        fprintf(fpLasth, "\n");
+        fprintf(fpLastj, "\n");
+        fprintf(fpLastd, "\n");
+        fprintf(fpLastf, "\n");
+        fprintf(fpLastf2, "\n");
+        fprintf(fpLastfCaSS, "\n");
+        fprintf(fpLasts, "\n");
+        fprintf(fpLastr, "\n");
+        fprintf(fpLastR_prime, "\n");
+        fprintf(fpLastCa_i, "\n");
+        fprintf(fpLastCa_SR, "\n");
+        fprintf(fpLastCa_SS, "\n");
+        fprintf(fpLastNa_i, "\n");
+        fprintf(fpLastK_i, "\n");
+        #endif // TT2
         #endif // SAVE_LAST_STATE
 #ifdef CONVERGENCE_ANALYSIS
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
 #endif // CONVERGENCE_ANALYSIS
     }
-#else // if CABLEEQ
+#else // else of if not CABLEEQ
     for (int i = 0; i < N; i++)
     {
         fprintf(fpLast, "%e ", V[i]);
@@ -1184,7 +1575,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
         fprintf(fpLastX_s, "%e ", X_s[i]);
         fprintf(fpLastm, "%e ", m[i]);
         fprintf(fpLasth, "%e ", h[i]);
-        fprintf(fpLastj, "%e ", j[i]);
+        fprintf(fpLastj, "%e ", _j[i]);
         fprintf(fpLastd, "%e ", d[i]);
         fprintf(fpLastf, "%e ", f[i]);
         fprintf(fpLastf2, "%e ", f2[i]);
@@ -1254,6 +1645,26 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifdef AFHN
         free(W[i]);
 #endif // AFHN
+#ifdef TT2
+        free(X_r1[i]);
+        free(X_r2[i]);
+        free(X_s[i]);
+        free(m[i]);
+        free(h[i]);
+        free(_j[i]);
+        free(d[i]);
+        free(f[i]);
+        free(f2[i]);
+        free(fCaSS[i]);
+        free(s[i]);
+        free(r[i]);
+        free(R_prime[i]);
+        free(Ca_i[i]);
+        free(Ca_SR[i]);
+        free(Ca_SS[i]);
+        free(Na_i[i]);
+        free(K_i[i]);
+#endif // TT2
 #endif // MONODOMAIN
     }
 #endif // not CABLEEQ
@@ -1287,7 +1698,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     free(X_s);
     free(m);
     free(h);
-    free(j);
+    free(_j);
     free(d);
     free(f);
     free(f2);

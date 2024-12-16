@@ -5,7 +5,8 @@
 
 #ifdef SAVE_FRAMES
 // Save frames parameters
-const int frameSaveRate = 20000;
+const int frameSaveRate = 20000; // for dt = 0.0001 (saves each 2 ms)
+// const int frameSaveRate = 100; // for dt = 0.01 (saves each 1 ms)
 #endif // SAVE_FRAMES
 
 #ifndef  CONVERGENCE_ANALYSIS
@@ -14,7 +15,7 @@ const __constant__ int L = 5;     // Length of each side (cm)
 const real totalTime = 50.0f; // Total time (ms)
 #else
 const __constant__ int L = 1;     // Length of each side (cm), antes 2 cm
-const real totalTime = 6.0f; // Total time (ms)
+const real totalTime = 10.0f; // Total time (ms)
 #endif // CABLEEQ
 #else
 const __constant__ int L = 1;     // Length of each side (cm)

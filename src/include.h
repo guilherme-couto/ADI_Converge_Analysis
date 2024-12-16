@@ -16,6 +16,10 @@
 #define BDIMY 16
 #define BLOCK_SIZE 32
 
+// #define SERIAL
+// #define MONODOMAIN
+// #define TT2
+
 // Define real type via compile command line (-D{OPTION}, USE_const real or USE_FLOAT)
 #ifdef USE_DOUBLE
 typedef double real;
@@ -150,8 +154,10 @@ const real vp = 1.0f;   // mV
 #elif defined(AFHN)
 // Model parameters - Based on Gerardo_Giorda 2007
 const real sigma = 1.2e-3f; // omega^-1 * cm^-1
-const real chi = 1.0e3f;    // cm^-1
-const real Cm = 1.0e-3f;    // mF * cm^-2
+// const real chi = 1.0e3f;    // cm^-1
+// const real Cm = 1.0e-3f;    // mF * cm^-2
+const real chi = 1.0f;    // cm^-1
+const real Cm = 1.0f;    // mF * cm^-2
 
 const real G = 1.5f;      // omega^-1 * cm^-2
 const real eta1 = 4.4f;   // omega^-1 * cm^-1
