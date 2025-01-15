@@ -8,15 +8,15 @@
 #endif
 
 #ifdef SERIAL
-void initialize2DVariableWithExactSolution(real **Var, int N, real delta_x)
+void initialize2DVariableWithExactSolution(real **Var, int Nx, int Ny, real delta_x, real delta_y)
 {
     real x, y;
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < Ny; ++i)
     {
-        for (int j = 0; j < N; ++j)
+        for (int j = 0; j < Nx; ++j)
         {
-            x = i * delta_x;
-            y = j * delta_x;
+            y = i * delta_y;
+            x = j * delta_x;
             Var[i][j] = exactSolution(0.0f, x, y);
         }
     }
@@ -30,11 +30,11 @@ void initialize1DVariableWithValue(real *Var, int N, real value)
     }   
 }
 
-void initialize2DVariableWithValue(real **Var, int N, real value)
+void initialize2DVariableWithValue(real **Var, int Nx, int Ny, real value)
 {
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < Ny; ++i)
     {
-        for (int j = 0; j < N; ++j)
+        for (int j = 0; j < Nx; ++j)
         {
             Var[i][j] = value;
         }
@@ -46,34 +46,30 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file %s\n", filename);
+        ERRORMSG("Error opening file %s\n", filename);
         exit(1);
     }
 
-    int baseN = round(L / reference_dx) + 1;
+    int baseN = round(Lx / reference_dx) + 1;
     int rate = round(delta_x / reference_dx);
 
     int sizeFile = 0;
     int sizeVar = 0;
     real value;
 
-    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+    INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
 
     for (int i = 0; i < baseN; ++i)
     {
-// Read value from file to variable
-// If i and j are multiples of rate, read value to Var
-#ifdef USE_FLOAT
-        fscanf(file, "%e", &value);
-#else
-        fscanf(file, "%le", &value);
-#endif
+        // Read value from file to variable
+        // If i is multiple of rate, read value to Var
+        fscanf(file, FSCANF_REAL, &value);
         if (i % rate == 0)
         {
             Var[int(i / rate)] = value;
             if (isnan(value))
             {
-                printf("At var index [%d], file index %d, value is NaN\n", int(i / rate), i);
+                ERRORMSG("At var index [%d], file index %d, value is NaN\n", int(i / rate), i);
                 exit(1);
             }
             sizeVar++;
@@ -83,44 +79,41 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
     }
     fclose(file);
 
-    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+    SUCCESSMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
-void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_x, char *varName, real reference_dx)
+void initialize2DVariableFromFile(real **Var, int Nx, int Ny, char *filename, real delta_x, real delta_y, char *varName, real reference_dx, real reference_dy)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file %s\n", filename);
+        ERRORMSG("Error opening file %s\n", filename);
         exit(1);
     }
 
-    int baseN = round(L / reference_dx) + 1;
-    int rate = round(delta_x / reference_dx);
+    int baseNx = round(Lx / reference_dx) + 1;
+    int baseNy = round(Ly / reference_dy) + 1;
+    int rate_x = round(delta_x / reference_dx);
+    int rate_y = round(delta_y / reference_dy);
 
     int sizeFile = 0;
     int sizeVar = 0;
     real value;
 
-    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
-
-    for (int i = 0; i < baseN; ++i)
+    INFOMSG("Reading file %s to initialize variable with a rate in x of %d and rate in y of %d\n", filename, rate_x, rate_y);
+    for (int i = 0; i < baseNy; ++i)
     {
-        for (int j = 0; j < baseN; ++j)
+        for (int j = 0; j < baseNx; ++j)
         {
-// Read value from file to variable
-// If i and j are multiples of rate, read value to Var
-#ifdef USE_FLOAT
-            fscanf(file, "%e", &value);
-#else
-            fscanf(file, "%le", &value);
-#endif
-            if (i % rate == 0 && j % rate == 0)
+            // Read value from file to variable
+            // If i and j are multiples of rate, read value to Var
+            fscanf(file, FSCANF_REAL, &value);
+            if (i % rate_y == 0 && j % rate_x == 0)
             {
-                Var[int(i / rate)][int(j / rate)] = value;
+                Var[int(i / rate_y)][int(j / rate_x)] = value;
                 if (isnan(value))
                 {
-                    printf("At var index [%d][%d], file index %d, value is NaN\n", int(i / rate), int(j / rate), i * baseN + j);
+                    ERRORMSG("At var index [%d][%d], file index %d, value is NaN\n", int(i / rate_y), int(j / rate_x), i * baseNx + j);
                     exit(1);
                 }
                 sizeVar++;
@@ -129,8 +122,7 @@ void initialize2DVariableFromFile(real **Var, int N, char *filename, real delta_
         }
     }
     fclose(file);
-
-    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+    INFOMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
 void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
@@ -151,57 +143,57 @@ void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real ini
         Var[i] = initValue;
     }
     free(temp);
-    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
+    SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
-void shift2DVariableToLeft(real **Var, int N, real length, real delta_x, real initValue, char *varName)
+void shift2DVariableToLeft(real **Var, int Nx, int Ny, real length, real delta_x, real delta_y, real initValue, char *varName)
 {
-    real *temp = (real *)malloc(N * sizeof(real));
-    for (int i = 0; i < N; i++)
+    real *temp = (real *)malloc(Nx * sizeof(real));
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             temp[j] = Var[i][j];
         }
 
         int lengthIndex = round(length / delta_x) + 1;
-        for (int j = 0; j < N - lengthIndex; j++)
+        for (int j = 0; j < Nx - lengthIndex; j++)
         {
             Var[i][j] = temp[j + lengthIndex];
         }
-        for (int j = N - lengthIndex; j < N; j++)
+        for (int j = Nx - lengthIndex; j < Nx; j++)
         {
             Var[i][j] = initValue;
         }
     }
     free(temp);
-    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
+    SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
-real calculateNorm2Error(real **V, real **exact, int N, real totalTime, real delta_x)
+real calculateNorm2Error(real **V, real **exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y)
 {
     real x, y;
     real solution;
     real sum = 0.0;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             x = j * delta_x;
-            y = i * delta_x;
+            y = i * delta_y;
             solution = exactSolution(totalTime, x, y);
             exact[i][j] = solution;
             sum += ((V[i][j] - solution) * (V[i][j] - solution));
         }
     }
-    return delta_x * sqrt(sum);
+    return sqrt(sum / (Nx * Ny));
 }
 
-void copyMatrices(real **in, real **out, int N)
+void copyMatrices(real **in, real **out, int Nx, int Ny)
 {
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             out[i][j] = in[i][j];
         }
@@ -272,12 +264,12 @@ void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, 
 }
 
 #ifndef CABLEEQ
-void saveFrame(FILE *file, real actualTime, real **V, int N)
+void saveFrame(FILE *file, real actualTime, real **V, int Nx, int Ny)
 {
     fprintf(file, "%lf\n", actualTime);
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             fprintf(file, "%e ", V[i][j]);
         }
@@ -316,7 +308,7 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
     FILE *file = fopen(filename, "r");
     if (file == NULL)
     {
-        printf("Error opening file %s\n", filename);
+        ERRORMSG("Error opening file %s\n", filename);
         exit(1);
     }
 
@@ -327,25 +319,21 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
     int sizeVar = 0;
     real value;
 
-    printf("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+    INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
 
     for (int i = 0; i < baseN; ++i)
     {
         for (int j = 0; j < baseN; ++j)
         {
-// Read value from file to variable
-// If i and j are multiples of rate, read value to Var
-#ifdef USE_FLOAT
-            fscanf(file, "%e", &value);
-#else
-            fscanf(file, "%le", &value);
-#endif
+            // Read value from file to variable
+            // If i and j are multiples of rate, read value to Var
+            fscanf(file, FSCANF_REAL, &value);
             if (i % rate == 0 && j % rate == 0)
             {
                 Var[sizeVar] = value;
                 if (isnan(value))
                 {
-                    printf("At var index %d, file index %d, value is NaN\n", sizeVar, i * baseN + j);
+                    ERRORMSG("At var index %d, file index %d, value is NaN\n", sizeVar, i * baseN + j);
                     exit(1);
                 }
                 sizeVar++;
@@ -355,7 +343,7 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
     }
     fclose(file);
 
-    printf("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+    SUCCESSMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
 void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
@@ -383,7 +371,7 @@ void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real ini
         }
     }
     free(temp);
-    printf("Variable %s shifted to the left by %.2f cm\n", varName, length);
+    SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
 void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
@@ -489,11 +477,15 @@ void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real p
     lc[N - 1] = 0.0f;
 }
 
-void createDirectories(char *method, real theta, char *pathToSaveData)
+void createDirectories(char *method, real delta_t, real delta_x, real delta_y, real theta, char *pathToSaveData)
 {
     // Build the path
     char path[MAX_STRING_SIZE];
-    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/outputs/%s/%s/%s/%s/%s", EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+    #ifndef CABLEEQ
+    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+    #else
+    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+    #endif // not CABLEEQ
 
     // Add theta to the path
     if (strstr(method, "theta") != NULL)
@@ -503,27 +495,6 @@ void createDirectories(char *method, real theta, char *pathToSaveData)
         strcat(path, "/");
         strcat(path, thetaPath);
     }
-
-    // Make directories
-    char command[MAX_STRING_SIZE];
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/frames", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/infos", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/lastframe", path);
-    system(command);
-#ifdef CONVERGENCE_ANALYSIS
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/exact", path);
-    system(command);
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/errors", path);
-    system(command);
-#endif // CONVERGENCE_ANALYSIS
-#ifdef CABLEEQ
-    snprintf(command, MAX_STRING_SIZE * sizeof(char), "mkdir -p %s/AP", path);
-    system(command);
-#endif // CABLEEQ
 
     // Update pathToSaveData
     strcpy(pathToSaveData, path);
@@ -550,7 +521,7 @@ int lim(int num, int N)
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS
-void populateStimuli(Stimulus *stimuli, real delta_x)
+void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 {
     for (int i = 0; i < numberOfStimuli; i++)
     {
@@ -561,8 +532,8 @@ void populateStimuli(Stimulus *stimuli, real delta_x)
         // Discretized limits of stimulation areas
         stimuli[i].xMaxDisc = round(stimulixMax[i] / delta_x);
         stimuli[i].xMinDisc = round(stimulixMin[i] / delta_x);
-        stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_x);
-        stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_x);
+        stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_y);
+        stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_y);
 
         #if defined(INIT_WITH_SPIRAL) || defined(RESTORE_STATE_AND_SHIFT)
         stimuli[i].strength = 0.0f;

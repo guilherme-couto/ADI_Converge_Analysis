@@ -5,20 +5,22 @@
 
 #ifdef SAVE_FRAMES
 // Save frames parameters
-const int frameSaveRate = 20000;
+const int frameSaveRate = 20;
 #endif // SAVE_FRAMES
 
 #ifndef  CONVERGENCE_ANALYSIS
 #ifdef CABLEEQ
-const __constant__ int L = 5;     // Length of each side (cm)
 const real totalTime = 50.0f; // Total time (ms)
+const __constant__ int Lx = 5;     // Length in x (cm)
 #else
-const __constant__ int L = 1;     // Length of each side (cm), antes 2 cm
-const real totalTime = 6.0f; // Total time (ms)
+const real totalTime = 10.0f; // Total time (ms)
+const __constant__ int Lx = 1;     // Length in x (cm)
+const __constant__ int Ly = 1;     // Length in y (cm)
 #endif // CABLEEQ
 #else
-const __constant__ int L = 1;     // Length of each side (cm)
 const real totalTime = 0.1f; // Total time (ms)
+const __constant__ int Lx = 1;     // Length in x (cm)
+const __constant__ int Ly = 1;     // Length in y (cm)
 #endif // not CONVERGENCE_ANALYSIS
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)

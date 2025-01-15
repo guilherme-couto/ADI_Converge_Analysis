@@ -10,6 +10,19 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+// ANSI color codes
+#define RESET   "\033[0m"
+#define BLUE    "\033[34m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define RED     "\033[31m"
+
+// Macros for printing messages
+#define INFOMSG(msg, ...)    printf(BLUE "[i] " RESET msg, ##__VA_ARGS__)
+#define SUCCESSMSG(msg, ...) printf(GREEN "[+] " RESET msg, ##__VA_ARGS__)
+#define WARNINGMSG(msg, ...) printf(YELLOW "[!] " RESET msg, ##__VA_ARGS__)
+#define ERRORMSG(msg, ...)   printf(RED "[x] " RESET msg, ##__VA_ARGS__)
+
 #define MAX_STRING_SIZE 200
 
 #define BDIMX 16
@@ -20,16 +33,22 @@
 #ifdef USE_DOUBLE
 typedef double real;
 #define REAL_TYPE "double"
+#define STRTOREAL strtod
+#define FSCANF_REAL "%le"
 #else
 typedef float real;
 #define REAL_TYPE "float"
+#define STRTOREAL strtof
+#define FSCANF_REAL "%e"
 #endif
 
 #ifdef SERIAL
 #define EXECUTION_TYPE "SERIAL"
+#define RUNSIMULATION runSimulationSerial
 #endif // SERIAL
 #ifdef GPU
 #define EXECUTION_TYPE "GPU"
+#define RUNSIMULATION runSimulationGPU
 #endif // GPU
 
 // Define cell model via compile command line (-D{OPTION}, AFHN, TT2 or MV)

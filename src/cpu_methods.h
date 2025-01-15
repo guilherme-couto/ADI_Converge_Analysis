@@ -3,285 +3,297 @@
 
 #include "auxfuncs.h"
 
-void runSimulation(char *method, real delta_t, real delta_x, real theta)
+void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y, real theta)
 {
     // Number of steps
-    int N = round(L / delta_x) + 1;     // Spatial steps (square tissue)
     int M = round(totalTime / delta_t); // Number of time steps
-
+    int Nx = round(Lx / delta_x) + 1;     // Spatial steps in x
+#ifndef CABLEEQ
+    int Ny = round(Ly / delta_y) + 1;     // Spatial steps in y
+#endif // not CABLEEQ
+    
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
 #ifndef CABLEEQ
     // Allocate 2D arrays for variables
     real **V, **Vtilde, **RHS, **partRHS, **exact;
-    V = (real **)malloc(N * sizeof(real *));
-    Vtilde = (real **)malloc(N * sizeof(real *));
-    RHS = (real **)malloc(N * sizeof(real *));
-    partRHS = (real **)malloc(N * sizeof(real *));
-    exact = (real **)malloc(N * sizeof(real *));
+    V = (real **)malloc(Nx * sizeof(real *));
+    Vtilde = (real **)malloc(Nx * sizeof(real *));
+    RHS = (real **)malloc(Nx * sizeof(real *));
+    partRHS = (real **)malloc(Nx * sizeof(real *));
+    exact = (real **)malloc(Nx * sizeof(real *));
 #else // if def CABLEEQ
     // Allocate 1D arrays for variables
     real *V, *Vtilde, *RHS, *partRHS, *exact, *AP;
-    V = (real *)malloc(N * sizeof(real));
-    Vtilde = (real *)malloc(N * sizeof(real));
-    RHS = (real *)malloc(N * sizeof(real));
-    partRHS = (real *)malloc(N * sizeof(real));
-    exact = (real *)malloc(N * sizeof(real));
+    V = (real *)malloc(Nx * sizeof(real));
+    Vtilde = (real *)malloc(Nx * sizeof(real));
+    RHS = (real *)malloc(Nx * sizeof(real));
+    partRHS = (real *)malloc(Nx * sizeof(real));
+    exact = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 #endif // not CABLEEQ
     // Aux variables for the Linear System resolution (Thomas)
-    real *c_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
-    real *d_prime = (real *)malloc(N * sizeof(real)); // aux for Thomas
-    real *LS_b = (real *)malloc(N * sizeof(real));
-    real *result = (real *)malloc(N * sizeof(real));
+    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *d_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *LS_b_x = (real *)malloc(Nx * sizeof(real));
+    real *result_x = (real *)malloc(Nx * sizeof(real));
+#ifndef CABLEEQ
+    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *d_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *LS_b_y = (real *)malloc(Ny * sizeof(real));
+    real *result_y = (real *)malloc(Ny * sizeof(real));
+#endif // not CABLEEQ
 #ifdef MONODOMAIN
 #ifdef AFHN
-    real **W = (real **)malloc(N * sizeof(real *));
+    real **W = (real **)malloc(Nx * sizeof(real *));
 #endif // AFHN
 #ifdef TT2
     real **X_r1, **X_r2, **X_s, **m, **h, **j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
-    X_r1 = (real **)malloc(N * sizeof(real *));
-    X_r2 = (real **)malloc(N * sizeof(real *));
-    X_s = (real **)malloc(N * sizeof(real *));
-    m = (real **)malloc(N * sizeof(real *));
-    h = (real **)malloc(N * sizeof(real *));
-    j = (real **)malloc(N * sizeof(real *));
-    d = (real **)malloc(N * sizeof(real *));
-    f = (real **)malloc(N * sizeof(real *));
-    f2 = (real **)malloc(N * sizeof(real *));
-    fCaSS = (real **)malloc(N * sizeof(real *));
-    s = (real **)malloc(N * sizeof(real *));
-    r = (real **)malloc(N * sizeof(real *));
-    Ca_i = (real **)malloc(N * sizeof(real *));
-    Ca_SR = (real **)malloc(N * sizeof(real *));
-    Ca_SS = (real **)malloc(N * sizeof(real *));
-    R_prime = (real **)malloc(N * sizeof(real *));
-    Na_i = (real **)malloc(N * sizeof(real *));
-    K_i = (real **)malloc(N * sizeof(real *));
+    X_r1 = (real **)malloc(Nx * sizeof(real *));
+    X_r2 = (real **)malloc(Nx * sizeof(real *));
+    X_s = (real **)malloc(Nx * sizeof(real *));
+    m = (real **)malloc(Nx * sizeof(real *));
+    h = (real **)malloc(Nx * sizeof(real *));
+    j = (real **)malloc(Nx * sizeof(real *));
+    d = (real **)malloc(Nx * sizeof(real *));
+    f = (real **)malloc(Nx * sizeof(real *));
+    f2 = (real **)malloc(Nx * sizeof(real *));
+    fCaSS = (real **)malloc(Nx * sizeof(real *));
+    s = (real **)malloc(Nx * sizeof(real *));
+    r = (real **)malloc(Nx * sizeof(real *));
+    Ca_i = (real **)malloc(Nx * sizeof(real *));
+    Ca_SR = (real **)malloc(Nx * sizeof(real *));
+    Ca_SS = (real **)malloc(Nx * sizeof(real *));
+    R_prime = (real **)malloc(Nx * sizeof(real *));
+    Na_i = (real **)malloc(Nx * sizeof(real *));
+    K_i = (real **)malloc(Nx * sizeof(real *));
 #endif // TT2
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
-    real *W = (real *)malloc(N * sizeof(real));
+    real *W = (real *)malloc(Nx * sizeof(real));
 #endif // AFHN
 #ifdef TT2
     real *X_r1, *X_r2, *X_s, *m, *h, *j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
-    X_r1 = (real *)malloc(N * sizeof(real));
-    X_r2 = (real *)malloc(N * sizeof(real));
-    X_s = (real *)malloc(N * sizeof(real));
-    m = (real *)malloc(N * sizeof(real));
-    h = (real *)malloc(N * sizeof(real));
-    j = (real *)malloc(N * sizeof(real));
-    d = (real *)malloc(N * sizeof(real));
-    f = (real *)malloc(N * sizeof(real));
-    f2 = (real *)malloc(N * sizeof(real));
-    fCaSS = (real *)malloc(N * sizeof(real));
-    s = (real *)malloc(N * sizeof(real));
-    r = (real *)malloc(N * sizeof(real));
-    Ca_i = (real *)malloc(N * sizeof(real));
-    Ca_SR = (real *)malloc(N * sizeof(real));
-    Ca_SS = (real *)malloc(N * sizeof(real));
-    R_prime = (real *)malloc(N * sizeof(real));
-    Na_i = (real *)malloc(N * sizeof(real));
-    K_i = (real *)malloc(N * sizeof(real));
+    X_r1 = (real *)malloc(Nx * sizeof(real));
+    X_r2 = (real *)malloc(Nx * sizeof(real));
+    X_s = (real *)malloc(Nx * sizeof(real));
+    m = (real *)malloc(Nx * sizeof(real));
+    h = (real *)malloc(Nx * sizeof(real));
+    j = (real *)malloc(Nx * sizeof(real));
+    d = (real *)malloc(Nx * sizeof(real));
+    f = (real *)malloc(Nx * sizeof(real));
+    f2 = (real *)malloc(Nx * sizeof(real));
+    fCaSS = (real *)malloc(Nx * sizeof(real));
+    s = (real *)malloc(Nx * sizeof(real));
+    r = (real *)malloc(Nx * sizeof(real));
+    Ca_i = (real *)malloc(Nx * sizeof(real));
+    Ca_SR = (real *)malloc(Nx * sizeof(real));
+    Ca_SS = (real *)malloc(Nx * sizeof(real));
+    R_prime = (real *)malloc(Nx * sizeof(real));
+    Na_i = (real *)malloc(Nx * sizeof(real));
+    K_i = (real *)malloc(Nx * sizeof(real));
 #endif // TT2
 #endif // CABLEEQ
 #ifndef CABLEEQ
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        V[i] = (real *)malloc(N * sizeof(real));
-        Vtilde[i] = (real *)malloc(N * sizeof(real));
-        RHS[i] = (real *)malloc(N * sizeof(real));
-        partRHS[i] = (real *)malloc(N * sizeof(real));
-        exact[i] = (real *)malloc(N * sizeof(real));
+        V[i] = (real *)malloc(Ny * sizeof(real));
+        Vtilde[i] = (real *)malloc(Ny * sizeof(real));
+        RHS[i] = (real *)malloc(Ny * sizeof(real));
+        partRHS[i] = (real *)malloc(Ny * sizeof(real));
+        exact[i] = (real *)malloc(Ny * sizeof(real));
 #ifdef MONODOMAIN
 #ifdef AFHN
-        W[i] = (real *)malloc(N * sizeof(real));
+        W[i] = (real *)malloc(Ny * sizeof(real));
 #endif // AFHN
 #ifdef TT2
-        X_r1[i] = (real *)malloc(N * sizeof(real));
-        X_r2[i] = (real *)malloc(N * sizeof(real));
-        X_s[i] = (real *)malloc(N * sizeof(real));
-        m[i] = (real *)malloc(N * sizeof(real));
-        h[i] = (real *)malloc(N * sizeof(real));
-        j[i] = (real *)malloc(N * sizeof(real));
-        d[i] = (real *)malloc(N * sizeof(real));
-        f[i] = (real *)malloc(N * sizeof(real));
-        f2[i] = (real *)malloc(N * sizeof(real));
-        fCaSS[i] = (real *)malloc(N * sizeof(real));
-        s[i] = (real *)malloc(N * sizeof(real));
-        r[i] = (real *)malloc(N * sizeof(real));
-        Ca_i[i] = (real *)malloc(N * sizeof(real));
-        Ca_SR[i] = (real *)malloc(N * sizeof(real));
-        Ca_SS[i] = (real *)malloc(N * sizeof(real));
-        R_prime[i] = (real *)malloc(N * sizeof(real));
-        Na_i[i] = (real *)malloc(N * sizeof(real));
-        K_i[i] = (real *)malloc(N * sizeof(real));
+        X_r1[i] = (real *)malloc(Ny * sizeof(real));
+        X_r2[i] = (real *)malloc(Ny * sizeof(real));
+        X_s[i] = (real *)malloc(Ny * sizeof(real));
+        m[i] = (real *)malloc(Ny * sizeof(real));
+        h[i] = (real *)malloc(Ny * sizeof(real));
+        j[i] = (real *)malloc(Ny * sizeof(real));
+        d[i] = (real *)malloc(Ny * sizeof(real));
+        f[i] = (real *)malloc(Ny * sizeof(real));
+        f2[i] = (real *)malloc(Ny * sizeof(real));
+        fCaSS[i] = (real *)malloc(Ny * sizeof(real));
+        s[i] = (real *)malloc(Ny * sizeof(real));
+        r[i] = (real *)malloc(Ny * sizeof(real));
+        Ca_i[i] = (real *)malloc(Ny * sizeof(real));
+        Ca_SR[i] = (real *)malloc(Ny * sizeof(real));
+        Ca_SS[i] = (real *)malloc(Ny * sizeof(real));
+        R_prime[i] = (real *)malloc(Ny * sizeof(real));
+        Na_i[i] = (real *)malloc(Ny * sizeof(real));
+        K_i[i] = (real *)malloc(Ny * sizeof(real));
 #endif // TT2
 #endif // MONODOMAIN
     }
 #endif // not CABLEEQ
 
 #ifdef CONVERGENCE_ANALYSIS
-    initialize2DVariableWithExactSolution(V, N, delta_x);
+    initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
 #else // if not def CONVERGENCE_ANALYSIS
 #ifndef CABLEEQ
-    initialize2DVariableWithValue(V, N, V_init);
+    initialize2DVariableWithValue(V, Nx, Ny, V_init);
 #else // if def CABLEEQ
-    initialize1DVariableWithValue(V, N, V_init);
+    initialize1DVariableWithValue(V, Nx, V_init);
 #endif // not CABLEEQ
 #endif // CONVERGENCE_ANALYSIS
 
 #ifdef MONODOMAIN
 #ifdef AFHN
-    initialize2DVariableWithValue(W, N, W_init);
+    initialize2DVariableWithValue(W, Nx, Ny, W_init);
 #endif // AFHN
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
-    initialize1DVariableWithValue(W, N, W_init);
+    initialize1DVariableWithValue(W, Nx, W_init);
 #endif // AFHN
 #ifdef TT2
-    initialize1DVariableWithValue(X_r1, N, X_r1_init);
-    initialize1DVariableWithValue(X_r2, N, X_r2_init);
-    initialize1DVariableWithValue(X_s, N, X_s_init);
-    initialize1DVariableWithValue(m, N, m_init);
-    initialize1DVariableWithValue(h, N, h_init);
-    initialize1DVariableWithValue(j, N, j_init);
-    initialize1DVariableWithValue(d, N, d_init);
-    initialize1DVariableWithValue(f, N, f_init);
-    initialize1DVariableWithValue(f2, N, f2_init);
-    initialize1DVariableWithValue(fCaSS, N, fCaSS_init);
-    initialize1DVariableWithValue(s, N, s_init);
-    initialize1DVariableWithValue(r, N, r_init);
-    initialize1DVariableWithValue(Ca_i, N, Ca_i_init);
-    initialize1DVariableWithValue(Ca_SR, N, Ca_SR_init);
-    initialize1DVariableWithValue(Ca_SS, N, Ca_SS_init);
-    initialize1DVariableWithValue(R_prime, N, R_prime_init);
-    initialize1DVariableWithValue(Na_i, N, Na_i_init);
-    initialize1DVariableWithValue(K_i, N, K_i_init);
+    initialize1DVariableWithValue(X_r1, Nx, X_r1_init);
+    initialize1DVariableWithValue(X_r2, Nx, X_r2_init);
+    initialize1DVariableWithValue(X_s, Nx, X_s_init);
+    initialize1DVariableWithValue(m, Nx, m_init);
+    initialize1DVariableWithValue(h, Nx, h_init);
+    initialize1DVariableWithValue(j, Nx, j_init);
+    initialize1DVariableWithValue(d, Nx, d_init);
+    initialize1DVariableWithValue(f, Nx, f_init);
+    initialize1DVariableWithValue(f2, Nx, f2_init);
+    initialize1DVariableWithValue(fCaSS, Nx, fCaSS_init);
+    initialize1DVariableWithValue(s, Nx, s_init);
+    initialize1DVariableWithValue(r, Nx, r_init);
+    initialize1DVariableWithValue(Ca_i, Nx, Ca_i_init);
+    initialize1DVariableWithValue(Ca_SR, Nx, Ca_SR_init);
+    initialize1DVariableWithValue(Ca_SS, Nx, Ca_SS_init);
+    initialize1DVariableWithValue(R_prime, Nx, R_prime_init);
+    initialize1DVariableWithValue(Na_i, Nx, Na_i_init);
+    initialize1DVariableWithValue(K_i, Nx, K_i_init);
 #endif // TT2
 #endif // CABLEEQ
 
-#ifdef INIT_WITH_SPIRAL
-    char* reference_dt = "0.00010";
-    char* reference_dx = "0.00050";
-    real real_ref_dx = 0.0005f;
-    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastW_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W", real_ref_dx);
-    free(pathToSpiralFiles);
-#endif // INIT_WITH_SPIRAL
-
-#ifdef RESTORE_STATE_AND_SHIFT
+#ifdef RESTORE_STATE
     // Initialize variables with a solution
-    char* reference_dt = "0.00010";
-    char* reference_dx = "0.00050";
-    real real_ref_dx = 0.0005f;
+    real real_ref_dx = 0.0005;
+    #ifndef CABLEEQ
+    real real_def_dy = 0.0005;
+    #endif // not CABLEEQ
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     #ifdef CABLEEQ
-    initialize1DVariableFromFile(V, N, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
+    initialize1DVariableFromFile(V, Nx, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
     #ifdef AFHN
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(W, N, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(W, Nx, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
     #endif // AFHN
     #ifdef TT2
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r1_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(X_r1, N, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(X_r2, N, pathToRestoreStateFiles, delta_x, "X_r2", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_s_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(X_s, N, pathToRestoreStateFiles, delta_x, "X_s", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastm_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(m, N, pathToRestoreStateFiles, delta_x, "m", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(h, N, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(j, N, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(d, N, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(f, N, pathToRestoreStateFiles, delta_x, "f", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(f2, N, pathToRestoreStateFiles, delta_x, "f2", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastfCaSS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(fCaSS, N, pathToRestoreStateFiles, delta_x, "fCaSS", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasts_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(s, N, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastr_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(r, N, pathToRestoreStateFiles, delta_x, "r", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(Ca_i, N, pathToRestoreStateFiles, delta_x, "Ca_i", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SR_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(Ca_SR, N, pathToRestoreStateFiles, delta_x, "Ca_SR", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(Ca_SS, N, pathToRestoreStateFiles, delta_x, "Ca_SS", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastR_prime_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(R_prime, N, pathToRestoreStateFiles, delta_x, "R_prime", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastNa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(Na_i, N, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize1DVariableFromFile(K_i, N, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(X_r1, Nx, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(X_r2, Nx, pathToRestoreStateFiles, delta_x, "X_r2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(X_s, Nx, pathToRestoreStateFiles, delta_x, "X_s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(m, Nx, pathToRestoreStateFiles, delta_x, "m", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(h, Nx, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(j, Nx, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(d, Nx, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(f, Nx, pathToRestoreStateFiles, delta_x, "f", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(f2, Nx, pathToRestoreStateFiles, delta_x, "f2", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastfCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(fCaSS, Nx, pathToRestoreStateFiles, delta_x, "fCaSS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasts.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(s, Nx, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastr.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(r, Nx, pathToRestoreStateFiles, delta_x, "r", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Ca_i, Nx, pathToRestoreStateFiles, delta_x, "Ca_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Ca_SR, Nx, pathToRestoreStateFiles, delta_x, "Ca_SR", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Ca_SS, Nx, pathToRestoreStateFiles, delta_x, "Ca_SS", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(R_prime, Nx, pathToRestoreStateFiles, delta_x, "R_prime", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Na_i, Nx, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(K_i, Nx, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
     #endif // TT2
     #endif // CABLEEQ
     #ifdef MONODOMAIN
-    initialize2DVariableFromFile(V, N, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
+    initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
     #ifdef AFHN
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(W, N, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
     #endif // AFHN
+    #ifdef TT2
+    // TODO
+    #endif // TT2
     #endif MONODOMAIN
     free(pathToRestoreStateFiles);
+#endif // RESTORE_STATE
 
+#ifdef SHIFT_STATE
     // Shift variables
     real lengthToShift = 0.1f;
 
     #ifdef CABLEEQ
-    shift1DVariableToLeft(V, N, lengthToShift, delta_x, V_init, "V");
+    shift1DVariableToLeft(V, Nx, lengthToShift, delta_x, V_init, "V");
     #ifdef AFHN
-    shift1DVariableToLeft(W, N, lengthToShift, delta_x, W_init, "W");
+    shift1DVariableToLeft(W, Nx, lengthToShift, delta_x, W_init, "W");
     #endif // AFHN
     #ifdef TT2
-    shift1DVariableToLeft(X_r1, N, lengthToShift, delta_x, X_r1_init, "X_r1");
-    shift1DVariableToLeft(X_r2, N, lengthToShift, delta_x, X_r2_init, "X_r2");
-    shift1DVariableToLeft(X_s, N, lengthToShift, delta_x, X_s_init, "X_s");
-    shift1DVariableToLeft(m, N, lengthToShift, delta_x, m_init, "m");
-    shift1DVariableToLeft(h, N, lengthToShift, delta_x, h_init, "h");
-    shift1DVariableToLeft(j, N, lengthToShift, delta_x, j_init, "j");
-    shift1DVariableToLeft(d, N, lengthToShift, delta_x, d_init, "d");
-    shift1DVariableToLeft(f, N, lengthToShift, delta_x, f_init, "f");
-    shift1DVariableToLeft(f2, N, lengthToShift, delta_x, f2_init, "f2");
-    shift1DVariableToLeft(fCaSS, N, lengthToShift, delta_x, fCaSS_init, "fCaSS");
-    shift1DVariableToLeft(s, N, lengthToShift, delta_x, s_init, "s");
-    shift1DVariableToLeft(r, N, lengthToShift, delta_x, r_init, "r");
-    shift1DVariableToLeft(Ca_i, N, lengthToShift, delta_x, Ca_i_init, "Ca_i");
-    shift1DVariableToLeft(Ca_SR, N, lengthToShift, delta_x, Ca_SR_init, "Ca_SR");
-    shift1DVariableToLeft(Ca_SS, N, lengthToShift, delta_x, Ca_SS_init, "Ca_SS");
-    shift1DVariableToLeft(R_prime, N, lengthToShift, delta_x, R_prime_init, "R_prime");
-    shift1DVariableToLeft(Na_i, N, lengthToShift, delta_x, Na_i_init, "Na_i");
-    shift1DVariableToLeft(K_i, N, lengthToShift, delta_x, K_i_init, "K_i");
+    shift1DVariableToLeft(X_r1, Nx, lengthToShift, delta_x, X_r1_init, "X_r1");
+    shift1DVariableToLeft(X_r2, Nx, lengthToShift, delta_x, X_r2_init, "X_r2");
+    shift1DVariableToLeft(X_s, Nx, lengthToShift, delta_x, X_s_init, "X_s");
+    shift1DVariableToLeft(m, Nx, lengthToShift, delta_x, m_init, "m");
+    shift1DVariableToLeft(h, Nx, lengthToShift, delta_x, h_init, "h");
+    shift1DVariableToLeft(j, Nx, lengthToShift, delta_x, j_init, "j");
+    shift1DVariableToLeft(d, Nx, lengthToShift, delta_x, d_init, "d");
+    shift1DVariableToLeft(f, Nx, lengthToShift, delta_x, f_init, "f");
+    shift1DVariableToLeft(f2, Nx, lengthToShift, delta_x, f2_init, "f2");
+    shift1DVariableToLeft(fCaSS, Nx, lengthToShift, delta_x, fCaSS_init, "fCaSS");
+    shift1DVariableToLeft(s, Nx, lengthToShift, delta_x, s_init, "s");
+    shift1DVariableToLeft(r, Nx, lengthToShift, delta_x, r_init, "r");
+    shift1DVariableToLeft(Ca_i, Nx, lengthToShift, delta_x, Ca_i_init, "Ca_i");
+    shift1DVariableToLeft(Ca_SR, Nx, lengthToShift, delta_x, Ca_SR_init, "Ca_SR");
+    shift1DVariableToLeft(Ca_SS, Nx, lengthToShift, delta_x, Ca_SS_init, "Ca_SS");
+    shift1DVariableToLeft(R_prime, Nx, lengthToShift, delta_x, R_prime_init, "R_prime");
+    shift1DVariableToLeft(Na_i, Nx, lengthToShift, delta_x, Na_i_init, "Na_i");
+    shift1DVariableToLeft(K_i, Nx, lengthToShift, delta_x, K_i_init, "K_i");
     #endif // TT2
     #endif // CABLEEQ
     #ifdef MONODOMAIN
-    shift2DVariableToLeft(V, N, lengthToShift, delta_x, V_init, "V");
+    shift2DVariableToLeft(V, Nx, Ny, lengthToShift, delta_x, delta_y, V_init, "V");
     #ifdef AFHN
-    shift2DVariableToLeft(W, N, lengthToShift, delta_x, W_init, "W");
+    shift2DVariableToLeft(W, Nx, Ny, lengthToShift, delta_x, delta_y, W_init, "W");
     #endif // AFHN
+    #ifdef TT2
+    // TODO
+    #endif // TT2
     #endif // MONODOMAIN
-#endif // RESTORE_STATE_AND_SHIFT
+#endif // SHIFT_STATE
 
     // Auxiliary arrays for Thomas algorithm
-    real *la = (real *)malloc(N * sizeof(real)); // subdiagonal
-    real *lb = (real *)malloc(N * sizeof(real)); // diagonal
-    real *lc = (real *)malloc(N * sizeof(real)); // superdiagonal
+    real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
+    real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
+    real *lc_x = (real *)malloc(Nx * sizeof(real)); // superdiagonal
+    #ifndef CABLEEQ
+    real *la_y = (real *)malloc(Ny * sizeof(real)); // subdiagonal
+    real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
+    real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
+    #endif // not CABLEEQ
 
     // Populate auxiliary arrays for Thomas algorithm
-    real phi = delta_t / (delta_x * delta_x);
+    real phi_x = delta_t / (delta_x * delta_x);
+    real phi_y = delta_t / (delta_y * delta_y);
     #ifndef TT2
     real diff_coeff = sigma / (Cm * chi);
     #else
@@ -289,30 +301,36 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     #endif // not TT2
     if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, 0.5f * phi * diff_coeff);
+        populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
+        #ifndef CABLEEQ
+        populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
+        #endif // not CABLEEQ
     }
     else if (strstr(method, "theta") != NULL)
     {
-        populateDiagonalThomasAlgorithm(la, lb, lc, N, theta * phi * diff_coeff);
+        populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, theta * phi_x * diff_coeff);
+        #ifndef CABLEEQ
+        populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, theta * phi_y * diff_coeff);
+        #endif // not CABLEEQ
     }
 
 #ifndef CONVERGENCE_ANALYSIS
 #if defined(MONODOMAIN) || defined(CABLEEQ)
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
-    populateStimuli(stimuli, delta_x);
+    populateStimuli(stimuli, delta_x, delta_y);
 #endif // MONODOMAIN || CABLEEQ
 #endif // not CONVERGENCE_ANALYSIS
 
     // Create directories
     char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    createDirectories(method, theta, pathToSaveData);
+    createDirectories(method, delta_t, delta_x, delta_y, theta, pathToSaveData);
 
 #ifdef SAVE_FRAMES
     // Save frames
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
-    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames/frames_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
     fpFrames = fopen(framesPath, "w");
 #endif // SAVE_FRAMES
 
@@ -342,45 +360,45 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             actualTime = time[timeStepCounter];
 
             // ================================================!
-            //  Calcula V em n + 1/2 -> Resultado vai para RHS !
+            //  Calculate V on n + 1/2 -> Result goes to RHS   !
             // ================================================!
             real x, y;
-            for (int j = 0; j < N; j++)
+            for (int j = 0; j < Nx; j++)
             {
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < Ny; i++)
                 {
                     x = j * delta_x;
-                    y = i * delta_x;
+                    y = i * delta_y;
 #if defined(LINMONO) || defined(DIFF)
-                    LS_b[i] = 0.5f * phi * V[i][lim(j - 1, N)] + (1.0f - 2.0f * 0.5f * phi) * V[i][j] + 0.5f * phi * V[i][lim(j + 1, N)] + 0.5f * delta_t * forcingTerm(x, y, actualTime);
+                    LS_b_y[i] = 0.5f * phi_x * V[i][lim(j - 1, Nx)] + (1.0f - 2.0f * 0.5f * phi_x) * V[i][j] + 0.5f * phi_x * V[i][lim(j + 1, Nx)] + 0.5f * delta_t * forcingTerm(x, y, actualTime);
 #endif // LINMONO || DIFF
                 }
 
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int i = 0; i < N; i++)
+                tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+                for (int i = 0; i < Ny; i++)
                 {
-                    RHS[i][j] = result[i];
+                    RHS[i][j] = result_y[i];
                 }
             }
 
             // ================================================!
-            //  Calcula V em n + 1 -> Resultado vai para V     !
+            //  Calculate V on n + 1 -> Result goes to V       !
             // ================================================!
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < Ny; i++)
             {
-                for (int j = 0; j < N; j++)
+                for (int j = 0; j < Nx; j++)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
 #if defined(LINMONO) || defined(DIFF)
-                    LS_b[j] = 0.5f * phi * RHS[lim(i - 1, N)][j] + (1.0f - 2.0f * 0.5f * phi) * RHS[i][j] + 0.5f * phi * RHS[lim(i + 1, N)][j] + 0.5f * delta_t * forcingTerm(x, y, actualTime + delta_t);
+                    LS_b_x[j] = 0.5f * phi_y * RHS[lim(i - 1, Ny)][j] + (1.0f - 2.0f * 0.5f * phi_y) * RHS[i][j] + 0.5f * phi_y * RHS[lim(i + 1, Ny)][j] + 0.5f * delta_t * forcingTerm(x, y, actualTime + delta_t);
 #endif // LINMONO || DIFF
                 }
 
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int j = 0; j < N; j++)
+                tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+                for (int j = 0; j < Nx; j++)
                 {
-                    V[i][j] = result[j];
+                    V[i][j] = result_x[j];
                 }
             }
 
@@ -402,15 +420,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             real x, y;
             real diff_term = 0.0f;
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < Ny; i++)
             {
-                for (int j = 0; j < N; j++)
+                for (int j = 0; j < Nx; j++)
                 {
                     x = j * delta_x;
                     y = i * delta_x;
 
 #ifdef LINMONO
-                    diff_term = diff_coeff * 0.5f * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * V[i][j] + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+                    diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
                     real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
                     real reac_term = G * V[i][j] / Cm;
                     real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
@@ -424,7 +442,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #ifdef AFHN
                     real actualV = V[i][j];
                     real actualW = W[i][j];
-                    diff_term = diff_coeff * phi * (V[i][lim(j - 1, N)] + V[lim(i - 1, N)][j] - 4.0f * actualV + V[i][lim(j + 1, N)] + V[lim(i + 1, N)][j]);
+                    diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
                     real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
 #ifdef CONVERGENCE_ANALYSIS
                     real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
@@ -471,46 +489,48 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             // ================================================!
-            for (int j = 0; j < N; j++)
+            for (int j = 0; j < Nx; j++)
             {
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < Ny; i++)
                 {
                     real actualV = V[i][j];
                     real tau = 0.5f;
                     if (strcmp(method, "theta-ADI") == 0)
                         tau =  1.0f - theta;
                     
-                    diff_term =  diff_coeff * tau * phi * (V[i][lim(j - 1, N)] - 2.0f * actualV + V[i][lim(j + 1, N)]);
-                    LS_b[i] = actualV + diff_term + 0.5f * partRHS[i][j];
+                    // Calculate the explicit part of the RHS
+                    diff_term =  diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
+                    LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int i = 0; i < N; i++)
+                tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+                for (int i = 0; i < Ny; i++)
                 {
-                    RHS[i][j] = result[i];
+                    RHS[i][j] = result_y[i];
                 }
             }
 
             // ================================================!
             //  Calculate V at n+1 -> Result goes to V         !
             // ================================================!
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < Ny; i++)
             {
-                for (int j = 0; j < N; j++)
+                for (int j = 0; j < Nx; j++)
                 {
                     real actualV = RHS[i][j];
                     real tau = 0.5f;
                     if (strcmp(method, "theta-ADI") == 0)
                         tau =  1.0f - theta;
                     
-                    diff_term =  diff_coeff * tau * phi * (RHS[lim(i - 1, N)][j] - 2.0f * actualV + RHS[lim(i + 1, N)][j]);
-                    LS_b[j] = actualV + diff_term + 0.5f * partRHS[i][j];
+                    // Calculate the explicit part of the RHS
+                    diff_term =  diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
+                    LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 
-                tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-                for (int j = 0; j < N; j++)
+                tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+                for (int j = 0; j < Nx; j++)
                 {
-                    V[i][j] = result[j];
+                    V[i][j] = result_x[j];
                 }
             }
 
@@ -519,15 +539,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                saveFrame(fpFrames, actualTime, V, N);
-                printf("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
+                saveFrame(fpFrames, actualTime, V, Nx, Ny);
+                SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
             }
 #endif // SAVE_FRAMES
 #ifndef CONVERGENCE_ANALYSIS
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
-                real begin = L / 3.0f;
+                real begin = Lx / 3.0f;
                 real end = 2.0f * begin;
 
                 if (!aux_stim_velocity_flag)
@@ -548,7 +568,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                         stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
                         stim_velocity = stim_velocity * 10.0f; // m/s
                         stim_velocity_measured = true;
-                        printf("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
+                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
                     }
                 }
             }
@@ -577,13 +597,13 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             //  Calcula Approx.                                !
             // ================================================!
             real diff_term = 0.0f;
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < Nx; i++)
             {
 #ifdef AFHN
                 real actualV = V[i];
                 real actualW = W[i];
 
-                diff_term = diff_coeff * phi * (V[lim(i - 1, N)] - 2.0f * actualV + V[lim(i + 1, N)]);
+                diff_term = diff_coeff * phi_x * (V[lim(i - 1, Nx)] - 2.0f * actualV + V[lim(i + 1, Nx)]);
                 real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
 
                 // Stimulation
@@ -613,10 +633,10 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // AFHN
 #ifdef TT2
                 real actualV = V[i];
-                real im1V = V[lim(i - 1, N)];
-                real ip1V = V[lim(i + 1, N)];
+                real im1V = V[lim(i - 1, Nx)];
+                real ip1V = V[lim(i + 1, Nx)];
 
-                diff_term = diff_coeff * phi * (im1V - 2.0f * actualV + ip1V);
+                diff_term = diff_coeff * phi_x * (im1V - 2.0f * actualV + ip1V);
 
                 // State variables
                 real actualX_r1 = X_r1[i];
@@ -951,18 +971,18 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             // ================================================!
             //  Calculate V at n + 1 -> Result goes to V       !
             // ================================================!
-            for (int i = 0; i < N; i++)
+            for (int i = 0; i < Nx; i++)
             {
                 real actualV = V[i];
-                diff_term = diff_coeff * phi * (V[lim(i - 1, N)] - 2.0f * actualV + V[lim(i + 1, N)]);
+                diff_term = diff_coeff * phi_x * (V[lim(i - 1, Nx)] - 2.0f * actualV + V[lim(i + 1, Nx)]);
                 
-                LS_b[i] = actualV + (1.0f - theta) * diff_term + partRHS[i];
+                LS_b_x[i] = actualV + (1.0f - theta) * diff_term + partRHS[i];
             }
 
-            tridiag(la, lb, lc, c_prime, d_prime, N, LS_b, result);
-            for (int i = 0; i < N; i++)
+            tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            for (int i = 0; i < Nx; i++)
             {
-                V[i] = result[i];
+                V[i] = result_x[i];
             }
 
 #ifdef SAVE_FRAMES
@@ -970,15 +990,15 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                saveFrame(fpFrames, actualTime, V, N);
-                printf("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
+                saveFrame(fpFrames, actualTime, V, Nx);
+                SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
             }
 #endif // SAVE_FRAMES
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
-                real begin = L / 3.0f;
+                real begin = Lx / 3.0f;
                 real end = 2.0f * begin;
 
                 if (!aux_stim_velocity_flag)
@@ -999,7 +1019,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
                         stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
                         stim_velocity = stim_velocity * 10.0f; // m/s
                         stim_velocity_measured = true;
-                        printf("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
+                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
                     }
                 }
             }
@@ -1016,133 +1036,149 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 
 // Calculate error
 #ifdef CONVERGENCE_ANALYSIS
-    real norm2error = calculateNorm2Error(V, exact, N, totalTime, delta_x);
+    real norm2error = calculateNorm2Error(V, exact, Nx, Ny, totalTime, delta_x, delta_y);
 #endif // CONVERGENCE_ANALYSIS
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos/infos_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos.txt", pathToSaveData);
     FILE *fpInfos = fopen(infosFilePath, "w");
-    printf("Infos saved to %s\n", infosFilePath);
-    fprintf(fpInfos, "Domain Length = %d, Time = %f\n", L, totalTime);
-    #ifndef CABLEEQ
-    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d, N*N = %d\n", delta_x, N, N * N);
-    #else // if not def CABLEEQ
-    fprintf(fpInfos, "Stimulus velocity = %lf m/s\n", stim_velocity);
-    fprintf(fpInfos, "delta_x = %lf, Space steps N = %d\n", delta_x, N);
-    #endif // not CABLEEQ
-    fprintf(fpInfos, "delta_t = %lf, Time steps = %d\n", delta_t, M);
-    fprintf(fpInfos, "Method %s\n", method);
-    fprintf(fpInfos, "\nTotal execution time = %lf\n", elapsedTime);
+    fprintf(fpInfos, "EXECUTION_TYPE = %s\n", EXECUTION_TYPE);
+    fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
+    fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
+    fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
+    fprintf(fpInfos, "METHOD = %s\n", method);
+    if (strcmp(method, "theta-ADI") == 0)
+        fprintf(fpInfos, "theta = %lf\n", theta);
+    fprintf(fpInfos, "\n");
+    #ifdef CABLEEQ
+    fprintf(fpInfos, "CABLE LENGTH = %d cm\n", Lx);
+    #else
+    fprintf(fpInfos, "DOMAIN LENGTH IN X = %d cm\n", Lx);
+    fprintf(fpInfos, "DOMAIN LENGTH IN Y = %d cm\n", Ly);
+    #endif // CABLEEQ
+    fprintf(fpInfos, "TOTAL TIME = %f ms\n", totalTime);
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", delta_t, M);
+    #ifdef CABLEEQ
+    fprintf(fpInfos, "delta_x = %.5g cm (%d space steps)\n", delta_x, Nx);
+    #else
+    fprintf(fpInfos, "delta_x = %.5g cm (%d space steps in x)\n", delta_x, Nx);
+    fprintf(fpInfos, "delta_y = %.5g cm (%d space steps in y)\n", delta_y, Ny);
+    #endif // CABLEEQ
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "STIMULUS VELOCITY = %.lf m/s\n", stim_velocity);
+    fprintf(fpInfos, "\nSIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
 #ifdef CONVERGENCE_ANALYSIS
-    fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
+    fprintf(fpInfos, "\nNORM-2 ERROR = %lf\n", norm2error);
 #endif // CONVERGENCE_ANALYSIS
+    SUCCESSMSG("Infos saved to %s\n", infosFilePath);
     fclose(fpInfos);
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/last_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
-    printf("Last frame saved to %s\n", lastFrameFilePath);
+    SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
     
     #ifdef SAVE_LAST_STATE
     #ifdef AFHN
     char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
 
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastV_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastW_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
 
     FILE *fpLastV = fopen(lastFrameFilePathV, "w");
-    printf("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
-    printf("Last W frame saved to %s\n", lastFrameFilePathW);
+    SUCCESSMSG("Last W frame saved to %s\n", lastFrameFilePathW);
     #endif // AFHN
     #ifdef TT2
     char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE], lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE], lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE], lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE], lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
     
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastV_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_r1_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_r2_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastX_s_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathm, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastm_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathh, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lasth_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathj, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastj_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathd, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastd_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathf, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastf_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathf2, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastf2_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathfCaSS, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastfCaSS_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lasts_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathr, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastr_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathR_prime, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastR_prime_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathCa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathCa_SR, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_SR_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathCa_SS, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastCa_SS_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastNa_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
-    snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframe/lastK_i_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_s.txt", pathToSaveData);
+    snprintf(lastFrameFilePathm, MAX_STRING_SIZE * sizeof(char), "%s/lastframem.txt", pathToSaveData);
+    snprintf(lastFrameFilePathh, MAX_STRING_SIZE * sizeof(char), "%s/lastframeh.txt", pathToSaveData);
+    snprintf(lastFrameFilePathj, MAX_STRING_SIZE * sizeof(char), "%s/lastframej.txt", pathToSaveData);
+    snprintf(lastFrameFilePathd, MAX_STRING_SIZE * sizeof(char), "%s/lastframed.txt", pathToSaveData);
+    snprintf(lastFrameFilePathf, MAX_STRING_SIZE * sizeof(char), "%s/lastframef.txt", pathToSaveData);
+    snprintf(lastFrameFilePathf2, MAX_STRING_SIZE * sizeof(char), "%s/lastframef2.txt", pathToSaveData);
+    snprintf(lastFrameFilePathfCaSS, MAX_STRING_SIZE * sizeof(char), "%s/lastframefCaSS.txt", pathToSaveData);
+    snprintf(lastFrameFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/lastframes.txt", pathToSaveData);
+    snprintf(lastFrameFilePathr, MAX_STRING_SIZE * sizeof(char), "%s/lastframer.txt", pathToSaveData);
+    snprintf(lastFrameFilePathR_prime, MAX_STRING_SIZE * sizeof(char), "%s/lastframeR_prime.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_i.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_SR, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_SR.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_SS, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_SS.txt", pathToSaveData);
+    snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeNa_i.txt", pathToSaveData);
+    snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeK_i.txt", pathToSaveData);
 
     FILE *fpLastV = fopen(lastFrameFilePathV, "w");
-    printf("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
-    printf("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
+    SUCCESSMSG("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
     FILE *fpLastX_r2 = fopen(lastFrameFilePathX_r2, "w");
-    printf("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
+    SUCCESSMSG("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
     FILE *fpLastX_s = fopen(lastFrameFilePathX_s, "w");
-    printf("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
+    SUCCESSMSG("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
     FILE *fpLastm = fopen(lastFrameFilePathm, "w");
-    printf("Last m frame saved to %s\n", lastFrameFilePathm);
+    SUCCESSMSG("Last m frame saved to %s\n", lastFrameFilePathm);
     FILE *fpLasth = fopen(lastFrameFilePathh, "w");
-    printf("Last h frame saved to %s\n", lastFrameFilePathh);
+    SUCCESSMSG("Last h frame saved to %s\n", lastFrameFilePathh);
     FILE *fpLastj = fopen(lastFrameFilePathj, "w");
-    printf("Last j frame saved to %s\n", lastFrameFilePathj);
+    SUCCESSMSG("Last j frame saved to %s\n", lastFrameFilePathj);
     FILE *fpLastd = fopen(lastFrameFilePathd, "w");
-    printf("Last d frame saved to %s\n", lastFrameFilePathd);
+    SUCCESSMSG("Last d frame saved to %s\n", lastFrameFilePathd);
     FILE *fpLastf = fopen(lastFrameFilePathf, "w");
-    printf("Last f frame saved to %s\n", lastFrameFilePathf);
+    SUCCESSMSG("Last f frame saved to %s\n", lastFrameFilePathf);
     FILE *fpLastf2 = fopen(lastFrameFilePathf2, "w");
-    printf("Last f2 frame saved to %s\n", lastFrameFilePathf2);
+    SUCCESSMSG("Last f2 frame saved to %s\n", lastFrameFilePathf2);
     FILE *fpLastfCaSS = fopen(lastFrameFilePathfCaSS, "w");
-    printf("Last fCaSS frame saved to %s\n", lastFrameFilePathfCaSS);
+    SUCCESSMSG("Last fCaSS frame saved to %s\n", lastFrameFilePathfCaSS);
     FILE *fpLasts = fopen(lastFrameFilePaths, "w");
-    printf("Last s frame saved to %s\n", lastFrameFilePaths);
+    SUCCESSMSG("Last s frame saved to %s\n", lastFrameFilePaths);
     FILE *fpLastr = fopen(lastFrameFilePathr, "w");
-    printf("Last r frame saved to %s\n", lastFrameFilePathr);
+    SUCCESSMSG("Last r frame saved to %s\n", lastFrameFilePathr);
     FILE *fpLastR_prime = fopen(lastFrameFilePathR_prime, "w");
-    printf("Last R_prime frame saved to %s\n", lastFrameFilePathR_prime);
+    SUCCESSMSG("Last R_prime frame saved to %s\n", lastFrameFilePathR_prime);
     FILE *fpLastCa_i = fopen(lastFrameFilePathCa_i, "w");
-    printf("Last Ca_i frame saved to %s\n", lastFrameFilePathCa_i);
+    SUCCESSMSG("Last Ca_i frame saved to %s\n", lastFrameFilePathCa_i);
     FILE *fpLastCa_SR = fopen(lastFrameFilePathCa_SR, "w");
-    printf("Last Ca_SR frame saved to %s\n", lastFrameFilePathCa_SR);
+    SUCCESSMSG("Last Ca_SR frame saved to %s\n", lastFrameFilePathCa_SR);
     FILE *fpLastCa_SS = fopen(lastFrameFilePathCa_SS, "w");
-    printf("Last Ca_SS frame saved to %s\n", lastFrameFilePathCa_SS);
+    SUCCESSMSG("Last Ca_SS frame saved to %s\n", lastFrameFilePathCa_SS);
     FILE *fpLastNa_i = fopen(lastFrameFilePathNa_i, "w");
-    printf("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
+    SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
     FILE *fpLastK_i = fopen(lastFrameFilePathK_i, "w");
-    printf("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
+    SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
     #endif // TT2
     #endif // SAVE_LAST_STATE
     
     // Save Action Potential
     #ifdef CABLEEQ
     char APFilePath[MAX_STRING_SIZE];
-    snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP/AP_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP.txt", pathToSaveData);
     FILE *fpAP = fopen(APFilePath, "w");
-    printf("Action Potential saved to %s\n", APFilePath);
+    SUCCESSMSG("Action Potential saved to %s\n", APFilePath);
     #endif // CABLEEQ
 
 #ifdef CONVERGENCE_ANALYSIS
     char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact/exact_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
     FILE *fpExact = fopen(exactFilePath, "w");
-    printf("Exact solution saved to %s\n", exactFilePath);
+    SUCCESSMSG("Exact solution saved to %s\n", exactFilePath);
     char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors/errors_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
+    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
     FILE *fpErrors = fopen(errorsFilePath, "w");
-    printf("Errors saved to %s\n", errorsFilePath);
+    SUCCESSMSG("Errors saved to %s\n", errorsFilePath);
 #endif // CONVERGENCE_ANALYSIS
 #ifndef CABLEEQ
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             fprintf(fpLast, "%e ", V[i][j]);
             #ifdef SAVE_LAST_STATE
@@ -1169,7 +1205,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
 #endif // CONVERGENCE_ANALYSIS
     }
 #else // if CABLEEQ
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Nx; i++)
     {
         fprintf(fpLast, "%e ", V[i]);
         #ifdef SAVE_LAST_STATE
@@ -1243,7 +1279,7 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     free(time);
 
 #ifndef CABLEEQ
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
         free(V[i]);
         free(Vtilde[i]);
@@ -1262,13 +1298,22 @@ void runSimulation(char *method, real delta_t, real delta_x, real theta)
     free(RHS);
     free(partRHS);
     free(exact);
-    free(c_prime);
-    free(d_prime);
-    free(LS_b);
-    free(result);
-    free(la);
-    free(lb);
-    free(lc);
+    free(c_prime_x);
+    free(d_prime_x);
+    free(LS_b_x);
+    free(result_x);
+    free(la_x);
+    free(lb_x);
+    free(lc_x);
+    #ifndef CABLEEQ
+    free(c_prime_y);
+    free(d_prime_y);
+    free(LS_b_y);
+    free(result_y);
+    free(la_y);
+    free(lb_y);
+    free(lc_y);
+    #endif // not CABLEEQ
     free(pathToSaveData);
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS

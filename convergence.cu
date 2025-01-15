@@ -7,21 +7,64 @@
 int main(int argc, char *argv[])
 {
     // Parameters
-    char *method;
-    real delta_t;
-    real delta_x;
-    real theta;
+    char *method = NULL;
+    real delta_t = 0.0;
+    real delta_x = 0.0;
+    real delta_y = 0.0;
+    real theta = 0.0;
 
     // Read parameters
-    if (argc != 5)
+    #ifndef CABLEEQ
+    if (strcmp(argv[1], "theta-ADI") == 0)
     {
-        printf("ERROR: usage is %s {method} {delta_t} {delta_x} {theta}\n", argv[0]);
-        return 1;
+        if (argc != 6)
+        {
+            ERRORMSG("ERROR: usage is %s {method} {delta_t} {delta_x} {delta_y} {theta}\n", argv[0]);
+            return 1;
+        }
+        method = argv[1];
+        delta_t = atof(argv[2]);
+        delta_x = atof(argv[3]);
+        delta_y = atof(argv[4]);
+        theta = atof(argv[5]);
     }
-    method = argv[1];
-    delta_t = atof(argv[2]);
-    delta_x = atof(argv[3]);
-    theta = atof(argv[4]);
+    else
+    {
+        if (argc != 5)
+        {
+            ERRORMSG("ERROR: usage is %s {method} {delta_t} {delta_x} {delta_y}\n", argv[0]);
+            return 1;
+        }
+        method = argv[1];
+        delta_t = atof(argv[2]);
+        delta_x = atof(argv[3]);
+        delta_y = atof(argv[4]);
+    }
+    #else
+    if (strcmp(argv[1], "theta-ADI") == 0)
+    {
+        if (argc != 5)
+        {
+            ERRORMSG("ERROR: usage is %s {method} {delta_t} {delta_x} {theta}\n", argv[0]);
+            return 1;
+        }
+        method = argv[1];
+        delta_t = atof(argv[2]);
+        delta_x = atof(argv[3]);
+        theta = atof(argv[4]);
+    }
+    else
+    {
+        if (argc != 4)
+        {
+            ERRORMSG("ERROR: usage is %s {method} {delta_t} {delta_x}\n", argv[0]);
+            return 1;
+        }
+        method = argv[1];
+        delta_t = atof(argv[2]);
+        delta_x = atof(argv[3]);
+    }
+    #endif // CABLEEQ
 
     // Configuration overview
     printf("CONFIGURATION:\n");
@@ -57,17 +100,15 @@ int main(int argc, char *argv[])
     printf("Method: %s\n", method);
     printf("delta_t: %.5f\n", delta_t);
     printf("delta_x: %.5f\n", delta_x);
+    #ifndef CABLEEQ
+    printf("delta_y: %.5f\n", delta_y);
+    #endif // CABLEEQ
     if (strcmp(method, "theta-ADI") == 0)
         printf("theta: %.2f\n", theta);
     printf("\n");
 
     // Call function
-    #ifdef SERIAL
-    runSimulation(method, delta_t, delta_x, theta);
-    #endif // SERIAL
-    #ifdef GPU
-    runSimulationGPU(method, delta_t, delta_x, theta);
-    #endif // GPU
+    RUNSIMULATION(method, delta_t, delta_x, delta_y, theta);
 
     printf("\nSIMULATION FINISHED!\n");
 

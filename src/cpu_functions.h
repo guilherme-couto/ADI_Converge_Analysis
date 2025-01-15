@@ -26,10 +26,10 @@ real forcingTerm(real x, real y, real t)
 }
 #endif // LINMONO
 
-#if defined(MONODOMAIN) || defined(CABLEEQ)
+#if defined(MONODOMAIN)
 real exactSolution(real t, real x, real y)
 {
-    return (exp(-t)) * cos(_pi*x/L) * cos(_pi*y/L);
+    return (exp(-t)) * cos(_pi*x/Lx) * cos(_pi*y/Ly);
 }
 
 #ifdef AFHN
@@ -47,7 +47,7 @@ real forcingTerm(real x, real y, real t, real W)
 {
     real exactV = exactSolution(t, x, y);
     real reaction = (G*exactV*(1.0f-(exactV/vth)) * (1.0f-(exactV/vp))) + (eta1*exactV*W);
-    return (exactV * (-(chi*Cm) + 2.0f*(sigma/(chi*Cm))*_pi*_pi/(L*L))) + (chi*reaction);
+    return (exactV * (-(chi*Cm) + 2.0f*(sigma/(chi*Cm))*_pi*_pi/(Lx*Ly))) + (chi*reaction);
 }
 #endif // AFHN
 
