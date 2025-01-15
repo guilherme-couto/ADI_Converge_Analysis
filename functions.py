@@ -521,12 +521,12 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                 plt.close()
             
             else:
-                plt.figure(figsize=(6, 6))
+                plt.figure()
                 if cell_model == 'AFHN':
                     plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
                 elif cell_model == 'TT2':
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
-                plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04)
+                plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04, orientation='horizontal')
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 plt.xticks([])
                 plt.yticks([])
@@ -545,6 +545,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
     imageio.v2.mimsave(
         gif_path, 
         images,
+        duration=0.75,
         loop=0  # Set infinite loop
     )
 

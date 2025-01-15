@@ -93,6 +93,14 @@ int main(int argc, char *argv[])
     printf("Problem not yet implemented\n");
     return 1;
     #endif
+
+    #ifdef CABLEEQ
+    printf("Cable lenght = %.4g cm\n", Lx);
+    #else
+    printf("Domain length in x = %.4g cm\n", Lx);
+    printf("Domain length in y = %.4g cm\n", Ly);
+    #endif // CABLEEQ
+    printf("Total time = %.2ff ms\n", totalTime);
     printf("\n");
 
     // Parameters overview

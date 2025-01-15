@@ -22,6 +22,7 @@
 #define SUCCESSMSG(msg, ...) printf(GREEN "[+] " RESET msg, ##__VA_ARGS__)
 #define WARNINGMSG(msg, ...) printf(YELLOW "[!] " RESET msg, ##__VA_ARGS__)
 #define ERRORMSG(msg, ...)   printf(RED "[x] " RESET msg, ##__VA_ARGS__)
+#define DEBUGMSG()        printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
 
 #define MAX_STRING_SIZE 200
 

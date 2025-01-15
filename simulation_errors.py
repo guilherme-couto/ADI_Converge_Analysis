@@ -4,8 +4,7 @@ from functions import *
 
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
-    dts = ['0.00500', '0.01000', '0.02000', '0.04000'] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-    dts = ['0.00500', '0.00800', '0.01000', '0.01600']
+    dts = [0.0001, 0.005, 0.01, 0.02, 0.04] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
     methods = ['theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
 
@@ -22,16 +21,16 @@ def main():
     # base_dx = 0.01
     
     # Read reference solution
-    reference_dt = '0.00010'
-    reference_dx = '0.00050'
-    reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/last_{reference_dt}_{reference_dx}.txt'
+    reference_dx = 0.0005
+    reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/lastframe.txt'
     
     if not os.path.exists(reference_solution_path):
         raise FileNotFoundError(f'Reference solution not found at {reference_solution_path}')
     
-    base_dx = float(reference_dx)
+    base_dx = 0.0005
+    base_dy = 0.0005
     print(f'Reading reference solution from {reference_solution_path}')
-    reference_data = read_values_with_rate(reference_solution_path, int(base_dx/float(reference_dx)))
+    reference_data = read_values_with_rate(reference_solution_path, int(base_dx/reference_dx))
     print(f'Reference solution read successfully. Total size: {len(reference_data)}')
     print()
     

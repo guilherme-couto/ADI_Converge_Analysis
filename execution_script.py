@@ -9,8 +9,8 @@ def main():
     # refs
     dx = 0.0005
     dy = 0.0005
-    dx = 0.005
-    dy = 0.005
+    # dx = 0.005
+    # dy = 0.005
     dts = [0.0001]
     dts = [0.005]
     methods = ['theta-ADI']
@@ -82,6 +82,7 @@ def main():
                     if dt == 0.0001 and theta != '0.50':
                         continue
                     
+                    # os.system(f'valgrind --leak-check=full --track-origins=yes ./convergence {execution_args}')
                     os.system(f'./convergence {execution_args}')
                     
                     plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)

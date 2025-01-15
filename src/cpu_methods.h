@@ -8,9 +8,12 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     // Number of steps
     int M = round(totalTime / delta_t); // Number of time steps
     int Nx = round(Lx / delta_x) + 1;     // Spatial steps in x
+    printf("Nx = %d\n", Nx);
 #ifndef CABLEEQ
     int Ny = round(Ly / delta_y) + 1;     // Spatial steps in y
+    printf("Ny = %d\n", Ny);
 #endif // not CABLEEQ
+    printf("\n");
     
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
@@ -18,11 +21,11 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #ifndef CABLEEQ
     // Allocate 2D arrays for variables
     real **V, **Vtilde, **RHS, **partRHS, **exact;
-    V = (real **)malloc(Nx * sizeof(real *));
-    Vtilde = (real **)malloc(Nx * sizeof(real *));
-    RHS = (real **)malloc(Nx * sizeof(real *));
-    partRHS = (real **)malloc(Nx * sizeof(real *));
-    exact = (real **)malloc(Nx * sizeof(real *));
+    V = (real **)malloc(Ny * sizeof(real *));
+    Vtilde = (real **)malloc(Ny * sizeof(real *));
+    RHS = (real **)malloc(Ny * sizeof(real *));
+    partRHS = (real **)malloc(Ny * sizeof(real *));
+    exact = (real **)malloc(Ny * sizeof(real *));
 #else // if def CABLEEQ
     // Allocate 1D arrays for variables
     real *V, *Vtilde, *RHS, *partRHS, *exact, *AP;
@@ -46,28 +49,28 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #endif // not CABLEEQ
 #ifdef MONODOMAIN
 #ifdef AFHN
-    real **W = (real **)malloc(Nx * sizeof(real *));
+    real **W = (real **)malloc(Ny * sizeof(real *));
 #endif // AFHN
 #ifdef TT2
     real **X_r1, **X_r2, **X_s, **m, **h, **j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
-    X_r1 = (real **)malloc(Nx * sizeof(real *));
-    X_r2 = (real **)malloc(Nx * sizeof(real *));
-    X_s = (real **)malloc(Nx * sizeof(real *));
-    m = (real **)malloc(Nx * sizeof(real *));
-    h = (real **)malloc(Nx * sizeof(real *));
-    j = (real **)malloc(Nx * sizeof(real *));
-    d = (real **)malloc(Nx * sizeof(real *));
-    f = (real **)malloc(Nx * sizeof(real *));
-    f2 = (real **)malloc(Nx * sizeof(real *));
-    fCaSS = (real **)malloc(Nx * sizeof(real *));
-    s = (real **)malloc(Nx * sizeof(real *));
-    r = (real **)malloc(Nx * sizeof(real *));
-    Ca_i = (real **)malloc(Nx * sizeof(real *));
-    Ca_SR = (real **)malloc(Nx * sizeof(real *));
-    Ca_SS = (real **)malloc(Nx * sizeof(real *));
-    R_prime = (real **)malloc(Nx * sizeof(real *));
-    Na_i = (real **)malloc(Nx * sizeof(real *));
-    K_i = (real **)malloc(Nx * sizeof(real *));
+    X_r1 = (real **)malloc(Ny * sizeof(real *));
+    X_r2 = (real **)malloc(Ny * sizeof(real *));
+    X_s = (real **)malloc(Ny * sizeof(real *));
+    m = (real **)malloc(Ny * sizeof(real *));
+    h = (real **)malloc(Ny * sizeof(real *));
+    j = (real **)malloc(Ny * sizeof(real *));
+    d = (real **)malloc(Ny * sizeof(real *));
+    f = (real **)malloc(Ny * sizeof(real *));
+    f2 = (real **)malloc(Ny * sizeof(real *));
+    fCaSS = (real **)malloc(Ny * sizeof(real *));
+    s = (real **)malloc(Ny * sizeof(real *));
+    r = (real **)malloc(Ny * sizeof(real *));
+    Ca_i = (real **)malloc(Ny * sizeof(real *));
+    Ca_SR = (real **)malloc(Ny * sizeof(real *));
+    Ca_SS = (real **)malloc(Ny * sizeof(real *));
+    R_prime = (real **)malloc(Ny * sizeof(real *));
+    Na_i = (real **)malloc(Ny * sizeof(real *));
+    K_i = (real **)malloc(Ny * sizeof(real *));
 #endif // TT2
 #endif // MONODOMAIN
 #ifdef CABLEEQ
@@ -99,34 +102,34 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #ifndef CABLEEQ
     for (int i = 0; i < Ny; i++)
     {
-        V[i] = (real *)malloc(Ny * sizeof(real));
-        Vtilde[i] = (real *)malloc(Ny * sizeof(real));
-        RHS[i] = (real *)malloc(Ny * sizeof(real));
-        partRHS[i] = (real *)malloc(Ny * sizeof(real));
-        exact[i] = (real *)malloc(Ny * sizeof(real));
+        V[i] = (real *)malloc(Nx * sizeof(real));
+        Vtilde[i] = (real *)malloc(Nx * sizeof(real));
+        RHS[i] = (real *)malloc(Nx * sizeof(real));
+        partRHS[i] = (real *)malloc(Nx * sizeof(real));
+        exact[i] = (real *)malloc(Nx * sizeof(real));
 #ifdef MONODOMAIN
 #ifdef AFHN
-        W[i] = (real *)malloc(Ny * sizeof(real));
+        W[i] = (real *)malloc(Nx * sizeof(real));
 #endif // AFHN
 #ifdef TT2
-        X_r1[i] = (real *)malloc(Ny * sizeof(real));
-        X_r2[i] = (real *)malloc(Ny * sizeof(real));
-        X_s[i] = (real *)malloc(Ny * sizeof(real));
-        m[i] = (real *)malloc(Ny * sizeof(real));
-        h[i] = (real *)malloc(Ny * sizeof(real));
-        j[i] = (real *)malloc(Ny * sizeof(real));
-        d[i] = (real *)malloc(Ny * sizeof(real));
-        f[i] = (real *)malloc(Ny * sizeof(real));
-        f2[i] = (real *)malloc(Ny * sizeof(real));
-        fCaSS[i] = (real *)malloc(Ny * sizeof(real));
-        s[i] = (real *)malloc(Ny * sizeof(real));
-        r[i] = (real *)malloc(Ny * sizeof(real));
-        Ca_i[i] = (real *)malloc(Ny * sizeof(real));
-        Ca_SR[i] = (real *)malloc(Ny * sizeof(real));
-        Ca_SS[i] = (real *)malloc(Ny * sizeof(real));
-        R_prime[i] = (real *)malloc(Ny * sizeof(real));
-        Na_i[i] = (real *)malloc(Ny * sizeof(real));
-        K_i[i] = (real *)malloc(Ny * sizeof(real));
+        X_r1[i] = (real *)malloc(Nx * sizeof(real));
+        X_r2[i] = (real *)malloc(Nx * sizeof(real));
+        X_s[i] = (real *)malloc(Nx * sizeof(real));
+        m[i] = (real *)malloc(Nx * sizeof(real));
+        h[i] = (real *)malloc(Nx * sizeof(real));
+        j[i] = (real *)malloc(Nx * sizeof(real));
+        d[i] = (real *)malloc(Nx * sizeof(real));
+        f[i] = (real *)malloc(Nx * sizeof(real));
+        f2[i] = (real *)malloc(Nx * sizeof(real));
+        fCaSS[i] = (real *)malloc(Nx * sizeof(real));
+        s[i] = (real *)malloc(Nx * sizeof(real));
+        r[i] = (real *)malloc(Nx * sizeof(real));
+        Ca_i[i] = (real *)malloc(Nx * sizeof(real));
+        Ca_SR[i] = (real *)malloc(Nx * sizeof(real));
+        Ca_SS[i] = (real *)malloc(Nx * sizeof(real));
+        R_prime[i] = (real *)malloc(Nx * sizeof(real));
+        Na_i[i] = (real *)malloc(Nx * sizeof(real));
+        K_i[i] = (real *)malloc(Nx * sizeof(real));
 #endif // TT2
 #endif // MONODOMAIN
     }
@@ -290,7 +293,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
     real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
     #endif // not CABLEEQ
-
+    
     // Populate auxiliary arrays for Thomas algorithm
     real phi_x = delta_t / (delta_x * delta_x);
     real phi_y = delta_t / (delta_y * delta_y);
@@ -1031,6 +1034,17 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 
 #endif // not CABLEEQ
 
+#ifdef SAVE_FRAMES
+    // Save frame
+    #ifndef CABLEEQ
+    saveFrame(fpFrames, actualTime, V, Nx, Ny);
+    #else
+    saveFrame(fpFrames, actualTime, V, Nx);
+    #endif // CABLEEQ
+    SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
+            
+#endif // SAVE_FRAMES
+
     real finishTime = omp_get_wtime();
     real elapsedTime = finishTime - startTime;
 
@@ -1049,15 +1063,15 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
     fprintf(fpInfos, "METHOD = %s\n", method);
     if (strcmp(method, "theta-ADI") == 0)
-        fprintf(fpInfos, "theta = %lf\n", theta);
+        fprintf(fpInfos, "theta = %.2f\n", theta);
     fprintf(fpInfos, "\n");
     #ifdef CABLEEQ
-    fprintf(fpInfos, "CABLE LENGTH = %d cm\n", Lx);
+    fprintf(fpInfos, "CABLE LENGTH = %.4g cm\n", Lx);
     #else
-    fprintf(fpInfos, "DOMAIN LENGTH IN X = %d cm\n", Lx);
-    fprintf(fpInfos, "DOMAIN LENGTH IN Y = %d cm\n", Ly);
+    fprintf(fpInfos, "DOMAIN LENGTH IN X = %.4g cm\n", Lx);
+    fprintf(fpInfos, "DOMAIN LENGTH IN Y = %.4g cm\n", Ly);
     #endif // CABLEEQ
-    fprintf(fpInfos, "TOTAL TIME = %f ms\n", totalTime);
+    fprintf(fpInfos, "TOTAL TIME = %.2f ms\n", totalTime);
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", delta_t, M);
     #ifdef CABLEEQ
