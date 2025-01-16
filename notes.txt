@@ -1,0 +1,3 @@
+Rodarei simulações com o domínio retangular Lx=1cm e Ly=0.01cm, usando dt=0.0001ms e dx=dy=0.0005cm
+Antes do restore, colocarei 12ms de tempo de simulação
+Farei o restore state e um shift de 0.5cm para rodar por 6ms

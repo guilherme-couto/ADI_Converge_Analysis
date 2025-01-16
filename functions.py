@@ -379,24 +379,23 @@ def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, d
     
     print(f'Errors saved to {save_dir}/errors.png')
 
-def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, Nx, Ny, theta='0.00'):
     save_dir = f'./simulation_files/difference_maps/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
     
-    side_length = int(np.sqrt(len(data)))
     data = abs(data)
-    data = data.reshape((side_length, side_length))
+    data = data.reshape((Ny, Nx))
     
     if 'theta' not in method:
-        title = f'DiffMap dt={dt} dx={dx}'
+        title = f'DiffMap dt={dt} dx={dx} dy={dy}'
     else:
-        title = f'DiffMap theta={theta} dt={dt} dx={dx}'
+        title = f'DiffMap theta={theta} dt={dt} dx={dx} dy={dy}'
     
     # Plot the data
-    plt.figure(figsize=(6, 6))
+    plt.figure()
     plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=100)
     plt.colorbar(label='Value', fraction=0.04, pad=0.04)
     plt.xticks([])
@@ -545,7 +544,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
     imageio.v2.mimsave(
         gif_path, 
         images,
-        duration=0.75,
+        duration=0.9,
         loop=0  # Set infinite loop
     )
 
@@ -618,8 +617,10 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
     plt.savefig(f'{graph_dir}/convergence_analysis.png')
     plt.close()
     
-def read_values_with_rate(filename, rate):
+def read_values_with_rate(filename, rate_x, rate_y):
     selected_values = []
+    Nx = 0
+    Ny = 0
     
     with open(filename, 'r') as file:
         
@@ -627,12 +628,18 @@ def read_values_with_rate(filename, rate):
         for line_index, line in enumerate(file):
             
             # If the line index is multiple of the rate, select the line
-            if line_index % rate == 0:
+            if line_index % rate_y == 0:
             
                 values = line.split()
                 values = [float(value) for value in values]
                 
                 # Select columns with the rate
-                selected_values.extend(values[::rate])
+                selected_values.extend(values[::rate_x])
+
+                # Get the number of columns
+                Nx = len(values[::rate_x])
+
+                # Get the number of lines
+                Ny += 1
     
-    return selected_values
+    return selected_values, Nx, Ny

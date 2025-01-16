@@ -100,7 +100,7 @@ void initialize2DVariableFromFile(real **Var, int Nx, int Ny, char *filename, re
     int sizeVar = 0;
     real value;
 
-    INFOMSG("Reading file %s to initialize variable with a rate in x of %d and rate in y of %d\n", filename, rate_x, rate_y);
+    INFOMSG("Reading file %s to initialize variable with rate_x=%d and rate_y=%d\n", filename, rate_x, rate_y);
     for (int i = 0; i < baseNy; ++i)
     {
         for (int j = 0; j < baseNx; ++j)

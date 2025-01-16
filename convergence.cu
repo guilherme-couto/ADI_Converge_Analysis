@@ -100,19 +100,19 @@ int main(int argc, char *argv[])
     printf("Domain length in x = %.4g cm\n", Lx);
     printf("Domain length in y = %.4g cm\n", Ly);
     #endif // CABLEEQ
-    printf("Total time = %.2ff ms\n", totalTime);
+    printf("Total time = %.2f ms\n", totalTime);
     printf("\n");
 
     // Parameters overview
     printf("RUNNING simulation with parameters:\n");
     printf("Method: %s\n", method);
-    printf("delta_t: %.5f\n", delta_t);
-    printf("delta_x: %.5f\n", delta_x);
-    #ifndef CABLEEQ
-    printf("delta_y: %.5f\n", delta_y);
-    #endif // CABLEEQ
     if (strcmp(method, "theta-ADI") == 0)
         printf("theta: %.2f\n", theta);
+    printf("delta_t: %.5g\n", delta_t);
+    printf("delta_x: %.5g\n", delta_x);
+    #ifndef CABLEEQ
+    printf("delta_y: %.5g\n", delta_y);
+    #endif // CABLEEQ
     printf("\n");
 
     // Call function

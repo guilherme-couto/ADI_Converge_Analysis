@@ -12,6 +12,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #ifndef CABLEEQ
     int Ny = round(Ly / delta_y) + 1;     // Spatial steps in y
     printf("Ny = %d\n", Ny);
+    printf("Points in the domain = %d\n", Nx * Ny);
 #endif // not CABLEEQ
     printf("\n");
     
@@ -184,56 +185,56 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     #endif // not CABLEEQ
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     #ifdef CABLEEQ
     initialize1DVariableFromFile(V, Nx, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
     #ifdef AFHN
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(W, Nx, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
     #endif // AFHN
     #ifdef TT2
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(X_r1, Nx, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(X_r2, Nx, pathToRestoreStateFiles, delta_x, "X_r2", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(X_s, Nx, pathToRestoreStateFiles, delta_x, "X_s", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframem.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(m, Nx, pathToRestoreStateFiles, delta_x, "m", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasth.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(h, Nx, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastj.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(j, Nx, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastd.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(d, Nx, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(f, Nx, pathToRestoreStateFiles, delta_x, "f", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastf2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(f2, Nx, pathToRestoreStateFiles, delta_x, "f2", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastfCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframefCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(fCaSS, Nx, pathToRestoreStateFiles, delta_x, "fCaSS", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lasts.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(s, Nx, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastr.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframer.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(r, Nx, pathToRestoreStateFiles, delta_x, "r", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(Ca_i, Nx, pathToRestoreStateFiles, delta_x, "Ca_i", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(Ca_SR, Nx, pathToRestoreStateFiles, delta_x, "Ca_SR", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(Ca_SS, Nx, pathToRestoreStateFiles, delta_x, "Ca_SS", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(R_prime, Nx, pathToRestoreStateFiles, delta_x, "R_prime", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(Na_i, Nx, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(K_i, Nx, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
     #endif // TT2
     #endif // CABLEEQ
     #ifdef MONODOMAIN
     initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
     #ifdef AFHN
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
     #endif // AFHN
     #ifdef TT2
@@ -245,7 +246,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 
 #ifdef SHIFT_STATE
     // Shift variables
-    real lengthToShift = 0.1f;
+    real lengthToShift = 0.5f;
 
     #ifdef CABLEEQ
     shift1DVariableToLeft(V, Nx, lengthToShift, delta_x, V_init, "V");
@@ -1079,6 +1080,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     #else
     fprintf(fpInfos, "delta_x = %.5g cm (%d space steps in x)\n", delta_x, Nx);
     fprintf(fpInfos, "delta_y = %.5g cm (%d space steps in y)\n", delta_y, Ny);
+    fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
     #endif // CABLEEQ
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "STIMULUS VELOCITY = %.lf m/s\n", stim_velocity);
