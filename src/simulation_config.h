@@ -5,7 +5,7 @@
 
 #ifdef SAVE_FRAMES
 // Save frames parameters
-const int frameSaveRate = 10000;
+const int frameSaveRate = 1000;
 #endif // SAVE_FRAMES
 
 #ifndef  CONVERGENCE_ANALYSIS

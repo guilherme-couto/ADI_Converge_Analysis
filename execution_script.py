@@ -2,6 +2,7 @@ from functions import *
 
 def main():
     dts = [0.005, 0.01, 0.02, 0.04] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
+    dts = [0.001, 0.002, 0.004, 0.005]
     # dts = ['0.00050', '0.00080', '0.00100', '0.00160']
     methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'theta-RK2' (CABLEEQ)
     thetas = ['0.50', '0.66', '1.00']
@@ -11,10 +12,9 @@ def main():
     dy = 0.0005
     # dx = 0.005
     # dy = 0.005
-    # dts = [0.0001]
-    dts = [0.01]
-    # methods = ['SSI-ADI']
-    # thetas = ['0.50']
+    dts = [0.005]
+    methods = ['theta-ADI']
+    thetas = ['1.00']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
@@ -22,7 +22,7 @@ def main():
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     init = 'restore_state' # 'initial_conditions', 'restore_state'
     shift_state = True
-    frames = False
+    frames = True
     save_last_state = False
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
@@ -64,7 +64,7 @@ def main():
                 if problem == 'CABLEEQ':
                     execution_args = f'{method} {dt} {dx}'
                     
-                os.system(f'valgrind ./convergence {execution_args}')
+                os.system(f'./convergence {execution_args}')
                 
                 plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
                 if save_last_state:
@@ -82,8 +82,8 @@ def main():
                     if dt == 0.0001 and theta != '0.50':
                         continue
                     
-                    # os.system(f'valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./convergence {execution_args}')
-                    os.system(f'valgrind ./convergence {execution_args}')
+                    # os.system(f'valgrind --leak-check=full --track-origins=yes ./convergence {execution_args}')
+                    os.system(f'./convergence {execution_args}')
                     
                     plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
                     if save_last_state:

@@ -1,0 +1,19 @@
+EXECUTION_TYPE = SERIAL
+PRECISION = double
+PROBLEM = MONODOMAIN
+CELL_MODEL = AFHN
+METHOD = theta-ADI
+theta = 1.00
+
+DOMAIN LENGTH IN X = 1 cm
+DOMAIN LENGTH IN Y = 0.01 cm
+TOTAL TIME = 6.00 ms
+
+delta_t = 0.01 ms (600 time steps)
+delta_x = 0.0005 cm (2001 space steps in x)
+delta_y = 0.0005 cm (21 space steps in y)
+TOTAL POINTS IN DOMAIN = 42021
+
+STIMULUS VELOCITY = 0 m/s
+
+SIMULATION EXECUTION TIME = 0.696484 s

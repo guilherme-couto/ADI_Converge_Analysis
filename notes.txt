@@ -1,3 +1,41 @@
 Rodarei simulações com o domínio retangular Lx=1cm e Ly=0.01cm, usando dt=0.0001ms e dx=dy=0.0005cm
 Antes do restore, colocarei 12ms de tempo de simulação
 Farei o restore state e um shift de 0.5cm para rodar por 6ms
+
+Os resultados que estão no analysis tiveram que ser feitos na mão um por um, por conta de algum vazamento de memória que ainda não identifiquei.
+depois de rodar uma execução, a seguinte costuma dar problema.
+os resultados do analysis foram feitos com shift de 0.5cm por 6ms
+referência foi 
+delta_t = 0.0001 ms (60000 time steps)
+delta_x = 0.0005 cm (2001 space steps in x)
+delta_y = 0.0005 cm (21 space steps in y)
+
+For method theta-ADI
+with theta=0.50
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.000094 	| -----
+0.002	| 0.0005	| 0.0005	| 0.000369 	| 1.980
+0.004	| 0.0005	| 0.0005	| 0.001454 	| 1.977
+0.005	| 0.0005	| 0.0005	| 0.002252 	| 1.960
+
+Slope of the fitted line (least squares in log-log): 1.976767
+
+with theta=0.66
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.005699 	| -----
+0.002	| 0.0005	| 0.0005	| 0.011501 	| 1.013
+0.004	| 0.0005	| 0.0005	| 0.023409 	| 1.025
+0.005	| 0.0005	| 0.0005	| 0.029517 	| 1.039
+
+Slope of the fitted line (least squares in log-log): 1.021685
+
+with theta=1.00
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.017568 	| -----
+0.002	| 0.0005	| 0.0005	| 0.034974 	| 0.993
+0.004	| 0.0005	| 0.0005	| 0.069311 	| 0.987
+0.005	| 0.0005	| 0.0005	| nan 	| nan
+

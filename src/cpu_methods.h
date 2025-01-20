@@ -231,6 +231,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     initialize1DVariableFromFile(K_i, Nx, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
     #endif // TT2
     #endif // CABLEEQ
+
     #ifdef MONODOMAIN
     initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
     #ifdef AFHN
@@ -240,7 +241,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     #ifdef TT2
     // TODO
     #endif // TT2
-    #endif MONODOMAIN
+    #endif // MONODOMAIN
     free(pathToRestoreStateFiles);
 #endif // RESTORE_STATE
 
@@ -284,7 +285,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     #endif // TT2
     #endif // MONODOMAIN
 #endif // SHIFT_STATE
-
+    
     // Auxiliary arrays for Thomas algorithm
     real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
     real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
