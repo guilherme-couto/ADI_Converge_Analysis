@@ -11,9 +11,9 @@
 void initialize2DVariableWithExactSolution(real **Var, int Nx, int Ny, real delta_x, real delta_y)
 {
     real x, y;
-    for (int i = 0; i < Ny; ++i)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < Nx; ++j)
+        for (int j = 0; j < Nx; j++)
         {
             y = i * delta_y;
             x = j * delta_x;
@@ -24,7 +24,7 @@ void initialize2DVariableWithExactSolution(real **Var, int Nx, int Ny, real delt
 
 void initialize1DVariableWithValue(real *Var, int N, real value)
 {
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N; i++)
     {
         Var[i] = value;
     }   
@@ -32,9 +32,9 @@ void initialize1DVariableWithValue(real *Var, int N, real value)
 
 void initialize2DVariableWithValue(real **Var, int Nx, int Ny, real value)
 {
-    for (int i = 0; i < Ny; ++i)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < Nx; ++j)
+        for (int j = 0; j < Nx; j++)
         {
             Var[i][j] = value;
         }
@@ -59,7 +59,7 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
 
     INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
 
-    for (int i = 0; i < baseN; ++i)
+    for (int i = 0; i < baseN; i++)
     {
         // Read value from file to variable
         // If i is multiple of rate, read value to Var
@@ -101,9 +101,9 @@ void initialize2DVariableFromFile(real **Var, int Nx, int Ny, char *filename, re
     real value;
 
     INFOMSG("Reading file %s to initialize variable with rate_x=%d and rate_y=%d\n", filename, rate_x, rate_y);
-    for (int i = 0; i < baseNy; ++i)
+    for (int i = 0; i < baseNy; i++)
     {
-        for (int j = 0; j < baseNx; ++j)
+        for (int j = 0; j < baseNx; j++)
         {
             // Read value from file to variable
             // If i and j are multiples of rate, read value to Var
@@ -293,9 +293,9 @@ void saveFrame(FILE *file, real actualTime, real *V, int N)
 void initialize2DVariableWithValue(real *Var, int N, real value)
 {
     int index;
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < N; ++j)
+        for (int j = 0; j < N; j++)
         {
             index = i * N + j;
             Var[index] = value;
@@ -321,9 +321,9 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
 
     INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
 
-    for (int i = 0; i < baseN; ++i)
+    for (int i = 0; i < baseN; i++)
     {
-        for (int j = 0; j < baseN; ++j)
+        for (int j = 0; j < baseN; j++)
         {
             // Read value from file to variable
             // If i and j are multiples of rate, read value to Var
@@ -386,7 +386,7 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
     lb[rowCurrent] = lb[rowCurrent];
     lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
 
-    for (int i = 1; i < n - 1; ++i)
+    for (int i = 1; i < n - 1; i++)
     {
         rowPrevious = rowCurrent;
         rowCurrent += 1;
@@ -423,9 +423,9 @@ void initialize2DVariableWithExactSolution(real *Var, int N, real delta_x)
 {
     real x, y;
     int index;
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < N; ++j)
+        for (int j = 0; j < N; j++)
         {
             x = i * delta_x;
             y = j * delta_x;
@@ -502,7 +502,7 @@ void createDirectories(char *method, real delta_t, real delta_x, real delta_y, r
 
 void initializeTimeArray(real *timeArray, int M, real dt)
 {
-    for (int i = 0; i < M; ++i)
+    for (int i = 0; i < M; i++)
     {
         timeArray[i] = i * dt;
     }

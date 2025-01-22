@@ -477,12 +477,14 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 
                     #ifndef CONVERGENCE_ANALYSIS
                     partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
+                    // partRHS[i][j] = delta_t * (stim - RHS_V_term); // If OS-ADI, without diffusion
                     #else
                     partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
                     #endif // not CONVERGENCE_ANALYSIS
 
                     // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
                     W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde);
+                    // W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // If OS-ADI, without diffusion
 #endif // AFHN
 #ifdef TT2
                     // TODO
@@ -490,7 +492,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #endif // MONODOMAIN
                 }
             }
-
+            
             // ================================================!
             //  Calculate V at n+1/2 -> Result goes to RHS     !
             // ================================================!
@@ -501,10 +503,10 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                     real actualV = V[i][j];
                     real tau = 0.5f;
                     if (strcmp(method, "theta-ADI") == 0)
-                        tau =  1.0f - theta;
+                        tau = 1.0f - theta;
                     
                     // Calculate the explicit part of the RHS
-                    diff_term =  diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
+                    diff_term = diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
                     LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 
@@ -514,7 +516,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                     RHS[i][j] = result_y[i];
                 }
             }
-
+            
             // ================================================!
             //  Calculate V at n+1 -> Result goes to V         !
             // ================================================!
@@ -525,10 +527,10 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                     real actualV = RHS[i][j];
                     real tau = 0.5f;
                     if (strcmp(method, "theta-ADI") == 0)
-                        tau =  1.0f - theta;
+                        tau = 1.0f - theta;
                     
                     // Calculate the explicit part of the RHS
-                    diff_term =  diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
+                    diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
                     LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
                 }
 
@@ -550,6 +552,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #endif // SAVE_FRAMES
 #ifndef CONVERGENCE_ANALYSIS
             // Calculate stim velocity
+            
             if (!stim_velocity_measured)
             {
                 real begin = Lx / 3.0f;
@@ -1044,7 +1047,6 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     saveFrame(fpFrames, actualTime, V, Nx);
     #endif // CABLEEQ
     SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
-            
 #endif // SAVE_FRAMES
 
     real finishTime = omp_get_wtime();
@@ -1259,6 +1261,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         fprintf(fpAP, "%e ", AP[i]);
     }
 #endif // not CABLEEQ
+
     fclose(fpLast);
     #ifdef SAVE_LAST_STATE
     #ifdef AFHN
@@ -1307,6 +1310,26 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 #ifdef AFHN
         free(W[i]);
 #endif // AFHN
+#ifdef TT2
+        free(X_r1[i]);
+        free(X_r2[i]);
+        free(X_s[i]);
+        free(m[i]);
+        free(h[i]);
+        free(j[i]);
+        free(d[i]);
+        free(f[i]);
+        free(f2[i]);
+        free(fCaSS[i]);
+        free(s[i]);
+        free(r[i]);
+        free(R_prime[i]);
+        free(Ca_i[i]);
+        free(Ca_SR[i]);
+        free(Ca_SS[i]);
+        free(Na_i[i]);
+        free(K_i[i]);
+#endif // TT2
 #endif // MONODOMAIN
     }
 #endif // not CABLEEQ
@@ -1332,6 +1355,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     free(lc_y);
     #endif // not CABLEEQ
     free(pathToSaveData);
+
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS
     free(stimuli);

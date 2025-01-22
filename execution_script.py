@@ -12,9 +12,9 @@ def main():
     dy = 0.0005
     # dx = 0.005
     # dy = 0.005
-    dts = [0.005]
+    dts = [0.03]
     methods = ['theta-ADI']
-    thetas = ['1.00']
+    thetas = ['0.90']
 
     real_type = 'double'
     serial_or_gpu = 'SERIAL'
