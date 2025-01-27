@@ -3,23 +3,29 @@
 
 #include "auxfuncs.h"
 
-void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y, real theta)
+void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 {
     // Number of steps
     int M = round(totalTime / delta_t); // Number of time steps
-    int Nx = round(Lx / delta_x) + 1;     // Spatial steps in x
+    int Nx = round(Lx / delta_x) + 1;   // Spatial steps in x
     printf("Nx = %d\n", Nx);
+
 #ifndef CABLEEQ
-    int Ny = round(Ly / delta_y) + 1;     // Spatial steps in y
+
+    int Ny = round(Ly / delta_y) + 1; // Spatial steps in y
     printf("Ny = %d\n", Ny);
     printf("Points in the domain = %d\n", Nx * Ny);
+
 #endif // not CABLEEQ
+
     printf("\n");
-    
+
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
+
 #ifndef CABLEEQ
+
     // Allocate 2D arrays for variables
     real **V, **Vtilde, **RHS, **partRHS, **exact;
     V = (real **)malloc(Ny * sizeof(real *));
@@ -27,7 +33,9 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     RHS = (real **)malloc(Ny * sizeof(real *));
     partRHS = (real **)malloc(Ny * sizeof(real *));
     exact = (real **)malloc(Ny * sizeof(real *));
+
 #else // if def CABLEEQ
+
     // Allocate 1D arrays for variables
     real *V, *Vtilde, *RHS, *partRHS, *exact, *AP;
     V = (real *)malloc(Nx * sizeof(real));
@@ -36,23 +44,31 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     partRHS = (real *)malloc(Nx * sizeof(real));
     exact = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
+
 #endif // not CABLEEQ
+
     // Aux variables for the Linear System resolution (Thomas)
     real *c_prime_x = (real *)malloc(Nx * sizeof(real));
     real *d_prime_x = (real *)malloc(Nx * sizeof(real));
     real *LS_b_x = (real *)malloc(Nx * sizeof(real));
     real *result_x = (real *)malloc(Nx * sizeof(real));
+
 #ifndef CABLEEQ
+
     real *c_prime_y = (real *)malloc(Ny * sizeof(real));
     real *d_prime_y = (real *)malloc(Ny * sizeof(real));
     real *LS_b_y = (real *)malloc(Ny * sizeof(real));
     real *result_y = (real *)malloc(Ny * sizeof(real));
+
 #endif // not CABLEEQ
 #ifdef MONODOMAIN
 #ifdef AFHN
+
     real **W = (real **)malloc(Ny * sizeof(real *));
+
 #endif // AFHN
 #ifdef TT2
+
     real **X_r1, **X_r2, **X_s, **m, **h, **j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
     X_r1 = (real **)malloc(Ny * sizeof(real *));
     X_r2 = (real **)malloc(Ny * sizeof(real *));
@@ -72,13 +88,17 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     R_prime = (real **)malloc(Ny * sizeof(real *));
     Na_i = (real **)malloc(Ny * sizeof(real *));
     K_i = (real **)malloc(Ny * sizeof(real *));
+
 #endif // TT2
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
+
     real *W = (real *)malloc(Nx * sizeof(real));
+
 #endif // AFHN
 #ifdef TT2
+
     real *X_r1, *X_r2, *X_s, *m, *h, *j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
     X_r1 = (real *)malloc(Nx * sizeof(real));
     X_r2 = (real *)malloc(Nx * sizeof(real));
@@ -98,9 +118,11 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     R_prime = (real *)malloc(Nx * sizeof(real));
     Na_i = (real *)malloc(Nx * sizeof(real));
     K_i = (real *)malloc(Nx * sizeof(real));
+
 #endif // TT2
-#endif // CABLEEQ
-#ifndef CABLEEQ
+
+#else // if not CABLEEQ
+
     for (int i = 0; i < Ny; i++)
     {
         V[i] = (real *)malloc(Nx * sizeof(real));
@@ -108,11 +130,15 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         RHS[i] = (real *)malloc(Nx * sizeof(real));
         partRHS[i] = (real *)malloc(Nx * sizeof(real));
         exact[i] = (real *)malloc(Nx * sizeof(real));
+
 #ifdef MONODOMAIN
 #ifdef AFHN
+
         W[i] = (real *)malloc(Nx * sizeof(real));
+
 #endif // AFHN
 #ifdef TT2
+
         X_r1[i] = (real *)malloc(Nx * sizeof(real));
         X_r2[i] = (real *)malloc(Nx * sizeof(real));
         X_s[i] = (real *)malloc(Nx * sizeof(real));
@@ -131,31 +157,45 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         R_prime[i] = (real *)malloc(Nx * sizeof(real));
         Na_i[i] = (real *)malloc(Nx * sizeof(real));
         K_i[i] = (real *)malloc(Nx * sizeof(real));
+
 #endif // TT2
 #endif // MONODOMAIN
-    }
-#endif // not CABLEEQ
 
-#ifdef CONVERGENCE_ANALYSIS
+    }
+
+#endif // CABLEEQ
+
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
     initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
-#else // if not def CONVERGENCE_ANALYSIS
+
+#else // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifndef CABLEEQ
+
     initialize2DVariableWithValue(V, Nx, Ny, V_init);
+
 #else // if def CABLEEQ
+
     initialize1DVariableWithValue(V, Nx, V_init);
+
 #endif // not CABLEEQ
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifdef MONODOMAIN
 #ifdef AFHN
+
     initialize2DVariableWithValue(W, Nx, Ny, W_init);
+
 #endif // AFHN
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
+
     initialize1DVariableWithValue(W, Nx, W_init);
+
 #endif // AFHN
 #ifdef TT2
+
     initialize1DVariableWithValue(X_r1, Nx, X_r1_init);
     initialize1DVariableWithValue(X_r2, Nx, X_r2_init);
     initialize1DVariableWithValue(X_s, Nx, X_s_init);
@@ -174,25 +214,37 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     initialize1DVariableWithValue(R_prime, Nx, R_prime_init);
     initialize1DVariableWithValue(Na_i, Nx, Na_i_init);
     initialize1DVariableWithValue(K_i, Nx, K_i_init);
+
 #endif // TT2
 #endif // CABLEEQ
 
 #ifdef RESTORE_STATE
+
     // Initialize variables with a solution
     real real_ref_dx = 0.0005;
-    #ifndef CABLEEQ
+
+#ifndef CABLEEQ
+
     real real_def_dy = 0.0005;
-    #endif // not CABLEEQ
+
+#endif // not CABLEEQ
+
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    #ifdef CABLEEQ
+
+#ifdef CABLEEQ
+
     initialize1DVariableFromFile(V, Nx, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
-    #ifdef AFHN
+
+#ifdef AFHN
+
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(W, Nx, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
-    #endif // AFHN
-    #ifdef TT2
+
+#endif // AFHN
+#ifdef TT2
+
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(X_r1, Nx, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
@@ -229,32 +281,45 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     initialize1DVariableFromFile(Na_i, Nx, pathToRestoreStateFiles, delta_x, "Na_i", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(K_i, Nx, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
-    #endif // TT2
-    #endif // CABLEEQ
 
-    #ifdef MONODOMAIN
+#endif // TT2
+#endif // CABLEEQ
+
+#ifdef MONODOMAIN
+
     initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
-    #ifdef AFHN
+
+#ifdef AFHN
+
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
-    #endif // AFHN
-    #ifdef TT2
-    // TODO
-    #endif // TT2
-    #endif // MONODOMAIN
+
+#endif // AFHN
+#ifdef TT2
+// TODO
+#endif // TT2
+#endif // MONODOMAIN
+
     free(pathToRestoreStateFiles);
+    
 #endif // RESTORE_STATE
 
 #ifdef SHIFT_STATE
+
     // Shift variables
     real lengthToShift = 0.5f;
 
-    #ifdef CABLEEQ
+#ifdef CABLEEQ
+
     shift1DVariableToLeft(V, Nx, lengthToShift, delta_x, V_init, "V");
-    #ifdef AFHN
+
+#ifdef AFHN
+
     shift1DVariableToLeft(W, Nx, lengthToShift, delta_x, W_init, "W");
-    #endif // AFHN
-    #ifdef TT2
+
+#endif // AFHN
+#ifdef TT2
+
     shift1DVariableToLeft(X_r1, Nx, lengthToShift, delta_x, X_r1_init, "X_r1");
     shift1DVariableToLeft(X_r2, Nx, lengthToShift, delta_x, X_r2_init, "X_r2");
     shift1DVariableToLeft(X_s, Nx, lengthToShift, delta_x, X_s_init, "X_s");
@@ -273,75 +338,117 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     shift1DVariableToLeft(R_prime, Nx, lengthToShift, delta_x, R_prime_init, "R_prime");
     shift1DVariableToLeft(Na_i, Nx, lengthToShift, delta_x, Na_i_init, "Na_i");
     shift1DVariableToLeft(K_i, Nx, lengthToShift, delta_x, K_i_init, "K_i");
-    #endif // TT2
-    #endif // CABLEEQ
-    #ifdef MONODOMAIN
+
+#endif // TT2
+#endif // CABLEEQ
+#ifdef MONODOMAIN
+
     shift2DVariableToLeft(V, Nx, Ny, lengthToShift, delta_x, delta_y, V_init, "V");
-    #ifdef AFHN
+
+#ifdef AFHN
+
     shift2DVariableToLeft(W, Nx, Ny, lengthToShift, delta_x, delta_y, W_init, "W");
-    #endif // AFHN
-    #ifdef TT2
-    // TODO
-    #endif // TT2
-    #endif // MONODOMAIN
+
+#endif // AFHN
+#ifdef TT2
+// TODO
+#endif // TT2
+#endif // MONODOMAIN
 #endif // SHIFT_STATE
-    
+
     // Auxiliary arrays for Thomas algorithm
     real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
     real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
     real *lc_x = (real *)malloc(Nx * sizeof(real)); // superdiagonal
-    #ifndef CABLEEQ
+
+#ifndef CABLEEQ
+
     real *la_y = (real *)malloc(Ny * sizeof(real)); // subdiagonal
     real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
     real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
-    #endif // not CABLEEQ
-    
+
+#endif // not CABLEEQ
+
     // Populate auxiliary arrays for Thomas algorithm
     real phi_x = delta_t / (delta_x * delta_x);
     real phi_y = delta_t / (delta_y * delta_y);
-    #ifndef TT2
-    real diff_coeff = sigma / (Cm * chi);
-    #else
-    real diff_coeff = sigma / chi;
-    #endif // not TT2
-    if (strcmp(method, "ADI") == 0 || strcmp(method, "SSI-ADI") == 0)
-    {
-        populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
-        #ifndef CABLEEQ
-        populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
-        #endif // not CABLEEQ
-    }
-    else if (strstr(method, "theta") != NULL)
-    {
-        populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, theta * phi_x * diff_coeff);
-        #ifndef CABLEEQ
-        populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, theta * phi_y * diff_coeff);
-        #endif // not CABLEEQ
-    }
+    real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
 
-#ifndef CONVERGENCE_ANALYSIS
+#ifndef TT2
+
+    real diff_coeff = sigma / (Cm * chi);
+
+#else
+
+    real diff_coeff = sigma / chi;
+
+#endif // not TT2
+
+#if defined(ADI) || defined(SSIADI)
+
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
+
+#ifndef CABLEEQ
+
+    populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
+
+#endif // not CABLEEQ
+#endif // ADI || SSIADI
+
+#if defined(THETASSIADI) || defined(THETASSIRK2)
+
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, THETA * phi_x * diff_coeff);
+
+#ifndef CABLEEQ
+
+    populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, THETA * phi_y * diff_coeff);
+
+#endif // not CABLEEQ
+
+    tau = 1.0f - THETA;
+
+#endif // THETASSIADI || THETARK2
+
+#ifdef OSADI
+
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, phi_x * diff_coeff);
+
+#ifndef CABLEEQ
+
+    populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
+
+#endif // not CABLEEQ
+#endif // OSADI
+
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
     populateStimuli(stimuli, delta_x, delta_y);
+
 #endif // MONODOMAIN || CABLEEQ
-#endif // not CONVERGENCE_ANALYSIS
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Create directories
     char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    createDirectories(method, delta_t, delta_x, delta_y, theta, pathToSaveData);
+    createDirectories(delta_t, delta_x, delta_y, pathToSaveData);
 
 #ifdef SAVE_FRAMES
+
     // Save frames
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
     snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
     fpFrames = fopen(framesPath, "w");
+
 #endif // SAVE_FRAMES
 
 #ifdef CABLEEQ
+
     // Choose cell at 0.5 cm to measure Action Potential
-    int APCellIndex = round(0.5f/delta_x);
+    int APCellIndex = round(0.5f / delta_x);
+
 #endif // CABLEEQ
 
     // Measure velocity
@@ -354,252 +461,274 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     int timeStepCounter = 0;
     real actualTime = 0.0f;
 
-    // Measure total execution time
-    real startTime = omp_get_wtime();
-#ifndef CABLEEQ
-    if (strcmp(method, "ADI") == 0)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
+    // Variables for measuring the execution time
+    real startTime, finishTime, elapsedTime;
 
-            // ================================================!
-            //  Calculate V on n + 1/2 -> Result goes to RHS   !
-            // ================================================!
-            real x, y;
-            for (int j = 0; j < Nx; j++)
-            {
-                for (int i = 0; i < Ny; i++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_y;
-#if defined(LINMONO) || defined(DIFF)
-                    LS_b_y[i] = 0.5f * phi_x * V[i][lim(j - 1, Nx)] + (1.0f - 2.0f * 0.5f * phi_x) * V[i][j] + 0.5f * phi_x * V[i][lim(j + 1, Nx)] + 0.5f * delta_t * forcingTerm(x, y, actualTime);
-#endif // LINMONO || DIFF
-                }
-
-                tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
-                for (int i = 0; i < Ny; i++)
-                {
-                    RHS[i][j] = result_y[i];
-                }
-            }
-
-            // ================================================!
-            //  Calculate V on n + 1 -> Result goes to V       !
-            // ================================================!
-            for (int i = 0; i < Ny; i++)
-            {
-                for (int j = 0; j < Nx; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
-#if defined(LINMONO) || defined(DIFF)
-                    LS_b_x[j] = 0.5f * phi_y * RHS[lim(i - 1, Ny)][j] + (1.0f - 2.0f * 0.5f * phi_y) * RHS[i][j] + 0.5f * phi_y * RHS[lim(i + 1, Ny)][j] + 0.5f * delta_t * forcingTerm(x, y, actualTime + delta_t);
-#endif // LINMONO || DIFF
-                }
-
-                tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
-                for (int j = 0; j < Nx; j++)
-                {
-                    V[i][j] = result_x[j];
-                }
-            }
-
-            // Update time step counter
-            timeStepCounter++;
-        }
-    }
+    // Start measuring the execution time
+    startTime = omp_get_wtime();
 
 #if defined(LINMONO) || defined(MONODOMAIN)
-    else if (strcmp(method, "SSI-ADI") == 0 || strcmp(method, "theta-ADI") == 0)
-    {
-        while (timeStepCounter < M)
-        {
-            // Get time step
-            actualTime = time[timeStepCounter];
 
-            // ================================================!
-            //  Calculate Approxs. and Update ODEs             !
-            // ================================================!
-            real x, y;
-            real diff_term = 0.0f;
-            for (int i = 0; i < Ny; i++)
+    while (timeStepCounter < M)
+    {
+        // Get time step
+        actualTime = time[timeStepCounter];
+
+        // ================================================!
+        //  Calculate Approxs. and Update ODEs             !
+        // ================================================!
+        real x, y;
+        real diff_term = 0.0f;
+        for (int i = 0; i < Ny; i++)
+        {
+            for (int j = 0; j < Nx; j++)
             {
-                for (int j = 0; j < Nx; j++)
-                {
-                    x = j * delta_x;
-                    y = i * delta_x;
+                x = j * delta_x;
+                y = i * delta_x;
 
 #ifdef LINMONO
-                    diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
-                    real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
-                    real reac_term = G * V[i][j] / Cm;
-                    real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
 
-                    // Preparing part of the RHS of the following linear systems
-                    real reac_tilde_term = G * actualVtilde / Cm;
-                    partRHS[i][j] = delta_t * (for_term - reac_tilde_term);
+                diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
+                real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
+                real reac_term = G * V[i][j] / Cm;
+                real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
+
+                // Preparing part of the RHS of the following linear systems
+                real reac_tilde_term = G * actualVtilde / Cm;
+                partRHS[i][j] = delta_t * (for_term - reac_tilde_term);
+
 #endif // LINMONO
 
 #ifdef MONODOMAIN
 #ifdef AFHN
-                    real actualV = V[i][j];
-                    real actualW = W[i][j];
-                    diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
-                    real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
-#ifdef CONVERGENCE_ANALYSIS
-                    real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
-#endif // CONVERGENCE_ANALYSIS
 
-#ifndef CONVERGENCE_ANALYSIS
-                    // Stimulation
-                    real stim = 0.0f;
-                    for (int si = 0; si < numberOfStimuli; si++)
+                // Calculate the explicit part of the RHS, including the diffusion term in both directions
+                real actualV = V[i][j];
+                real actualW = W[i][j];
+                real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
+
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
+                // Calculate forcing term
+                real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
+                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
+
+                // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
+                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualV, actualW));
+                real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
+                partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
+
+                // Update state variables
+                W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
+
+#endif // SSIADI || THETASSIADI
+
+#if defined(OSADI)
+
+                // Calculate part of the RHS of the following linear systems with Forward Euler
+                partRHS[i][j] = delta_t * (for_term - RHS_V_term);
+
+                // Update state variables
+                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+
+#endif // OSADI
+
+#else  // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
+
+                // Stimulation
+                real stim = 0.0f;
+                for (int si = 0; si < numberOfStimuli; si++)
+                {
+                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration
+                        && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
-                        if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
-                        {
-                            stim = stimuli[si].strength;
-                            break;
-                        }
+                        stim = stimuli[si].strength;
+                        break;
                     }
+                }
 
-                    real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
-#else
-                    real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
-#endif // not CONVERGENCE_ANALYSIS
-                    // Calculate approximation for state variables
-                    real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualV, actualW));
+#if defined(SSIADI) || defined(THETASSIADI)
 
-                    // Preparing part of the RHS of the following linear systems
-                    real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
+                // Calculate aproximation with RK2 -> Vn+1/2 = Vn + 0.5*diffusion + 0.5*dt*R(Vn, Wn)
+                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
+                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
 
-                    #ifndef CONVERGENCE_ANALYSIS
-                    partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
-                    // partRHS[i][j] = delta_t * (stim - RHS_V_term); // If OS-ADI, without diffusion
-                    #else
-                    partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
-                    #endif // not CONVERGENCE_ANALYSIS
+                // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
+                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualV, actualW));
+                real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
+                partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
 
-                    // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
-                    W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde);
-                    // W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // If OS-ADI, without diffusion
+                // Update state variables
+                W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
+
+#endif // SSIADI || THETASSIADI
+
+#if defined(OSADI)
+
+                // Calculate part of the RHS of the following linear systems with Forward Euler
+                partRHS[i][j] = delta_t * (stim - RHS_V_term);
+
+                // Update state variables
+                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+
+#endif // OSADI
+
+#ifdef FE
+
+                // Update variables explicitly
+                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
+                V[i][j] = actualV + diff_term + delta_t * (stim - RHS_V_term);
+
+                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW);
+
+#endif // FE
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
+
 #ifdef TT2
-                    // TODO
+                // TODO
 #endif // TT2
 #endif // MONODOMAIN
-                }
-            }
-            
-            // ================================================!
-            //  Calculate V at n+1/2 -> Result goes to RHS     !
-            // ================================================!
-            for (int j = 0; j < Nx; j++)
-            {
-                for (int i = 0; i < Ny; i++)
-                {
-                    real actualV = V[i][j];
-                    real tau = 0.5f;
-                    if (strcmp(method, "theta-ADI") == 0)
-                        tau = 1.0f - theta;
-                    
-                    // Calculate the explicit part of the RHS
-                    diff_term = diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
-                    LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
-                }
 
-                tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
-                for (int i = 0; i < Ny; i++)
-                {
-                    RHS[i][j] = result_y[i];
-                }
             }
-            
-            // ================================================!
-            //  Calculate V at n+1 -> Result goes to V         !
-            // ================================================!
+        }
+
+        // Alternative Direction Implicit (ADI) part
+#if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
+
+        // ================================================!
+        //  Calculate V at n+1/2 -> Result goes to RHS     !
+        // ================================================!
+        for (int j = 0; j < Nx; j++)
+        {
             for (int i = 0; i < Ny; i++)
             {
-                for (int j = 0; j < Nx; j++)
-                {
-                    real actualV = RHS[i][j];
-                    real tau = 0.5f;
-                    if (strcmp(method, "theta-ADI") == 0)
-                        tau = 1.0f - theta;
-                    
-                    // Calculate the explicit part of the RHS
-                    diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
-                    LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
-                }
+                // Calculate the RHS of the linear system
+                real actualV = V[i][j];
 
-                tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
-                for (int j = 0; j < Nx; j++)
-                {
-                    V[i][j] = result_x[j];
-                }
+#if defined(SSIADI) || defined(THETASSIADI)
+
+                // Calculate the explicit diffusion along x
+                diff_term = diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
+                LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
+
+#endif // SSIADI || THETASSIADI
+
+#if defined(OSADI)
+
+                LS_b_y[i] = actualV + 0.5f * partRHS[i][j];
+
+#endif // OSADI
             }
+
+            tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+            for (int i = 0; i < Ny; i++)
+            {
+                RHS[i][j] = result_y[i];
+            }
+        }
+
+        // ================================================!
+        //  Calculate V at n+1 -> Result goes to V         !
+        // ================================================!
+        for (int i = 0; i < Ny; i++)
+        {
+            for (int j = 0; j < Nx; j++)
+            {
+                // Calculate the RHS of the linear system
+                real actualV = RHS[i][j];
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+                // Calculate the explicit diffusion along y
+                diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
+                LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
+
+#endif // SSIADI || THETASSIADI
+
+#if defined(OSADI)
+
+                LS_b_x[j] = actualV + 0.5f * partRHS[i][j];
+
+#endif // OSADI
+            }
+
+            tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            for (int j = 0; j < Nx; j++)
+            {
+                V[i][j] = result_x[j];
+            }
+        }
+
+#endif // SSIADI || THETASSIADI || OSADI
 
 #ifdef SAVE_FRAMES
-            // If save frames is true and time step is multiple of frame save rate
-            if (timeStepCounter % frameSaveRate == 0)
-            {
-                // Save frame
-                saveFrame(fpFrames, actualTime, V, Nx, Ny);
-                SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
-            }
-#endif // SAVE_FRAMES
-#ifndef CONVERGENCE_ANALYSIS
-            // Calculate stim velocity
-            
-            if (!stim_velocity_measured)
-            {
-                real begin = Lx / 3.0f;
-                real end = 2.0f * begin;
 
-                if (!aux_stim_velocity_flag)
-                {
-                    int first_point_index = round(begin / delta_x) + 1;
-                    if (V[0][first_point_index] > 10.0f)
-                    {
-                        first_point_time = actualTime;
-                        aux_stim_velocity_flag = true;
-                    }
-                }
-                else
-                {
-                    int last_point_index = round(end / delta_x) + 1;
-                    if (V[0][last_point_index] > 10.0f)
-                    {
-                        last_point_time = actualTime;
-                        stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 10.0f; // m/s
-                        stim_velocity_measured = true;
-                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
-                    }
-                }
-            }
-#endif // not CONVERGENCE_ANALYSIS
-
-            // Update time step counter
-            timeStepCounter++;
+        // If save frames is true and time step is multiple of frame save rate
+        if (timeStepCounter % frameSaveRate == 0)
+        {
+            // Save frame
+            saveFrame(fpFrames, actualTime, V, Nx, Ny);
+            SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
+
+#endif // SAVE_FRAMES
+
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+
+        // Calculate stim velocity
+        if (!stim_velocity_measured)
+        {
+            real begin = Lx / 3.0f;
+            real end = 2.0f * begin;
+
+            if (!aux_stim_velocity_flag)
+            {
+                int first_point_index = round(begin / delta_x) + 1;
+                if (V[0][first_point_index] > 10.0f)
+                {
+                    first_point_time = actualTime;
+                    aux_stim_velocity_flag = true;
+                }
+            }
+            else
+            {
+                int last_point_index = round(end / delta_x) + 1;
+                if (V[0][last_point_index] > 10.0f)
+                {
+                    last_point_time = actualTime;
+                    stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
+                    stim_velocity = stim_velocity * 10.0f;                                // m/s
+                    stim_velocity_measured = true;
+                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
+                }
+            }
+        }
+
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
+
+        // Update time step counter
+        timeStepCounter++;
     }
+
 #endif // LINMONO || MONODOMAIN
 
-#else // if not def CABLEEQ
-    if (strcmp(method, "theta-RK2") == 0)
+#ifdef CABLEEQ
+
+    if (strcmp(METHOD, "theta-RK2") == 0)
     {
         while (timeStepCounter < M)
         {
             // Get time step
             actualTime = time[timeStepCounter];
 
-            #ifdef CABLEEQ
             // Get info for Action Potential
-            AP[timeStepCounter] = V[APCellIndex]; 
-            #endif // CABLEEQ
+            AP[timeStepCounter] = V[APCellIndex];
 
             // ================================================!
             //  Calcula Approx.                                !
@@ -607,7 +736,9 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
             real diff_term = 0.0f;
             for (int i = 0; i < Nx; i++)
             {
+
 #ifdef AFHN
+
                 real actualV = V[i];
                 real actualW = W[i];
 
@@ -638,8 +769,11 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
 
                 // Update Wn+1 with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
                 W[i] = actualW + delta_t * RHS_W(actualVtilde, Wtilde);
+
 #endif // AFHN
+
 #ifdef TT2
+
                 real actualV = V[i];
                 real im1V = V[lim(i - 1, Nx)];
                 real ip1V = V[lim(i + 1, Nx)];
@@ -768,14 +902,18 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                 real fCaSS_inf = 0.6f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 0.4f;
                 real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
 
-        #if defined(EPI) || defined(MCELL)
+#if defined(EPI) || defined(MCELL)
+
                 real s_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 5.0f));
                 real tau_s = 85.0f * exp(-(actualV + 45.0f) * (actualV + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualV - 20.0f) / 5.0f)) + 3.0f;
-        #endif // EPI || MCELL
-        #ifdef ENDO
+
+#endif // EPI || MCELL
+#ifdef ENDO
+
                 real s_inf = 1.0f / (1.0f + exp((actualV + 28.0f) / 5.0f));
                 real tau_s = 1000.0f * exp(-(actualV + 67.0f) * (actualV + 67.0f) / 1000.0f) + 8.0f;
-        #endif // ENDO
+
+#endif // ENDO
 
                 real r_inf = 1.0f / (1.0f + exp((20.0f - actualV) / 6.0f));
                 real tau_r = 9.5f * exp(-(actualV + 40.0f) * (actualV + 40.0f) / 1800.0f) + 0.8f;
@@ -916,14 +1054,18 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                 real fCaSS_inftilde = 0.6f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 0.4f;
                 real tau_fCaSStilde = 80.0f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 2.0f;
 
-        #if defined(EPI) || defined(MCELL)
+#if defined(EPI) || defined(MCELL)
+
                 real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 20.0f) / 5.0f));
                 real tau_stilde = 85.0f * exp(-(actualVtilde + 45.0f) * (actualVtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVtilde - 20.0f) / 5.0f)) + 3.0f;
-        #endif // EPI || MCELL
-        #ifdef ENDO
+
+#endif // EPI || MCELL
+#ifdef ENDO
+
                 real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 28.0f) / 5.0f));
                 real tau_stilde = 1000.0f * exp(-(actualVtilde + 67.0f) * (actualVtilde + 67.0f) / 1000.0f) + 8.0f;
-        #endif // ENDO
+
+#endif // ENDO
 
                 real r_inftilde = 1.0f / (1.0f + exp((20.0f - actualVtilde) / 6.0f));
                 real tau_rtilde = 9.5f * exp(-(actualVtilde + 40.0f) * (actualVtilde + 40.0f) / 1800.0f) + 0.8f;
@@ -973,6 +1115,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                 Ca_SS[i] = actualCa_SS + (delta_t * RHS_Ca_SStilde_term);
                 Na_i[i] = actualNa_i + (delta_t * RHS_Na_itilde_term);
                 K_i[i] = actualK_i + (delta_t * RHS_K_itilde_term);
+
 #endif // TT2
             }
 
@@ -983,8 +1126,8 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
             {
                 real actualV = V[i];
                 diff_term = diff_coeff * phi_x * (V[lim(i - 1, Nx)] - 2.0f * actualV + V[lim(i + 1, Nx)]);
-                
-                LS_b_x[i] = actualV + (1.0f - theta) * diff_term + partRHS[i];
+
+                LS_b_x[i] = actualV + (1.0f - THETA) * diff_term + partRHS[i];
             }
 
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
@@ -994,13 +1137,15 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
             }
 
 #ifdef SAVE_FRAMES
+
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
                 saveFrame(fpFrames, actualTime, V, Nx);
-                SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
+                SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
             }
+
 #endif // SAVE_FRAMES
 
             // Calculate stim velocity
@@ -1025,9 +1170,9 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
                     {
                         last_point_time = actualTime;
                         stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 10.0f; // m/s
+                        stim_velocity = stim_velocity * 10.0f;                                // m/s
                         stim_velocity_measured = true;
-                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %lf m/s\n", begin, end, stim_velocity);
+                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
                     }
                 }
             }
@@ -1037,25 +1182,24 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         }
     }
 
-#endif // not CABLEEQ
+#endif // CABLEEQ
+
+    finishTime = omp_get_wtime();
+    elapsedTime = finishTime - startTime;
 
 #ifdef SAVE_FRAMES
-    // Save frame
-    #ifndef CABLEEQ
+#ifndef CABLEEQ
     saveFrame(fpFrames, actualTime, V, Nx, Ny);
-    #else
+#else
     saveFrame(fpFrames, actualTime, V, Nx);
-    #endif // CABLEEQ
-    SUCCESSMSG("Frame at time %.2lf ms saved to %s\n", actualTime, framesPath);
+#endif // CABLEEQ
+    SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
 #endif // SAVE_FRAMES
 
-    real finishTime = omp_get_wtime();
-    real elapsedTime = finishTime - startTime;
-
 // Calculate error
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     real norm2error = calculateNorm2Error(V, exact, Nx, Ny, totalTime, delta_x, delta_y);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
@@ -1065,32 +1209,33 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
     fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
     fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
-    fprintf(fpInfos, "METHOD = %s\n", method);
-    if (strcmp(method, "theta-ADI") == 0)
-        fprintf(fpInfos, "theta = %.2f\n", theta);
+    fprintf(fpInfos, "METHOD = %s\n", METHOD);
+#ifdef THETA
+    fprintf(fpInfos, "theta = %.2f\n", THETA);
+#endif // THETA
     fprintf(fpInfos, "\n");
-    #ifdef CABLEEQ
+#ifdef CABLEEQ
     fprintf(fpInfos, "CABLE LENGTH = %.4g cm\n", Lx);
-    #else
+#else
     fprintf(fpInfos, "DOMAIN LENGTH IN X = %.4g cm\n", Lx);
     fprintf(fpInfos, "DOMAIN LENGTH IN Y = %.4g cm\n", Ly);
-    #endif // CABLEEQ
-    fprintf(fpInfos, "TOTAL TIME = %.2f ms\n", totalTime);
+#endif // CABLEEQ
+    fprintf(fpInfos, "TOTAL TIME = %.4g ms\n", totalTime);
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", delta_t, M);
-    #ifdef CABLEEQ
+#ifdef CABLEEQ
     fprintf(fpInfos, "delta_x = %.5g cm (%d space steps)\n", delta_x, Nx);
-    #else
-    fprintf(fpInfos, "delta_x = %.5g cm (%d space steps in x)\n", delta_x, Nx);
-    fprintf(fpInfos, "delta_y = %.5g cm (%d space steps in y)\n", delta_y, Ny);
+#else
+    fprintf(fpInfos, "delta_x = %.5g cm (%d um) (%d space steps in x)\n", delta_x, CM_TO_UM(delta_x), Nx);
+    fprintf(fpInfos, "delta_y = %.5g cm (%d um) (%d space steps in y)\n", delta_y, CM_TO_UM(delta_y), Ny);
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
-    #endif // CABLEEQ
+#endif // CABLEEQ
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "STIMULUS VELOCITY = %.lf m/s\n", stim_velocity);
+    fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
     fprintf(fpInfos, "\nSIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     fprintf(fpInfos, "\nNORM-2 ERROR = %lf\n", norm2error);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
     SUCCESSMSG("Infos saved to %s\n", infosFilePath);
     fclose(fpInfos);
 
@@ -1099,11 +1244,11 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
     SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
-    
-    #ifdef SAVE_LAST_STATE
-    #ifdef AFHN
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
 
+#ifdef SAVE_LAST_STATE
+#ifdef AFHN
+
+    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
     snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
     snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
 
@@ -1111,10 +1256,15 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
     SUCCESSMSG("Last W frame saved to %s\n", lastFrameFilePathW);
-    #endif // AFHN
-    #ifdef TT2
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE], lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE], lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE], lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE], lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
-    
+
+#endif // AFHN
+#ifdef TT2
+
+    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
+         lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
+         lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
+         lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
+         lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
     snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
@@ -1173,18 +1323,22 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
     FILE *fpLastK_i = fopen(lastFrameFilePathK_i, "w");
     SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
-    #endif // TT2
-    #endif // SAVE_LAST_STATE
-    
-    // Save Action Potential
-    #ifdef CABLEEQ
+
+#endif // TT2
+#endif // SAVE_LAST_STATE
+
+// Save Action Potential
+#ifdef CABLEEQ
+
     char APFilePath[MAX_STRING_SIZE];
     snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP.txt", pathToSaveData);
     FILE *fpAP = fopen(APFilePath, "w");
     SUCCESSMSG("Action Potential saved to %s\n", APFilePath);
-    #endif // CABLEEQ
 
-#ifdef CONVERGENCE_ANALYSIS
+#endif // CABLEEQ
+
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
     FILE *fpExact = fopen(exactFilePath, "w");
@@ -1193,46 +1347,66 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
     FILE *fpErrors = fopen(errorsFilePath, "w");
     SUCCESSMSG("Errors saved to %s\n", errorsFilePath);
-#endif // CONVERGENCE_ANALYSIS
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #ifndef CABLEEQ
+
     for (int i = 0; i < Ny; i++)
     {
         for (int j = 0; j < Nx; j++)
         {
             fprintf(fpLast, "%e ", V[i][j]);
-            #ifdef SAVE_LAST_STATE
-            #ifdef AFHN
+
+#ifdef SAVE_LAST_STATE
+#ifdef AFHN
+
             fprintf(fpLastV, "%e ", V[i][j]);
             fprintf(fpLastW, "%e ", W[i][j]);
-            #endif // AFHN
-            #endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS
+
+#endif // AFHN
+#endif // SAVE_LAST_STATE
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
             fprintf(fpExact, "%e ", exact[i][j]);
             fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
-#endif // CONVERGENCE_ANALYSIS
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
         }
         fprintf(fpLast, "\n");
-        #ifdef SAVE_LAST_STATE
-        #ifdef AFHN
+
+#ifdef SAVE_LAST_STATE
+#ifdef AFHN
+
         fprintf(fpLastV, "\n");
         fprintf(fpLastW, "\n");
-        #endif // AFHN
-        #endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS
+
+#endif // AFHN
+#endif // SAVE_LAST_STATE
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
-#endif // CONVERGENCE_ANALYSIS
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
     }
+
 #else // if CABLEEQ
+
     for (int i = 0; i < Nx; i++)
     {
         fprintf(fpLast, "%e ", V[i]);
-        #ifdef SAVE_LAST_STATE
-        #ifdef AFHN
+        
+#ifdef SAVE_LAST_STATE
+#ifdef AFHN
+
         fprintf(fpLastV, "%e ", V[i]);
         fprintf(fpLastW, "%e ", W[i]);
-        #endif // AFHN
-        #ifdef TT2
+
+#endif // AFHN
+#ifdef TT2
+
         fprintf(fpLastV, "%e ", V[i]);
         fprintf(fpLastX_r1, "%e ", X_r1[i]);
         fprintf(fpLastX_r2, "%e ", X_r2[i]);
@@ -1252,23 +1426,30 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         fprintf(fpLastCa_SS, "%e ", Ca_SS[i]);
         fprintf(fpLastNa_i, "%e ", Na_i[i]);
         fprintf(fpLastK_i, "%e ", K_i[i]);
-        #endif // TT2
-        #endif // SAVE_LAST_STATE 
+
+#endif // TT2
+#endif // SAVE_LAST_STATE
+
     }
 
     for (int i = 0; i < M; i++)
     {
         fprintf(fpAP, "%e ", AP[i]);
     }
+
 #endif // not CABLEEQ
 
     fclose(fpLast);
-    #ifdef SAVE_LAST_STATE
-    #ifdef AFHN
+
+#ifdef SAVE_LAST_STATE
+#ifdef AFHN
+
     fclose(fpLastV);
     fclose(fpLastW);
-    #endif // AFHN
-    #ifdef TT2
+
+#endif // AFHN
+#ifdef TT2
+
     fclose(fpLastV);
     fclose(fpLastX_r1);
     fclose(fpLastX_r2);
@@ -1288,17 +1469,21 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     fclose(fpLastCa_SS);
     fclose(fpLastNa_i);
     fclose(fpLastK_i);
-    #endif // TT2
-    #endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS
+
+#endif // TT2
+#endif // SAVE_LAST_STATE
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
     fclose(fpExact);
     fclose(fpErrors);
-#endif // CONVERGENCE_ANALYSIS
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Free memory
     free(time);
 
 #ifndef CABLEEQ
+
     for (int i = 0; i < Ny; i++)
     {
         free(V[i]);
@@ -1306,11 +1491,15 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         free(RHS[i]);
         free(partRHS[i]);
         free(exact[i]);
+
 #ifdef MONODOMAIN
 #ifdef AFHN
+
         free(W[i]);
+
 #endif // AFHN
 #ifdef TT2
+
         free(X_r1[i]);
         free(X_r2[i]);
         free(X_s[i]);
@@ -1329,10 +1518,14 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
         free(Ca_SS[i]);
         free(Na_i[i]);
         free(K_i[i]);
+
 #endif // TT2
 #endif // MONODOMAIN
+
     }
+
 #endif // not CABLEEQ
+
     free(V);
     free(Vtilde);
     free(RHS);
@@ -1345,7 +1538,9 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     free(la_x);
     free(lb_x);
     free(lc_x);
-    #ifndef CABLEEQ
+
+#ifndef CABLEEQ
+
     free(c_prime_y);
     free(d_prime_y);
     free(LS_b_y);
@@ -1353,21 +1548,30 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     free(la_y);
     free(lb_y);
     free(lc_y);
-    #endif // not CABLEEQ
+
+#endif // not CABLEEQ
+
     free(pathToSaveData);
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
-#ifndef CONVERGENCE_ANALYSIS
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+
     free(stimuli);
-#endif // not CONVERGENCE_ANALYSIS
+
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef CABLEEQ
+
     free(AP);
     fclose(fpAP);
+
 #endif // CABLEEQ
 #ifdef AFHN
+
     free(W);
+
 #endif // AFHN
 #ifdef TT2
+
     free(X_r1);
     free(X_r2);
     free(X_s);
@@ -1386,6 +1590,7 @@ void runSimulationSerial(char *method, real delta_t, real delta_x, real delta_y,
     free(Ca_SS);
     free(Na_i);
     free(K_i);
+
 #endif // TT2
 #endif // MONODOMAIN || CABLEEQ
 

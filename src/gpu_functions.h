@@ -4,7 +4,7 @@
 #include "simulation_config.h"
 
 #ifdef DIFF
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x) * cos(_pi * y);
@@ -13,11 +13,11 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-1.0f + 2.0f * (_pi * _pi));
 }
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // DIFF
 
 #ifdef LINMONO
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
@@ -27,11 +27,11 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-(chi * Cm) + chi * G + 2.0f * (sigma / (chi * Cm)) * _pi * _pi / (L * L));
 }
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // LINMONO
 
 #ifdef MONODOMAIN
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
@@ -158,7 +158,7 @@ __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, re
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
     }
 }
-#endif // AFHN (previously CONVERGENCE_ANALYSIS && AFHN)
+#endif // AFHN (previously CONVERGENCE_ANALYSIS_FORCING_TERM && AFHN)
 #ifdef TT2
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
 __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)

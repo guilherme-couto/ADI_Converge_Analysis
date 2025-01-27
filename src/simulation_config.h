@@ -8,7 +8,7 @@
 const int frameSaveRate = 1000;
 #endif // SAVE_FRAMES
 
-#ifndef  CONVERGENCE_ANALYSIS
+#ifndef  CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef CABLEEQ
 const real totalTime = 50.0f; // Total time (ms)
 const __constant__ real Lx = 5.0f;     // Length in x (cm)
@@ -21,7 +21,7 @@ const __constant__ real Ly = 0.01f;     // Length in y (cm)
 const real totalTime = 0.1f; // Total time (ms)
 const __constant__ real Lx = 1.0f;     // Length in x (cm)
 const __constant__ real Ly = 1.0f;     // Length in y (cm)
-#endif // not CONVERGENCE_ANALYSIS
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 // Stimulation parameters

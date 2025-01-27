@@ -22,6 +22,59 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
+def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_state, method, theta=None):
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
+    
+    if real_type == 'double':
+        compile_command += '-DUSE_DOUBLE '
+    elif real_type == 'float':
+        compile_command += '-DUSE_FLOAT '
+
+    if serial_or_gpu == 'GPU':
+        compile_command += '-DGPU '
+    elif serial_or_gpu == 'SERIAL':
+        compile_command += '-DSERIAL '
+
+    if problem == 'MONODOMAIN':
+        compile_command += '-DMONODOMAIN '
+    elif problem == 'CABLEEQ':
+        compile_command += '-DCABLEEQ '
+
+    if cell_model == 'AFHN':
+        compile_command += '-DAFHN '
+    elif cell_model == 'TT2':
+        compile_command += '-DTT2 -DENDO '
+
+    if init == 'restore_state':
+        compile_command += '-DRESTORE_STATE '
+
+    if shift_state:
+        compile_command += '-DSHIFT_STATE '
+
+    if frames:
+        compile_command += '-DSAVE_FRAMES '
+
+    if save_last_state:
+        compile_command += '-DSAVE_LAST_STATE '
+
+    if method == 'ADI':
+        compile_command += '-DADI '
+    elif method == 'OS-ADI':
+        compile_command += '-DOSADI '
+    elif method == 'SSI-ADI':
+        compile_command += '-DSSIADI '
+    elif method == 'theta-SSI-ADI':
+        compile_command += '-DTHETASSIADI '
+        compile_command += f'-DTHETA={theta} '
+    elif method == 'theta-SSI-RK2':
+        compile_command += '-DTHETASSIRK2 '
+        compile_command += f'-DTHETA={theta} '
+    elif method == 'FE':
+        compile_command += '-DFE '
+    
+    print(f'Compiling {compile_command}...')
+    os.system(compile_command)
+
 def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
     
     if real_type == 'float':
@@ -32,7 +85,7 @@ def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, probl
         raise ValueError('Invalid real type')
     
     # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS_FORCING_TERM -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
     print(f'Compiling {compile_command}...')
     os.system(compile_command)
 

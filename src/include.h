@@ -30,6 +30,9 @@
 #define BDIMY 16
 #define BLOCK_SIZE 32
 
+// Convert CM to UM
+#define CM_TO_UM(x) ((int)(x * 1.0e4))
+
 // Define real type via compile command line (-D{OPTION}, USE_const real or USE_FLOAT)
 #ifdef USE_DOUBLE
 typedef double real;
@@ -89,35 +92,28 @@ typedef float real;
 #endif // GPU
 
 // Define problem via compile command line (-D{OPTION}):
-// forcing only for CONVERGENCE_ANALYSIS
+// forcing only for CONVERGENCE_ANALYSIS_FORCING_TERM
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*Cm*dv/dt = sigma*Lap(v) - chi*G*v + forcing
 //            Boundaries: Neumann
 //
-// DIFFREAC -> Diffusion with linear reaction (2D)
-//             dv/dt + v = sigma*Lap(v) + forcing
-//             Boundaries: Neumann
-//
-// DIFF -> Linear diffusion (2D)
-//         dv/dt = sigma*Lap(v) + forcing
-//         Boundaries: Neumann
-//
 // MONODOMAIN with AFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
-//                         { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm + forcing/(chi*Cm)
+//                         { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm [+ forcing/(chi*Cm)]
 //                         { dw/dt = RHS_w
 //                         RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
 //                         RHS_w = eta2 * ((v/vp)-(eta3*w))
 //                         Boundaries: Neumann
+//
+// CABLEEQ -> Cable equation with adapted FitzHugh-Nagumo (1D)
+//            { dv/dt = (sigma/(chi*Cm))*d²v/dx² - RHS_v/Cm
+//            { dw/dt = RHS_w
+//            RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
+//            RHS_w = eta2 * ((v/vp)-(eta3*w))
+//            Boundaries: Neumann
 
 #ifdef LINMONO
 #define PROBLEM "LINMONO"
 #endif // LINMONO
-#ifdef DIFFREAC
-#define PROBLEM "DIFFREAC"
-#endif // DIFFREAC
-#ifdef DIFF
-#define PROBLEM "DIFF"
-#endif // DIFF
 #ifdef MONODOMAIN
 #define PROBLEM "MONODOMAIN"
 #endif // MONODOMAIN
@@ -139,6 +135,33 @@ typedef struct
 } Stimulus;
 #endif // MONODOMAIN || CABLEEQ
 
+// Define method via compile command line (-D{OPTION}):
+// ADI -> Alternating Direction Implicit
+// OS-ADI -> Operator Splitting ADI
+// SSI-ADI -> Second Order Semi Implicit ADI
+// theta-ADI -> theta method with ADI
+// theta-RK2 -> theta method with RK2 (only for CABLEEQ)
+// FE -> Forward Euler
+
+#ifdef ADI
+#define METHOD "ADI"
+#endif // ADI
+#ifdef OSADI
+#define METHOD "OS-ADI"
+#endif // OSADI
+#ifdef SSIADI
+#define METHOD "SSI-ADI"
+#endif // SSIADI
+#ifdef THETASSIADI
+#define METHOD "theta-SSI-ADI"
+#endif // THETASSIADI
+#ifdef THETASSIRK2
+#define METHOD "theta-SSI-RK2"
+#endif // THETARK2
+#ifdef FE
+#define METHOD "FE"
+#endif // FE
+
 // If defined SERIAL, constants are defined only as const for CPU
 #ifdef SERIAL
 const real _pi = 3.14159265358979323846f;
@@ -156,7 +179,7 @@ const real sigma = 1.0f;
 const real sigma = 1.0f;
 #endif // DIFF
 #if defined(MONODOMAIN) || defined(CABLEEQ)
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
 const real Cm = 1.0f;    // mF * cm^-2
@@ -439,7 +462,7 @@ const __constant__ real sigma = 1.0f;
 const __constant__ real sigma = 1.0f;
 #endif // DIFF
 #ifdef MONODOMAIN
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
 const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0f;   // cm^-1
 const __constant__ real Cm = 1.0f;    // mF * cm^-2

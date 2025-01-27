@@ -2,17 +2,17 @@ EXECUTION_TYPE = SERIAL
 PRECISION = double
 PROBLEM = MONODOMAIN
 CELL_MODEL = AFHN
-METHOD = SSI-ADI
+METHOD = FE
 
 DOMAIN LENGTH IN X = 1 cm
 DOMAIN LENGTH IN Y = 0.01 cm
-TOTAL TIME = 6 ms
+TOTAL TIME = 6.00 ms
 
 delta_t = 0.001 ms (6000 time steps)
-delta_x = 0.0005 cm (5 um) (2001 space steps in x)
-delta_y = 0.0005 cm (5 um) (21 space steps in y)
+delta_x = 0.0005 cm (2001 space steps in x)
+delta_y = 0.0005 cm (21 space steps in y)
 TOTAL POINTS IN DOMAIN = 42021
 
-STIMULUS VELOCITY = 0.85889 m/s
+STIMULUS VELOCITY = 0 m/s
 
-SIMULATION EXECUTION TIME = 6.104014 s
+SIMULATION EXECUTION TIME = 1.463792 s

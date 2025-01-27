@@ -418,7 +418,7 @@ void saveFrame(FILE *file, real actualTime, real *V, int N)
     }
 }
 
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 void initialize2DVariableWithExactSolution(real *Var, int N, real delta_x)
 {
     real x, y;
@@ -455,7 +455,7 @@ real calculateNorm2Error(real *V, real **exact, int N, real totalTime, real delt
     }
     return delta_x * sqrt(sum);
 }
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // GPU
 
 // Populate diagonals for Thomas algorithm
@@ -477,24 +477,23 @@ void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real p
     lc[N - 1] = 0.0f;
 }
 
-void createDirectories(char *method, real delta_t, real delta_x, real delta_y, real theta, char *pathToSaveData)
+void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSaveData)
 {
     // Build the path
     char path[MAX_STRING_SIZE];
     #ifndef CABLEEQ
-    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
     #else
-    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, method);
+    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
     #endif // not CABLEEQ
 
+#ifdef THETA
     // Add theta to the path
-    if (strstr(method, "theta") != NULL)
-    {
-        char thetaPath[MAX_STRING_SIZE];
-        snprintf(thetaPath, MAX_STRING_SIZE * sizeof(char), "%.2lf", theta);
-        strcat(path, "/");
-        strcat(path, thetaPath);
-    }
+    char thetaPath[MAX_STRING_SIZE];
+    snprintf(thetaPath, MAX_STRING_SIZE * sizeof(char), "%.2lf", THETA);
+    strcat(path, "/");
+    strcat(path, thetaPath);
+#endif // THETA
 
     // Update pathToSaveData
     strcpy(pathToSaveData, path);
@@ -520,7 +519,7 @@ int lim(int num, int N)
 }
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
-#ifndef CONVERGENCE_ANALYSIS
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 {
     for (int i = 0; i < numberOfStimuli; i++)
@@ -546,7 +545,7 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
         #endif // CABLEEQ
     }
 }
-#endif // not CONVERGENCE_ANALYSIS
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // MONODOMAIN || CABLEEQ
 
 #endif // AUXFUNCS_H

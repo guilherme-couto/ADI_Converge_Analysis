@@ -20,11 +20,11 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     RHS = (real *)malloc(N * N * sizeof(real));
     partRHS = (real *)malloc(N * N * sizeof(real));
 
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     initialize2DVariableWithExactSolution(V, N, delta_x);
 #else
     initialize2DVariableWithValue(V, N, V_init);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifdef MONODOMAIN
     #ifdef AFHN
@@ -296,7 +296,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #endif // TT2
 #endif // MONODOMAIN
 
-#ifndef CONVERGENCE_ANALYSIS
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef MONODOMAIN
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
@@ -307,7 +307,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMalloc(&d_stimuli, numberOfStimuli * sizeof(Stimulus)));
     CUDA_CALL(cudaMemcpy(d_stimuli, stimuli, numberOfStimuli * sizeof(Stimulus), cudaMemcpyHostToDevice));
 #endif // MONODOMAIN
-#endif // not CONVERGENCE_ANALYSIS
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // CUDA grid and block allocation
     // For Thomas algorithm kernel
@@ -374,11 +374,11 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
             //  Calculate Approx. and ODEs                     !
             // ================================================!
 
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
             computeApproxSSI<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
 #elif defined(AFHN)
             computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_partRHS, d_W, d_stimuli);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef TT2
             computeApprox<<<GRID_SIZE, BLOCK_SIZE>>>(N, delta_t, phi, diff_coeff, delta_x, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
 #endif // TT2
@@ -474,14 +474,14 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaMemcpy(V, d_V, N * N * sizeof(real), cudaMemcpyDeviceToHost));
 
     // Calculate exact solution
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     real **exact = (real **)malloc(N * sizeof(real *));
     for (int i = 0; i < N; i++)
     {
         exact[i] = (real *)malloc(N * sizeof(real));
     }
     real norm2error = calculateNorm2Error(V, exact, N, totalTime, delta_x);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
@@ -498,9 +498,9 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     fprintf(fpInfos, "\nFor Thomas -> Grid size: %d, Block size: %d\n", numBlocks, blockSize);
     fprintf(fpInfos, "Total threads: %d\n", numBlocks * blockSize);
     fprintf(fpInfos, "\nTotal execution time = %lf\n", elapsedTime);
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     fprintf(fpInfos, "\nNorm-2 Error = %lf\n", norm2error);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
     fclose(fpInfos);
 
     // Save last frame
@@ -604,7 +604,7 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #endif // TT2
 #endif // SAVE_LAST_STATE
              
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact/exact_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpExact = fopen(exactFilePath, "w");
@@ -613,17 +613,17 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors/errors_%.5f_%.5f.txt", pathToSaveData, delta_t, delta_x);
     FILE *fpErrors = fopen(errorsFilePath, "w");
     printf("Errors saved to %s\n", errorsFilePath);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
     for (int i = 0; i < N; i++)
     {
         for (int _j = 0; _j < N; _j++)
         {
             int index = i * N + _j;
             fprintf(fpLast, "%e ", V[index]);
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
             fprintf(fpExact, "%e ", exact[i][_j]);
             fprintf(fpErrors, "%e ", abs(V[index] - exact[i][_j]));
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef SAVE_LAST_STATE
 #ifdef AFHN
             fprintf(fpLastV, "%e ", V[index]);
@@ -653,10 +653,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #endif // SAVE_LAST_STATE
         }
         fprintf(fpLast, "\n");
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef SAVE_LAST_STATE
         #ifdef AFHN
         fprintf(fpLastV, "\n");
@@ -686,10 +686,10 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 #endif // SAVE_LAST_STATE
     }
     fclose(fpLast);
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     fclose(fpExact);
     fclose(fpErrors);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef SAVE_LAST_STATE
     #ifdef AFHN
     fclose(fpLastV);
@@ -720,13 +720,13 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
     // Free memory
     free(time);
-#ifdef CONVERGENCE_ANALYSIS
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     for (int i = 0; i < N; i++)
     {
         free(exact[i]);
     }
     free(exact);
-#endif // CONVERGENCE_ANALYSIS
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Free memory from host
     free(V);
@@ -761,9 +761,9 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     free(Na_i);
     free(K_i);
     #endif // TT2
-    #ifndef CONVERGENCE_ANALYSIS
+    #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
     free(stimuli);
-    #endif // not CONVERGENCE_ANALYSIS
+    #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // MONODOMAIN
 
     // Free memory from device
@@ -798,9 +798,9 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
     CUDA_CALL(cudaFree(d_Na_i));
     CUDA_CALL(cudaFree(d_K_i));
 #endif // TT2
-#ifndef CONVERGENCE_ANALYSIS
+#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
     CUDA_CALL(cudaFree(d_stimuli));
-#endif // not CONVERGENCE_ANALYSIS
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // MONODOMAIN
 
     // Reset device

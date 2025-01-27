@@ -6,7 +6,7 @@ def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = [0.005, 0.01, 0.02] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
     dts = [0.001, 0.002, 0.004, 0.005]
-    methods = ['SSI-ADI', 'theta-ADI'] #'SSI-ADI', 'theta-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ)
+    methods = ['SSI-ADI', 'OS-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
@@ -53,7 +53,7 @@ def main():
         ea_file.write(f'For method {method}\n')
         
         if 'theta' not in method:
-            ea_file.write(f'dt \t\t| dx \t\t| dy \t\t| N-2 Error \t| slope\n')
+            ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\n')
             ea_file.write('-----------------------------------------------------------------------\n')
             
             # Comparative plot
@@ -100,7 +100,7 @@ def main():
                 print()
                 
                 # Write to error analysis file
-                ea_file.write(f'{dt}\t| {dx}\t| {dy}\t| {(n2_error):.6f} \t| {slope}\n')
+                ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.6f} \t| {slope}\n')
                 
                 prev_error = n2_error
 
@@ -119,37 +119,40 @@ def main():
             dt_values = np.array(dts)
             n2_errors = np.array(n2_errors)
 
-            # Calculate the logarithms of dt_values and n2_errors
-            log_dt_values = np.log10(dt_values)
-            log_n2_errors = np.log10(n2_errors)
-
             # Fit a line to the log-log data (least squares method)
-            coefficients = np.polyfit(log_dt_values, log_n2_errors, 1)  # 1 indicates a linear fit
-            line_slope = coefficients[0]
+            if np.isnan(n2_errors).all():
+                ea_file.write(f'Slope of the fitted line (least squares in log-log): NaN\n\n')
+            else:
+                # Calculate the logarithms of dt_values and n2_errors
+                log_dt_values = np.log10(dt_values)
+                log_n2_errors = np.log10(n2_errors)
 
-            # Create the linear fit function in log-log space
-            linear_fit = np.poly1d(coefficients)
+                coefficients = np.polyfit(log_dt_values, log_n2_errors, 1)  # 1 indicates a linear fit
+                line_slope = coefficients[0]
 
-            # Plot the data of N2-error vs dt in log-log scale
-            plt.figure()
-            plt.loglog(dt_values, n2_errors, 'o', color='blue', label='N-2 Error')
-            plt.loglog(dt_values, 10**linear_fit(log_dt_values), color='red', label='Linear Fit', linestyle='--')
-            plt.xlabel('dt')
-            plt.ylabel('N-2 Error')
-            plt.title(f'N-2 Error vs dt for {method}')
-            plt.legend()
-            plt.grid()
-            plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog.png')
-            plt.close()
+                # Create the linear fit function in log-log space
+                linear_fit = np.poly1d(coefficients)
 
-            # Write the slope of the fitted line to the file
-            ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
+                # Plot the data of N2-error vs dt in log-log scale
+                plt.figure()
+                plt.loglog(dt_values, n2_errors, 'o', color='blue', label='N-2 Error')
+                plt.loglog(dt_values, 10**linear_fit(log_dt_values), color='red', label='Linear Fit', linestyle='--')
+                plt.xlabel('dt')
+                plt.ylabel('N-2 Error')
+                plt.title(f'N-2 Error vs dt for {method}')
+                plt.legend()
+                plt.grid()
+                plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog.png')
+                plt.close()
+
+                # Write the slope of the fitted line to the file
+                ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
         
         else:
             thetas_linear_fits = []
             for theta in thetas:
                 ea_file.write(f'with theta={theta}\n')
-                ea_file.write(f'dt \t\t| dx \t\t| dy \t\t| N-2 Error \t| slope\n')
+                ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\n')
                 ea_file.write('------------------------------------------------------------------------\n')
                 
                 # Comparative plot
@@ -196,7 +199,7 @@ def main():
                     print()
                     
                     # Write to error analysis file
-                    ea_file.write(f'{dt}\t| {dx}\t| {dy}\t| {(n2_error):.6f} \t| {slope}\n')
+                    ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.6f} \t| {slope}\n')
                     
                     prev_error = n2_error
 
@@ -216,33 +219,37 @@ def main():
                 dt_values = np.array(dts)
                 n2_errors = np.array(n2_errors)
 
-                # Calculate the logarithms of dt_values and n2_errors
-                log_dt_values = np.log10(dt_values)
-                log_n2_errors = np.log10(n2_errors)
-
                 # Fit a line to the log-log data (least squares method)
-                coefficients = np.polyfit(log_dt_values, log_n2_errors, 1)  # 1 indicates a linear fit
-                line_slope = coefficients[0]
+                if np.isnan(n2_errors).all():
+                    ea_file.write(f'Slope of the fitted line (least squares in log-log): NaN\n\n')
+                else:
+                    # Calculate the logarithms of dt_values and n2_errors
+                    log_dt_values = np.log10(dt_values)
+                    log_n2_errors = np.log10(n2_errors)
 
-                # Create the linear fit function in log-log space
-                linear_fit = np.poly1d(coefficients)
+                    # Fit a line to the log-log data (least squares method)
+                    coefficients = np.polyfit(log_dt_values, log_n2_errors, 1)  # 1 indicates a linear fit
+                    line_slope = coefficients[0]
 
-                # Plot the data of N2-error vs dt in log-log scale
-                plt.figure()
-                plt.loglog(dt_values, n2_errors, 'o', color='blue', label='N-2 Error')
-                plt.loglog(dt_values, 10**linear_fit(log_dt_values), color='red', label='Linear Fit', linestyle='--')
-                plt.xlabel('dt')
-                plt.ylabel('N-2 Error')
-                plt.title(f'N-2 Error vs dt for {method} (theta={theta})')
-                plt.legend()
-                plt.grid()
-                plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog_{theta}.png')
-                plt.close()
+                    # Create the linear fit function in log-log space
+                    linear_fit = np.poly1d(coefficients)
 
-                thetas_linear_fits.append(10**linear_fit(log_dt_values))
+                    # Plot the data of N2-error vs dt in log-log scale
+                    plt.figure()
+                    plt.loglog(dt_values, n2_errors, 'o', color='blue', label='N-2 Error')
+                    plt.loglog(dt_values, 10**linear_fit(log_dt_values), color='red', label='Linear Fit', linestyle='--')
+                    plt.xlabel('dt')
+                    plt.ylabel('N-2 Error')
+                    plt.title(f'N-2 Error vs dt for {method} (theta={theta})')
+                    plt.legend()
+                    plt.grid()
+                    plt.savefig(f'{error_analysis_dir}/n2_error_vs_dt_loglog_{theta}.png')
+                    plt.close()
 
-                # Write the slope of the fitted line to the file
-                ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
+                    thetas_linear_fits.append(10**linear_fit(log_dt_values))
+
+                    # Write the slope of the fitted line to the file
+                    ea_file.write(f'Slope of the fitted line (least squares in log-log): {line_slope:.6f}\n\n')
             
             plt.figure()
             for t in range(len(thetas)):

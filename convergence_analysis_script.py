@@ -19,7 +19,7 @@ def main():
     # alphas = [0.1]
     
     # Compile (arch=sm_80 for A100-Ampere; arch=sm_86 for RTX3050-Ampere; arch=sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS -w '
+    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS_FORCING_TERM -w '
     if real_type == 'double':
         compile_command += '-DUSE_DOUBLE '
     elif real_type == 'float':
