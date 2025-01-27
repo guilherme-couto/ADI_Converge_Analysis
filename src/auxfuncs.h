@@ -290,20 +290,20 @@ void saveFrame(FILE *file, real actualTime, real *V, int N)
 #endif // SERIAL
 
 #ifdef GPU
-void initialize2DVariableWithValue(real *Var, int N, real value)
+void initialize2DVariableWithValue(real *Var, int Nx, int Ny, real value)
 {
     int index;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
-            index = i * N + j;
+            index = i * Nx + j;
             Var[index] = value;
         }
     }
 }
 
-void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName, real reference_dx)
+void initialize2DVariableFromFile(real *Var, int Nx, int Ny, char *filename, real delta_x, real delta_y, char *varName, real reference_dx, real reference_dy)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -312,28 +312,29 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
         exit(1);
     }
 
-    int baseN = round(L / reference_dx) + 1;
-    int rate = round(delta_x / reference_dx);
+    int baseNx = round(Lx / reference_dx) + 1;
+    int baseNy = round(Ly / reference_dy) + 1;
+    int rate_x = round(delta_x / reference_dx);
+    int rate_y = round(delta_y / reference_dy);
 
     int sizeFile = 0;
     int sizeVar = 0;
     real value;
 
-    INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
-
-    for (int i = 0; i < baseN; i++)
+    INFOMSG("Reading file %s to initialize variable with rate_x=%d and rate_y=%d\n", filename, rate_x, rate_y);
+    for (int i = 0; i < baseNy; i++)
     {
-        for (int j = 0; j < baseN; j++)
+        for (int j = 0; j < baseNx; j++)
         {
             // Read value from file to variable
             // If i and j are multiples of rate, read value to Var
             fscanf(file, FSCANF_REAL, &value);
-            if (i % rate == 0 && j % rate == 0)
+            if (i % rate_y == 0 && j % rate_x == 0)
             {
                 Var[sizeVar] = value;
                 if (isnan(value))
                 {
-                    ERRORMSG("At var index %d, file index %d, value is NaN\n", sizeVar, i * baseN + j);
+                    ERRORMSG("At var index %d, file index %d, value is NaN\n", sizeVar, i * baseNx + j);
                     exit(1);
                 }
                 sizeVar++;
@@ -342,8 +343,7 @@ void initialize2DVariableFromFile(real *Var, int N, char *filename, real delta_x
         }
     }
     fclose(file);
-
-    SUCCESSMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+    INFOMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
 void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
@@ -419,17 +419,17 @@ void saveFrame(FILE *file, real actualTime, real *V, int N)
 }
 
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-void initialize2DVariableWithExactSolution(real *Var, int N, real delta_x)
+void initialize2DVariableWithExactSolution(real *Var, int Nx, int Ny, real delta_x, real delta_y)
 {
     real x, y;
     int index;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
-            x = i * delta_x;
-            y = j * delta_x;
-            index = i * N + j;
+            x = j * delta_x;
+            y = i * delta_y;
+            index = i * Nx + j;
             Var[index] = exactSolution(0.0f, x, y);
         }
     }

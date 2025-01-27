@@ -3,126 +3,162 @@
 
 #include "auxfuncs.h"
 
-void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
+void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 {
     // Number of steps
-    int N = round(L / delta_x) + 1;     // Spatial steps (square tissue)
     int M = round(totalTime / delta_t); // Number of time steps
+    int Nx = round(Lx / delta_x) + 1;   // Spatial steps in x
+    int Ny = round(Ly / delta_y) + 1; // Spatial steps in y
+
+    printf("Nx = %d\n", Nx);
+    printf("Ny = %d\n", Ny);
+    printf("Points in the domain = %d\n", Nx * Ny);
+    printf("\n");
 
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
 
-    // Allocate arrays for variables
-    real *V, *Vtilde, *RHS, *partRHS;
-    V = (real *)malloc(N * N * sizeof(real));
-    Vtilde = (real *)malloc(N * N * sizeof(real));
-    RHS = (real *)malloc(N * N * sizeof(real));
-    partRHS = (real *)malloc(N * N * sizeof(real));
+    // Allocate arrays for variables (2D matrices will be flattened)
+    real *V, *Vtilde, *RHS, *partRHS, *exact;
+    V = (real *)malloc(Nx * Ny * sizeof(real *));
+    Vtilde = (real *)malloc(Nx * Ny * sizeof(real *));
+    RHS = (real *)malloc(Nx * Ny * sizeof(real *));
+    partRHS = (real *)malloc(Nx * Ny * sizeof(real *));
+    exact = (real *)malloc(Nx * Ny * sizeof(real *));
 
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-    initialize2DVariableWithExactSolution(V, N, delta_x);
-#else
-    initialize2DVariableWithValue(V, N, V_init);
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-
-#ifdef MONODOMAIN
-    #ifdef AFHN
-    real *W = (real *)malloc(N * N * sizeof(real));
-    initialize2DVariableWithValue(W, N, W_init);
-    #endif // AFHN
-    #ifdef TT2
-    real *X_r1 = (real *)malloc(N * N * sizeof(real));
-    real *X_r2 = (real *)malloc(N * N * sizeof(real));
-    real *X_s = (real *)malloc(N * N * sizeof(real));
-    real *m = (real *)malloc(N * N * sizeof(real));
-    real *h = (real *)malloc(N * N * sizeof(real));
-    real *j = (real *)malloc(N * N * sizeof(real));
-    real *d = (real *)malloc(N * N * sizeof(real));
-    real *f = (real *)malloc(N * N * sizeof(real));
-    real *f2 = (real *)malloc(N * N * sizeof(real));
-    real *fCaSS = (real *)malloc(N * N * sizeof(real));
-    real *s = (real *)malloc(N * N * sizeof(real));
-    real *r = (real *)malloc(N * N * sizeof(real));
-    real *Ca_i = (real *)malloc(N * N * sizeof(real));
-    real *Ca_SR = (real *)malloc(N * N * sizeof(real));
-    real *Ca_SS = (real *)malloc(N * N * sizeof(real));
-    real *R_prime = (real *)malloc(N * N * sizeof(real));
-    real *Na_i = (real *)malloc(N * N * sizeof(real));
-    real *K_i = (real *)malloc(N * N * sizeof(real));
-    initialize2DVariableWithValue(X_r1, N, X_r1_init);
-    initialize2DVariableWithValue(X_r2, N, X_r2_init);
-    initialize2DVariableWithValue(X_s, N, X_s_init);
-    initialize2DVariableWithValue(m, N, m_init);
-    initialize2DVariableWithValue(h, N, h_init);
-    initialize2DVariableWithValue(j, N, j_init);
-    initialize2DVariableWithValue(d, N, d_init);
-    initialize2DVariableWithValue(f, N, f_init);
-    initialize2DVariableWithValue(f2, N, f2_init);
-    initialize2DVariableWithValue(fCaSS, N, fCaSS_init);
-    initialize2DVariableWithValue(s, N, s_init);
-    initialize2DVariableWithValue(r, N, r_init);
-    initialize2DVariableWithValue(Ca_i, N, Ca_i_init);
-    initialize2DVariableWithValue(Ca_SR, N, Ca_SR_init);
-    initialize2DVariableWithValue(Ca_SS, N, Ca_SS_init);
-    initialize2DVariableWithValue(R_prime, N, R_prime_init);
-    initialize2DVariableWithValue(Na_i, N, Na_i_init);
-    initialize2DVariableWithValue(K_i, N, K_i_init);
-    #endif // TT2
-#endif // MONODOMAIN
-
-#ifdef INIT_WITH_SPIRAL
-    char* reference_dt = "0.00010";
-    char* reference_dx = "0.00050";
-    real real_ref_dx = 0.0005f;
-    char *pathToSpiralFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastV_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(V, N, pathToSpiralFiles, delta_x, "V", real_ref_dx);
 #ifdef AFHN
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastW_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(W, N, pathToSpiralFiles, delta_x, "W", real_ref_dx);
+
+    real *W = (real *)malloc(Nx * Ny * sizeof(real *));
+
 #endif // AFHN
 #ifdef TT2
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastX_r1_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(X_r1, N, pathToSpiralFiles, delta_x, "X_r1", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastX_r2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(X_r2, N, pathToSpiralFiles, delta_x, "X_r2", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastX_s_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(X_s, N, pathToSpiralFiles, delta_x, "X_s", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastm_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(m, N, pathToSpiralFiles, delta_x, "m", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lasth_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(h, N, pathToSpiralFiles, delta_x, "h", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastj_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(j, N, pathToSpiralFiles, delta_x, "j", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastd_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(d, N, pathToSpiralFiles, delta_x, "d", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastf_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(f, N, pathToSpiralFiles, delta_x, "f", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastf2_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(f2, N, pathToSpiralFiles, delta_x, "f2", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastfCaSS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(fCaSS, N, pathToSpiralFiles, delta_x, "fCaSS", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lasts_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(s, N, pathToSpiralFiles, delta_x, "s", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastr_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(r, N, pathToSpiralFiles, delta_x, "r", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastCa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(Ca_i, N, pathToSpiralFiles, delta_x, "Ca_i", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastCa_SR_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(Ca_SR, N, pathToSpiralFiles, delta_x, "Ca_SR", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastCa_SS_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(Ca_SS, N, pathToSpiralFiles, delta_x, "Ca_SS", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastR_prime_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(R_prime, N, pathToSpiralFiles, delta_x, "R_prime", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastNa_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(Na_i, N, pathToSpiralFiles, delta_x, "Na_i", real_ref_dx);
-    snprintf(pathToSpiralFiles, MAX_STRING_SIZE * sizeof(char), "./spiral_files/%s/%s/%s/lastK_i_%s_%s.txt", REAL_TYPE, PROBLEM, CELL_MODEL, reference_dt, reference_dx);
-    initialize2DVariableFromFile(K_i, N, pathToSpiralFiles, delta_x, "K_i", real_ref_dx);
-#endif // TT2
-    free(pathToSpiralFiles);
-#endif // INIT_WITH_SPIRAL
 
+    real *X_r1 = (real *)malloc(Nx * Ny * sizeof(real));
+    real *X_r2 = (real *)malloc(Nx * Ny * sizeof(real));
+    real *X_s = (real *)malloc(Nx * Ny * sizeof(real));
+    real *m = (real *)malloc(Nx * Ny * sizeof(real));
+    real *h = (real *)malloc(Nx * Ny * sizeof(real));
+    real *_j = (real *)malloc(Nx * Ny * sizeof(real));
+    real *d = (real *)malloc(Nx * Ny * sizeof(real));
+    real *f = (real *)malloc(Nx * Ny * sizeof(real));
+    real *f2 = (real *)malloc(Nx * Ny * sizeof(real));
+    real *fCaSS = (real *)malloc(Nx * Ny * sizeof(real));
+    real *s = (real *)malloc(Nx * Ny * sizeof(real));
+    real *r = (real *)malloc(Nx * Ny * sizeof(real));
+    real *Ca_i = (real *)malloc(Nx * Ny * sizeof(real));
+    real *Ca_SR = (real *)malloc(Nx * Ny * sizeof(real));
+    real *Ca_SS = (real *)malloc(Nx * Ny * sizeof(real));
+    real *R_prime = (real *)malloc(Nx * Ny * sizeof(real));
+    real *Na_i = (real *)malloc(Nx * Ny * sizeof(real));
+    real *K_i = (real *)malloc(Nx * Ny * sizeof(real));
+
+#endif // TT2
+
+    // Initialize variables
+#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+    
+    initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
+
+#else // not CONVERGENCE_ANALYSIS_FORCING_TERM
+
+    initialize2DVariableWithValue(V, Nx, Ny, V_init);
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
+#ifdef AFHN
+
+    initialize2DVariableWithValue(W, Nx, Ny, W_init);
+
+#endif // AFHN
+
+#ifdef TT2
+
+    initialize2DVariableWithValue(X_r1, Nx, Ny, X_r1_init);
+    initialize2DVariableWithValue(X_r2, Nx, Ny, X_r2_init);
+    initialize2DVariableWithValue(X_s, Nx, Ny, X_s_init);
+    initialize2DVariableWithValue(m, Nx, Ny, m_init);
+    initialize2DVariableWithValue(h, Nx, Ny, h_init);
+    initialize2DVariableWithValue(_j, Nx, Ny, j_init);
+    initialize2DVariableWithValue(d, Nx, Ny, d_init);
+    initialize2DVariableWithValue(f, Nx, Ny, f_init);
+    initialize2DVariableWithValue(f2, Nx, Ny, f2_init);
+    initialize2DVariableWithValue(fCaSS, Nx, Ny, fCaSS_init);
+    initialize2DVariableWithValue(s, Nx, Ny, s_init);
+    initialize2DVariableWithValue(r, Nx, Ny, r_init);
+    initialize2DVariableWithValue(Ca_i, Nx, Ny, Ca_i_init);
+    initialize2DVariableWithValue(Ca_SR, Nx, Ny, Ca_SR_init);
+    initialize2DVariableWithValue(Ca_SS, Nx, Ny, Ca_SS_init);
+    initialize2DVariableWithValue(R_prime, Nx, Ny, R_prime_init);
+    initialize2DVariableWithValue(Na_i, Nx, Ny, Na_i_init);
+    initialize2DVariableWithValue(K_i, Nx, Ny, K_i_init);
+
+#endif // TT2
+
+#ifdef RESTORE_STATE
+
+    // Initialize variables with a solution
+    real real_ref_dx = 0.0005f;
+    real real_def_dy = 0.0005f;
+
+    char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
+
+#ifdef AFHN
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
+
+#endif // AFHN
+
+#ifdef TT2
+    
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_r1, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r1", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_r2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r2", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_s", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframem.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(m, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "m", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(h, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "h", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(_j, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "j", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(d, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "d", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(f, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(f2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f2", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframefCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(fCaSS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "fCaSS", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframer.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(r, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "r", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_i", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_SR, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SR", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_SS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SS", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(R_prime, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "R_prime", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Na_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Na_i", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(K_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "K_i", real_ref_dx, real_def_dy);
+
+#endif // TT2
+    
+        free(pathToRestoreStateFiles);
+
+#endif // RESTORE_STATE
+
+// TODO: PAREI AQUI
 #ifdef RESTORE_STATE_AND_SHIFT
     // Initialize variables with a solution
     char* reference_dt = "0.00010";
@@ -207,9 +243,21 @@ void runSimulationGPU(char *method, real delta_t, real delta_x, real theta)
 
 
     // Auxiliary arrays for Thomas algorithm
-    real *la = (real *)malloc(N * sizeof(real)); // subdiagonal
-    real *lb = (real *)malloc(N * sizeof(real)); // diagonal
-    real *lc = (real *)malloc(N * sizeof(real)); // superdiagonal
+    real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
+    real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
+    real *lc_x = (real *)malloc(Nx * sizeof(real)); // superdiagonal
+    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *d_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *LS_b_x = (real *)malloc(Nx * sizeof(real));
+    real *result_x = (real *)malloc(Nx * sizeof(real));
+
+    real *la_y = (real *)malloc(Ny * sizeof(real)); // subdiagonal
+    real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
+    real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
+    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *d_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *LS_b_y = (real *)malloc(Ny * sizeof(real));
+    real *result_y = (real *)malloc(Ny * sizeof(real));
 
     // Populate auxiliary arrays for Thomas algorithm
     real phi = delta_t / (delta_x * delta_x);

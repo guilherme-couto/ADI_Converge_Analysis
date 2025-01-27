@@ -46,21 +46,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     AP = (real *)malloc(M * sizeof(real));
 
 #endif // not CABLEEQ
-
-    // Aux variables for the Linear System resolution (Thomas)
-    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
-    real *d_prime_x = (real *)malloc(Nx * sizeof(real));
-    real *LS_b_x = (real *)malloc(Nx * sizeof(real));
-    real *result_x = (real *)malloc(Nx * sizeof(real));
-
-#ifndef CABLEEQ
-
-    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
-    real *d_prime_y = (real *)malloc(Ny * sizeof(real));
-    real *LS_b_y = (real *)malloc(Ny * sizeof(real));
-    real *result_y = (real *)malloc(Ny * sizeof(real));
-
-#endif // not CABLEEQ
 #ifdef MONODOMAIN
 #ifdef AFHN
 
@@ -165,6 +150,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // CABLEEQ
 
+    // Initialize variables
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
     initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
@@ -187,6 +173,29 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize2DVariableWithValue(W, Nx, Ny, W_init);
 
 #endif // AFHN
+
+#ifdef TT2
+
+    initialize2DVariableWithValue(X_r1, Nx, Ny, X_r1_init);
+    initialize2DVariableWithValue(X_r2, Nx, Ny, X_r2_init);
+    initialize2DVariableWithValue(X_s, Nx, Ny, X_s_init);
+    initialize2DVariableWithValue(m, Nx, Ny, m_init);
+    initialize2DVariableWithValue(h, Nx, Ny, h_init);
+    initialize2DVariableWithValue(j, Nx, Ny, j_init);
+    initialize2DVariableWithValue(d, Nx, Ny, d_init);
+    initialize2DVariableWithValue(f, Nx, Ny, f_init);
+    initialize2DVariableWithValue(f2, Nx, Ny, f2_init);
+    initialize2DVariableWithValue(fCaSS, Nx, Ny, fCaSS_init);
+    initialize2DVariableWithValue(s, Nx, Ny, s_init);
+    initialize2DVariableWithValue(r, Nx, Ny, r_init);
+    initialize2DVariableWithValue(Ca_i, Nx, Ny, Ca_i_init);
+    initialize2DVariableWithValue(Ca_SR, Nx, Ny, Ca_SR_init);
+    initialize2DVariableWithValue(Ca_SS, Nx, Ny, Ca_SS_init);
+    initialize2DVariableWithValue(R_prime, Nx, Ny, R_prime_init);
+    initialize2DVariableWithValue(Na_i, Nx, Ny, Na_i_init);
+    initialize2DVariableWithValue(K_i, Nx, Ny, K_i_init);
+
+#endif // TT2
 #endif // MONODOMAIN
 #ifdef CABLEEQ
 #ifdef AFHN
@@ -194,6 +203,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize1DVariableWithValue(W, Nx, W_init);
 
 #endif // AFHN
+
 #ifdef TT2
 
     initialize1DVariableWithValue(X_r1, Nx, X_r1_init);
@@ -360,12 +370,20 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
     real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
     real *lc_x = (real *)malloc(Nx * sizeof(real)); // superdiagonal
+    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *d_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *LS_b_x = (real *)malloc(Nx * sizeof(real));
+    real *result_x = (real *)malloc(Nx * sizeof(real));
 
 #ifndef CABLEEQ
 
     real *la_y = (real *)malloc(Ny * sizeof(real)); // subdiagonal
     real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
     real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
+    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *d_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *LS_b_y = (real *)malloc(Ny * sizeof(real));
+    real *result_y = (real *)malloc(Ny * sizeof(real));
 
 #endif // not CABLEEQ
 

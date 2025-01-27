@@ -50,6 +50,10 @@ int main(int argc, char *argv[])
     printf("Problem: MONODOMAIN -> Monodomain with %s (2D)\n", CELL_MODEL);
     #elif defined(CABLEEQ)
     printf("Problem: CABLEEQ -> Cable equation with %s (1D)\n", CELL_MODEL);
+    #ifdef GPU
+    printf("Cable equation is only implemented for CPU\n");
+    return 1;
+    #endif // GPU
     #else
     printf("Problem not yet implemented\n");
     return 1;
