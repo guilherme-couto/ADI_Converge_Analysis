@@ -5,6 +5,7 @@
 
 #ifdef DIFF
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x) * cos(_pi * y);
@@ -13,11 +14,13 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-1.0f + 2.0f * (_pi * _pi));
 }
+
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // DIFF
 
 #ifdef LINMONO
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+
 __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
@@ -27,11 +30,16 @@ __device__ real forcingTerm(real x, real y, real t)
 {
     return exactSolution(t, x, y) * (-(chi * Cm) + chi * G + 2.0f * (sigma / (chi * Cm)) * _pi * _pi / (L * L));
 }
+
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // LINMONO
 
 #ifdef MONODOMAIN
-#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
+
+#ifdef AFHN
+
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM)
+
 __host__ __device__ real exactSolution(real t, real x, real y)
 {
     return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
@@ -45,27 +53,29 @@ __device__ real forcingTerm(real x, real y, real t, real W)
 }
 
 // Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
-__global__ void computeApproxSSI(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real delta_x, real delta_y, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    if (index < N * N)
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
     {
-        int i = index / N;
-        int j = index % N;
-
         real x = j * delta_x;
-        real y = i * delta_x;
+        real y = i * delta_y;
 
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
+        int index_im1 = (i - 1) * Nx + j;
+        int index_ip1 = (i + 1) * Nx + j;
+        int index_jm1 = i * Nx + (j - 1);
+        int index_jp1 = i * Nx + (j + 1);
 
         (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
 
         real actualV = d_V[index];
         real im1V = d_V[index_im1];
@@ -73,7 +83,7 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real diff_coeff,
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
 
-        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+        real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
 
         real actualW = d_W[index];
 
@@ -95,35 +105,37 @@ __global__ void computeApproxSSI(int N, real delta_t, real phi, real diff_coeff,
         d_W[index] = actualW + delta_t * (eta2 * ((Vtilde / vp) - (eta3 * Wtilde)));
     }
 }
+#else // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
-#elif defined(AFHN)
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    if (index < N * N)
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
     {
-        int i = index / N;
-        int j = index % N;
-
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
+        int index_im1 = (i - 1) * Nx + j;
+        int index_ip1 = (i + 1) * Nx + j;
+        int index_jm1 = i * Nx + (j - 1);
+        int index_jp1 = i * Nx + (j + 1);
 
         (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
 
         real actualV = d_V[index];
         real im1V = d_V[index_im1];
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
-        
-        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+
+        real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
 
         // State variable
         real actualW = d_W[index];
@@ -158,35 +170,40 @@ __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, re
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
     }
 }
-#endif // AFHN (previously CONVERGENCE_ANALYSIS_FORCING_TERM && AFHN)
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+#endif // AFHN
+
 #ifdef TT2
+
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, real delta_x, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_V, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
 {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    if (index < N * N)
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
     {
-        int i = index / N;
-        int j = index % N;
-
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
+        int index_im1 = (i - 1) * Nx + j;
+        int index_ip1 = (i + 1) * Nx + j;
+        int index_jm1 = i * Nx + (j - 1);
+        int index_jp1 = i * Nx + (j + 1);
 
         (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
 
         real actualV = d_V[index];
         real im1V = d_V[index_im1];
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
-        
-        real diff_term = diff_coeff * phi * (jm1V + im1V - 4.0f * actualV + jp1V + ip1V);
+
+        real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
 
         // State variables
         real actualX_r1 = d_X_r1[index];
@@ -311,12 +328,17 @@ __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, re
         real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
 
 #if defined(EPI) || defined(MCELL)
+
         real s_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 5.0f));
         real tau_s = 85.0f * exp(-(actualV + 45.0f) * (actualV + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualV - 20.0f) / 5.0f)) + 3.0f;
+
 #endif // EPI || MCELL
+
 #ifdef ENDO
+
         real s_inf = 1.0f / (1.0f + exp((actualV + 28.0f) / 5.0f));
         real tau_s = 1000.0f * exp(-(actualV + 67.0f) * (actualV + 67.0f) / 1000.0f) + 8.0f;
+
 #endif // ENDO
 
         real r_inf = 1.0f / (1.0f + exp((20.0f - actualV) / 6.0f));
@@ -459,12 +481,17 @@ __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, re
         real tau_fCaSStilde = 80.0f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 2.0f;
 
 #if defined(EPI) || defined(MCELL)
+
         real s_inftilde = 1.0f / (1.0f + exp((Vtilde + 20.0f) / 5.0f));
         real tau_stilde = 85.0f * exp(-(Vtilde + 45.0f) * (Vtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((Vtilde - 20.0f) / 5.0f)) + 3.0f;
+
 #endif // EPI || MCELL
+
 #ifdef ENDO
+
         real s_inftilde = 1.0f / (1.0f + exp((Vtilde + 28.0f) / 5.0f));
         real tau_stilde = 1000.0f * exp(-(Vtilde + 67.0f) * (Vtilde + 67.0f) / 1000.0f) + 8.0f;
+
 #endif // ENDO
 
         real r_inftilde = 1.0f / (1.0f + exp((20.0f - Vtilde) / 6.0f));
@@ -517,50 +544,55 @@ __global__ void computeApprox(int N, real delta_t, real phi, real diff_coeff, re
         d_K_i[index] = actualK_i + (delta_t * RHS_K_itilde_term);
     }
 }
+
 #endif // TT2
 
-__global__ void prepareRHSwithiDiff(int N, real phi, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithiDiff(int Nx, int Ny, real phi_y, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
-    int index = blockDim.x * blockIdx.x + threadIdx.x;
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    if (index < N * N)
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
     {
-        int i = index / N;
-        int j = index % N;
-
-        int index_im1 = (i - 1) * N + j;
-        int index_ip1 = (i + 1) * N + j;
+        int index_im1 = (i - 1) * Nx + j;
+        int index_ip1 = (i + 1) * Nx + j;
 
         (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == N) ? (index_ip1 = index_im1) : index_ip1;
+        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
 
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * tau * phi * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
+        real diff_term = diff_coeff * tau * phi_y * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
 
-__global__ void prepareRHSwithjDiff(int N, real phi, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSwithjDiff(int Nx, int Ny, real phi_x, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
-    int index = blockDim.x * blockIdx.x + threadIdx.x;
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    if (index < N * N)
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
     {
-        int i = index / N;
-        int j = index % N;
+        int transposedIndex = j * Ny + i;
 
-        int transposedIndex = j * N + i;
-
-        int index_jm1 = i * N + (j - 1);
-        int index_jp1 = i * N + (j + 1);
+        int index_jm1 = i * Nx + (j - 1);
+        int index_jp1 = i * Nx + (j + 1);
 
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == N) ? (index_jp1 = index_jm1) : index_jp1;
+        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
 
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * tau * phi * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
+        real diff_term = diff_coeff * tau * phi_x * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
         d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
@@ -606,16 +638,19 @@ __global__ void parallelThomas(int N, real *d, real *la, real *lb, real *lc)
     }
 }
 
-__global__ void parallelTranspose(int N, real *in, real *out)
+__global__ void parallelTranspose(int Nx, int Ny, real *in, real *out)
 {
-    int index = blockDim.x * blockIdx.x + threadIdx.x;
-    if (index < N * N)
-    {
-        int x = index / N;
-        int y = index % N;
-        out[y * N + x] = in[index];
-    }
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
+
+    // Calculate the index in the 1D array
+    int index = i * Nx + j;
+
+    if (index < Nx * Ny)
+        out[j * Ny + i] = in[index];
 }
+
 #endif // MONODOMAIN
 
 #endif // GPU_FUNCTIONS_H

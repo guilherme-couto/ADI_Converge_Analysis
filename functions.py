@@ -22,7 +22,7 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_state, method, theta=None):
+def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method, theta=None):
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
     
     if real_type == 'double':
@@ -53,6 +53,9 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
 
     if frames:
         compile_command += '-DSAVE_FRAMES '
+
+    if save_last_frame:
+        compile_command += '-DSAVE_LAST_FRAME '
 
     if save_last_state:
         compile_command += '-DSAVE_LAST_STATE '

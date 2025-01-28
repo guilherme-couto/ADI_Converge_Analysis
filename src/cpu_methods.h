@@ -27,22 +27,20 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifndef CABLEEQ
 
     // Allocate 2D arrays for variables
-    real **V, **Vtilde, **RHS, **partRHS, **exact;
+    real **V, **Vtilde, **RHS, **partRHS;
     V = (real **)malloc(Ny * sizeof(real *));
     Vtilde = (real **)malloc(Ny * sizeof(real *));
     RHS = (real **)malloc(Ny * sizeof(real *));
     partRHS = (real **)malloc(Ny * sizeof(real *));
-    exact = (real **)malloc(Ny * sizeof(real *));
 
 #else // if def CABLEEQ
 
     // Allocate 1D arrays for variables
-    real *V, *Vtilde, *RHS, *partRHS, *exact, *AP;
+    real *V, *Vtilde, *RHS, *partRHS, *AP;
     V = (real *)malloc(Nx * sizeof(real));
     Vtilde = (real *)malloc(Nx * sizeof(real));
     RHS = (real *)malloc(Nx * sizeof(real));
     partRHS = (real *)malloc(Nx * sizeof(real));
-    exact = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 
 #endif // not CABLEEQ
@@ -114,7 +112,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         Vtilde[i] = (real *)malloc(Nx * sizeof(real));
         RHS[i] = (real *)malloc(Nx * sizeof(real));
         partRHS[i] = (real *)malloc(Nx * sizeof(real));
-        exact[i] = (real *)malloc(Nx * sizeof(real));
 
 #ifdef MONODOMAIN
 #ifdef AFHN
@@ -396,13 +393,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     real diff_coeff = sigma / (Cm * chi);
 
-#else
+#else // if def TT2
 
     real diff_coeff = sigma / chi;
 
 #endif // not TT2
 
-#if defined(ADI) || defined(SSIADI)
+#if defined(SSIADI)
 
     populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
 
@@ -411,7 +408,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
 
 #endif // not CABLEEQ
-#endif // ADI || SSIADI
+#endif // SSIADI
 
 #if defined(THETASSIADI) || defined(THETASSIRK2)
 
@@ -495,18 +492,18 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         // ================================================!
         //  Calculate Approxs. and Update ODEs             !
         // ================================================!
-        real x, y;
         real diff_term = 0.0f;
         for (int i = 0; i < Ny; i++)
         {
             for (int j = 0; j < Nx; j++)
             {
-                x = j * delta_x;
-                y = i * delta_x;
+                
 
 #ifdef LINMONO
 
                 diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
+                real x = j * delta_x;
+                real y = i * delta_y;
                 real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
                 real reac_term = G * V[i][j] / Cm;
                 real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
@@ -528,6 +525,8 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
                 // Calculate forcing term
+                real x = j * delta_x;
+                real y = i * delta_y;
                 real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -1207,17 +1206,57 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 #ifndef CABLEEQ
+
     saveFrame(fpFrames, actualTime, V, Nx, Ny);
-#else
+
+#else // if def CABLEEQ
+
     saveFrame(fpFrames, actualTime, V, Nx);
+
 #endif // CABLEEQ
+
     SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
+    fclose(fpFrames);
+
 #endif // SAVE_FRAMES
 
-// Calculate error
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && !defined(CABLEEQ)
+
+    real **exact = (real **)malloc(Ny * sizeof(real *));
+    for (int i = 0; i < Ny; i++)
+        exact[i] = (real *)malloc(Nx * sizeof(real));
+        
     real norm2error = calculateNorm2Error(V, exact, Nx, Ny, totalTime, delta_x, delta_y);
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
+    char exactFilePath[MAX_STRING_SIZE];
+    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
+    FILE *fpExact = fopen(exactFilePath, "w");
+    
+    char errorsFilePath[MAX_STRING_SIZE];
+    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
+    FILE *fpErrors = fopen(errorsFilePath, "w");
+
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            fprintf(fpExact, "%e ", exact[i][j]);
+            fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
+        }
+        fprintf(fpExact, "\n");
+        fprintf(fpErrors, "\n");
+    }
+
+    for (int i = 0; i < Ny; i++)
+        free(exact[i]);
+    free(exact);
+
+    SUCCESSMSG("Exact solution saved to %s\n", exactFilePath);
+    SUCCESSMSG("Errors saved to %s\n", errorsFilePath);
+    fclose(fpExact);
+    fclose(fpErrors);
+
+#endif // CONVERGENCE_ANALYSIS_FORCING_TERM && !CABLEEQ
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
@@ -1228,40 +1267,90 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
     fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
     fprintf(fpInfos, "METHOD = %s\n", METHOD);
+
 #ifdef THETA
+
     fprintf(fpInfos, "theta = %.2f\n", THETA);
+
 #endif // THETA
+
     fprintf(fpInfos, "\n");
+
 #ifdef CABLEEQ
+
     fprintf(fpInfos, "CABLE LENGTH = %.4g cm\n", Lx);
-#else
+
+#else // if not def CABLEEQ
+
     fprintf(fpInfos, "DOMAIN LENGTH IN X = %.4g cm\n", Lx);
     fprintf(fpInfos, "DOMAIN LENGTH IN Y = %.4g cm\n", Ly);
+
 #endif // CABLEEQ
+
     fprintf(fpInfos, "TOTAL TIME = %.4g ms\n", totalTime);
     fprintf(fpInfos, "\n");
+
     fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", delta_t, M);
+
 #ifdef CABLEEQ
+
     fprintf(fpInfos, "delta_x = %.5g cm (%d space steps)\n", delta_x, Nx);
-#else
+
+#else // if not def CABLEEQ
+
     fprintf(fpInfos, "delta_x = %.5g cm (%d um) (%d space steps in x)\n", delta_x, CM_TO_UM(delta_x), Nx);
     fprintf(fpInfos, "delta_y = %.5g cm (%d um) (%d space steps in y)\n", delta_y, CM_TO_UM(delta_y), Ny);
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
+
 #endif // CABLEEQ
+    
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
-    fprintf(fpInfos, "\nSIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
+    
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "SIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
+
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-    fprintf(fpInfos, "\nNORM-2 ERROR = %lf\n", norm2error);
+
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "NORM-2 ERROR = %lf\n", norm2error);
+
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
     SUCCESSMSG("Infos saved to %s\n", infosFilePath);
     fclose(fpInfos);
+
+#ifdef SAVE_LAST_FRAME
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
+    
+#ifndef CABLEEQ
+
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            fprintf(fpLast, "%e ", V[i][j]);
+        }
+        fprintf(fpLast, "\n");
+    }
+
+#else // if def CABLEEQ
+
+    for (int i = 0; i < Nx; i++)
+    {
+        fprintf(fpLast, "%e ", V[i]);
+    }
+
+#endif // CABLEEQ
+
     SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
+    fclose(fpLast);
+
+#endif // SAVE_LAST_FRAME
 
 #ifdef SAVE_LAST_STATE
 #ifdef AFHN
@@ -1271,11 +1360,38 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
 
     FILE *fpLastV = fopen(lastFrameFilePathV, "w");
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
+
+#ifndef CABLEEQ
+
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            fprintf(fpLastV, "%e ", V[i][j]);
+            fprintf(fpLastW, "%e ", W[i][j]);
+        }
+        fprintf(fpLastV, "\n");
+        fprintf(fpLastW, "\n");
+    }
+
+#else // if def CABLEEQ
+
+    for (int i = 0; i < Nx; i++)
+    {
+        fprintf(fpLastV, "%e ", V[i]);
+        fprintf(fpLastW, "%e ", W[i]);
+    }
+
+#endif // CABLEEQ
+
+    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     SUCCESSMSG("Last W frame saved to %s\n", lastFrameFilePathW);
+    fclose(fpLastV);
+    fclose(fpLastW);
 
 #endif // AFHN
+
 #ifdef TT2
 
     char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
@@ -1304,69 +1420,24 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeK_i.txt", pathToSaveData);
 
     FILE *fpLastV = fopen(lastFrameFilePathV, "w");
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
     FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
-    SUCCESSMSG("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
     FILE *fpLastX_r2 = fopen(lastFrameFilePathX_r2, "w");
-    SUCCESSMSG("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
     FILE *fpLastX_s = fopen(lastFrameFilePathX_s, "w");
-    SUCCESSMSG("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
     FILE *fpLastm = fopen(lastFrameFilePathm, "w");
-    SUCCESSMSG("Last m frame saved to %s\n", lastFrameFilePathm);
     FILE *fpLasth = fopen(lastFrameFilePathh, "w");
-    SUCCESSMSG("Last h frame saved to %s\n", lastFrameFilePathh);
     FILE *fpLastj = fopen(lastFrameFilePathj, "w");
-    SUCCESSMSG("Last j frame saved to %s\n", lastFrameFilePathj);
     FILE *fpLastd = fopen(lastFrameFilePathd, "w");
-    SUCCESSMSG("Last d frame saved to %s\n", lastFrameFilePathd);
     FILE *fpLastf = fopen(lastFrameFilePathf, "w");
-    SUCCESSMSG("Last f frame saved to %s\n", lastFrameFilePathf);
     FILE *fpLastf2 = fopen(lastFrameFilePathf2, "w");
-    SUCCESSMSG("Last f2 frame saved to %s\n", lastFrameFilePathf2);
     FILE *fpLastfCaSS = fopen(lastFrameFilePathfCaSS, "w");
-    SUCCESSMSG("Last fCaSS frame saved to %s\n", lastFrameFilePathfCaSS);
     FILE *fpLasts = fopen(lastFrameFilePaths, "w");
-    SUCCESSMSG("Last s frame saved to %s\n", lastFrameFilePaths);
     FILE *fpLastr = fopen(lastFrameFilePathr, "w");
-    SUCCESSMSG("Last r frame saved to %s\n", lastFrameFilePathr);
     FILE *fpLastR_prime = fopen(lastFrameFilePathR_prime, "w");
-    SUCCESSMSG("Last R_prime frame saved to %s\n", lastFrameFilePathR_prime);
     FILE *fpLastCa_i = fopen(lastFrameFilePathCa_i, "w");
-    SUCCESSMSG("Last Ca_i frame saved to %s\n", lastFrameFilePathCa_i);
     FILE *fpLastCa_SR = fopen(lastFrameFilePathCa_SR, "w");
-    SUCCESSMSG("Last Ca_SR frame saved to %s\n", lastFrameFilePathCa_SR);
     FILE *fpLastCa_SS = fopen(lastFrameFilePathCa_SS, "w");
-    SUCCESSMSG("Last Ca_SS frame saved to %s\n", lastFrameFilePathCa_SS);
     FILE *fpLastNa_i = fopen(lastFrameFilePathNa_i, "w");
-    SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
     FILE *fpLastK_i = fopen(lastFrameFilePathK_i, "w");
-    SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
-
-#endif // TT2
-#endif // SAVE_LAST_STATE
-
-// Save Action Potential
-#ifdef CABLEEQ
-
-    char APFilePath[MAX_STRING_SIZE];
-    snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP.txt", pathToSaveData);
-    FILE *fpAP = fopen(APFilePath, "w");
-    SUCCESSMSG("Action Potential saved to %s\n", APFilePath);
-
-#endif // CABLEEQ
-
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-    char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
-    FILE *fpExact = fopen(exactFilePath, "w");
-    SUCCESSMSG("Exact solution saved to %s\n", exactFilePath);
-    char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
-    FILE *fpErrors = fopen(errorsFilePath, "w");
-    SUCCESSMSG("Errors saved to %s\n", errorsFilePath);
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifndef CABLEEQ
 
@@ -1374,57 +1445,51 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     {
         for (int j = 0; j < Nx; j++)
         {
-            fprintf(fpLast, "%e ", V[i][j]);
-
-#ifdef SAVE_LAST_STATE
-#ifdef AFHN
-
             fprintf(fpLastV, "%e ", V[i][j]);
-            fprintf(fpLastW, "%e ", W[i][j]);
-
-#endif // AFHN
-#endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-            fprintf(fpExact, "%e ", exact[i][j]);
-            fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-
+            fprintf(fpLastX_r1, "%e ", X_r1[i][j]);
+            fprintf(fpLastX_r2, "%e ", X_r2[i][j]);
+            fprintf(fpLastX_s, "%e ", X_s[i][j]);
+            fprintf(fpLastm, "%e ", m[i][j]);
+            fprintf(fpLasth, "%e ", h[i][j]);
+            fprintf(fpLastj, "%e ", j[i][j]);
+            fprintf(fpLastd, "%e ", d[i][j]);
+            fprintf(fpLastf, "%e ", f[i][j]);
+            fprintf(fpLastf2, "%e ", f2[i][j]);
+            fprintf(fpLastfCaSS, "%e ", fCaSS[i][j]);
+            fprintf(fpLasts, "%e ", s[i][j]);
+            fprintf(fpLastr, "%e ", r[i][j]);
+            fprintf(fpLastR_prime, "%e ", R_prime[i][j]);
+            fprintf(fpLastCa_i, "%e ", Ca_i[i][j]);
+            fprintf(fpLastCa_SR, "%e ", Ca_SR[i][j]);
+            fprintf(fpLastCa_SS, "%e ", Ca_SS[i][j]);
+            fprintf(fpLastNa_i, "%e ", Na_i[i][j]);
+            fprintf(fpLastK_i, "%e ", K_i[i][j]);
         }
-        fprintf(fpLast, "\n");
-
-#ifdef SAVE_LAST_STATE
-#ifdef AFHN
-
         fprintf(fpLastV, "\n");
-        fprintf(fpLastW, "\n");
-
-#endif // AFHN
-#endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-        fprintf(fpExact, "\n");
-        fprintf(fpErrors, "\n");
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+        fprintf(fpLastX_r1, "\n");
+        fprintf(fpLastX_r2, "\n");
+        fprintf(fpLastX_s, "\n");
+        fprintf(fpLastm, "\n");
+        fprintf(fpLasth, "\n");
+        fprintf(fpLastj, "\n");
+        fprintf(fpLastd, "\n");
+        fprintf(fpLastf, "\n");
+        fprintf(fpLastf2, "\n");
+        fprintf(fpLastfCaSS, "\n");
+        fprintf(fpLasts, "\n");
+        fprintf(fpLastr, "\n");
+        fprintf(fpLastR_prime, "\n");
+        fprintf(fpLastCa_i, "\n");
+        fprintf(fpLastCa_SR, "\n");
+        fprintf(fpLastCa_SS, "\n");
+        fprintf(fpLastNa_i, "\n");
+        fprintf(fpLastK_i, "\n");
     }
 
-#else // if CABLEEQ
+#else // if def CABLEEQ
 
     for (int i = 0; i < Nx; i++)
     {
-        fprintf(fpLast, "%e ", V[i]);
-        
-#ifdef SAVE_LAST_STATE
-#ifdef AFHN
-
-        fprintf(fpLastV, "%e ", V[i]);
-        fprintf(fpLastW, "%e ", W[i]);
-
-#endif // AFHN
-#ifdef TT2
-
         fprintf(fpLastV, "%e ", V[i]);
         fprintf(fpLastX_r1, "%e ", X_r1[i]);
         fprintf(fpLastX_r2, "%e ", X_r2[i]);
@@ -1444,29 +1509,29 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         fprintf(fpLastCa_SS, "%e ", Ca_SS[i]);
         fprintf(fpLastNa_i, "%e ", Na_i[i]);
         fprintf(fpLastK_i, "%e ", K_i[i]);
-
-#endif // TT2
-#endif // SAVE_LAST_STATE
-
     }
 
-    for (int i = 0; i < M; i++)
-    {
-        fprintf(fpAP, "%e ", AP[i]);
-    }
+#endif // CABLEEQ
 
-#endif // not CABLEEQ
-
-    fclose(fpLast);
-
-#ifdef SAVE_LAST_STATE
-#ifdef AFHN
-
-    fclose(fpLastV);
-    fclose(fpLastW);
-
-#endif // AFHN
-#ifdef TT2
+    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
+    SUCCESSMSG("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
+    SUCCESSMSG("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
+    SUCCESSMSG("Last m frame saved to %s\n", lastFrameFilePathm);
+    SUCCESSMSG("Last h frame saved to %s\n", lastFrameFilePathh);
+    SUCCESSMSG("Last j frame saved to %s\n", lastFrameFilePathj);
+    SUCCESSMSG("Last d frame saved to %s\n", lastFrameFilePathd);
+    SUCCESSMSG("Last f frame saved to %s\n", lastFrameFilePathf);
+    SUCCESSMSG("Last f2 frame saved to %s\n", lastFrameFilePathf2);
+    SUCCESSMSG("Last fCaSS frame saved to %s\n", lastFrameFilePathfCaSS);
+    SUCCESSMSG("Last s frame saved to %s\n", lastFrameFilePaths);
+    SUCCESSMSG("Last r frame saved to %s\n", lastFrameFilePathr);
+    SUCCESSMSG("Last R_prime frame saved to %s\n", lastFrameFilePathR_prime);
+    SUCCESSMSG("Last Ca_i frame saved to %s\n", lastFrameFilePathCa_i);
+    SUCCESSMSG("Last Ca_SR frame saved to %s\n", lastFrameFilePathCa_SR);
+    SUCCESSMSG("Last Ca_SS frame saved to %s\n", lastFrameFilePathCa_SS);
+    SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
+    SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
 
     fclose(fpLastV);
     fclose(fpLastX_r1);
@@ -1490,15 +1555,27 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 #endif // SAVE_LAST_STATE
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
-    fclose(fpExact);
-    fclose(fpErrors);
+#ifdef CABLEEQ
 
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+    // Save Action Potential
+    char APFilePath[MAX_STRING_SIZE];
+    snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP.txt", pathToSaveData);
+    FILE *fpAP = fopen(APFilePath, "w");
+    
+    for (int i = 0; i < M; i++)
+    {
+        fprintf(fpAP, "%e ", AP[i]);
+    }
+
+    SUCCESSMSG("Action Potential saved to %s\n", APFilePath);
+    fclose(fpAP);
+
+#endif // CABLEEQ
 
     // Free memory
     free(time);
+    free(pathToSaveData);
 
 #ifndef CABLEEQ
 
@@ -1508,7 +1585,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         free(Vtilde[i]);
         free(RHS[i]);
         free(partRHS[i]);
-        free(exact[i]);
 
 #ifdef MONODOMAIN
 #ifdef AFHN
@@ -1542,23 +1618,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     }
 
-#endif // not CABLEEQ
-
-    free(V);
-    free(Vtilde);
-    free(RHS);
-    free(partRHS);
-    free(exact);
-    free(c_prime_x);
-    free(d_prime_x);
-    free(LS_b_x);
-    free(result_x);
-    free(la_x);
-    free(lb_x);
-    free(lc_x);
-
-#ifndef CABLEEQ
-
     free(c_prime_y);
     free(d_prime_y);
     free(LS_b_y);
@@ -1569,7 +1628,18 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // not CABLEEQ
 
-    free(pathToSaveData);
+    free(V);
+    free(Vtilde);
+    free(RHS);
+    free(partRHS);
+    
+    free(c_prime_x);
+    free(d_prime_x);
+    free(LS_b_x);
+    free(result_x);
+    free(la_x);
+    free(lb_x);
+    free(lc_x);
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -1577,10 +1647,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     free(stimuli);
 
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #ifdef CABLEEQ
 
     free(AP);
-    fclose(fpAP);
 
 #endif // CABLEEQ
 #ifdef AFHN
@@ -1588,6 +1658,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     free(W);
 
 #endif // AFHN
+
 #ifdef TT2
 
     free(X_r1);

@@ -11,24 +11,24 @@
 #include <device_launch_parameters.h>
 
 // ANSI color codes
-#define RESET   "\033[0m"
-#define BLUE    "\033[34m"
-#define GREEN   "\033[32m"
-#define YELLOW  "\033[33m"
-#define RED     "\033[31m"
+#define RESET "\033[0m"
+#define BLUE "\033[34m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define RED "\033[31m"
 
 // Macros for printing messages
-#define INFOMSG(msg, ...)    printf(BLUE "[i] " RESET msg, ##__VA_ARGS__)
+#define INFOMSG(msg, ...) printf(BLUE "[i] " RESET msg, ##__VA_ARGS__)
 #define SUCCESSMSG(msg, ...) printf(GREEN "[+] " RESET msg, ##__VA_ARGS__)
 #define WARNINGMSG(msg, ...) printf(YELLOW "[!] " RESET msg, ##__VA_ARGS__)
-#define ERRORMSG(msg, ...)   printf(RED "[x] " RESET msg, ##__VA_ARGS__)
-#define DEBUGMSG(msg)        printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
+#define ERRORMSG(msg, ...) printf(RED "[x] " RESET msg, ##__VA_ARGS__)
+#define DEBUGMSG(msg) printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
 
+// Define maximum string size
 #define MAX_STRING_SIZE 200
 
-#define BDIMX 16
-#define BDIMY 16
-#define BLOCK_SIZE 32
+// Define block size for GPU
+#define BLOCK_SIZE 256
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -61,7 +61,7 @@ typedef float real;
 #define CELL_MODEL "AFHN"
 #endif // AFHN
 
-#ifdef TT2 
+#ifdef TT2
 #define CELL_MODEL "TT2"
 // Options: ENDO, MCELL, EPI
 #if !defined(MCELL) && !defined(EPI)
@@ -75,7 +75,7 @@ typedef float real;
 #if !defined(MCELL) && !defined(EPI) && !defined(PB) && !defined(TNNP)
 #define ENDO
 #endif // not MCELL && not EPI && not PB && not TNNP
-#endif  // MV
+#endif // MV
 
 // Define CUDA error checking
 #ifdef GPU
@@ -202,7 +202,7 @@ const real eta2 = 0.012f; // dimensionless
 const real eta3 = 1.0f;   // dimensionless
 const real vth = 13.0f;   // mV
 const real vp = 100.0f;   // mV
-#endif                    // AFHN
+#endif // AFHN
 
 #ifdef TT2
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
@@ -442,8 +442,8 @@ const real tau_winf = 0.07f;
 const real w_infstar = 0.94f;
 #endif // TNNP
 #endif // MV
-#endif                         // MONODOMAIN || CABLEEQ
-#endif                         // SERIAL
+#endif // MONODOMAIN || CABLEEQ
+#endif // SERIAL
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU
 #ifdef GPU
@@ -454,7 +454,7 @@ const __constant__ real G = 1.0f;     // omega^-1 * cm^-2
 const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0f;   // cm^-1
 const __constant__ real Cm = 1.0f;    // mF * cm^-2
-#endif                               // LINMONO
+#endif                                // LINMONO
 #ifdef DIFFREAC
 const __constant__ real sigma = 1.0f;
 #endif // DIFFREAC
@@ -485,7 +485,7 @@ const __constant__ real eta2 = 0.012f; // dimensionless
 const __constant__ real eta3 = 1.0f;   // dimensionless
 const __constant__ real vth = 13.0f;   // mV
 const __constant__ real vp = 100.0f;   // mV
-#endif                                // AFHN
+#endif // AFHN
 
 #ifdef TT2
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
@@ -725,7 +725,7 @@ const __constant__ real tau_winf = 0.07f;
 const __constant__ real w_infstar = 0.94f;
 #endif // TNNP
 #endif // MV
-#endif                                      // MONODOMAIN
-#endif                                      // GPU
+#endif // MONODOMAIN
+#endif // GPU
 
 #endif // INCLUDE_H

@@ -3,7 +3,7 @@ from functions import *
 def main():
     dts = [0.005, 0.01, 0.02, 0.04] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
     dts = [0.001, 0.002, 0.004, 0.005]
-    methods = ['OS-ADI', 'SSI-ADI'] #'SSI-ADI', 'theta-SSI-ADI', 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
+    methods = ['SSI-ADI'] #'SSI-ADI', 'theta-SSI-ADI', 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
@@ -11,12 +11,13 @@ def main():
     dy = 0.0005
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
+    serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     init = 'restore_state' # 'initial_conditions', 'restore_state'
     shift_state = True
     frames = True
+    save_last_frame = True
     save_last_state = False
     
     for method in methods:
@@ -28,7 +29,7 @@ def main():
                 execution_args = f'{dt} {dx}'
                 
             if 'theta' not in method:
-                compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_state, method)
+                compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method)
 
                 os.system(f'./{method} {execution_args}')
                 
@@ -40,7 +41,7 @@ def main():
                     
             else:
                 for theta in thetas:
-                    compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_state, method, theta)
+                    compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method, theta)
                     
                     if dt == 0.0001 and theta != '0.50':
                         continue

@@ -27,7 +27,7 @@ void initialize1DVariableWithValue(real *Var, int N, real value)
     for (int i = 0; i < N; i++)
     {
         Var[i] = value;
-    }   
+    }
 }
 
 void initialize2DVariableWithValue(real **Var, int Nx, int Ny, real value)
@@ -75,7 +75,6 @@ void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x
             sizeVar++;
         }
         sizeFile++;
-        
     }
     fclose(file);
 
@@ -132,7 +131,7 @@ void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real ini
     {
         temp[i] = Var[i];
     }
-    
+
     int lengthIndex = round(length / delta_x) + 1;
     for (int i = 0; i < N - lengthIndex; i++)
     {
@@ -346,27 +345,27 @@ void initialize2DVariableFromFile(real *Var, int Nx, int Ny, char *filename, rea
     INFOMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
 }
 
-void shift2DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
+void shift2DVariableToLeft(real *Var, int Nx, int Ny, real length, real delta_x, real delta_y, real initValue, char *varName)
 {
-    real *temp = (real *)malloc(N * sizeof(real));
+    real *temp = (real *)malloc(Nx * sizeof(real));
     int index;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
-            index = i * N + j;
+            index = i * Nx + j;
             temp[j] = Var[index];
         }
 
         int lengthIndex = round(length / delta_x) + 1;
-        for (int j = 0; j < N - lengthIndex; j++)
+        for (int j = 0; j < Nx - lengthIndex; j++)
         {
-            index = i * N + j;
+            index = i * Nx + j;
             Var[index] = temp[j + lengthIndex];
         }
-        for (int j = N - lengthIndex; j < N; j++)
+        for (int j = Nx - lengthIndex; j < Nx; j++)
         {
-            index = i * N + j;
+            index = i * Nx + j;
             Var[index] = initValue;
         }
     }
@@ -404,14 +403,14 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
     lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
 }
 
-void saveFrame(FILE *file, real actualTime, real *V, int N)
+void saveFrame(FILE *file, real actualTime, real *V, int Nx, int Ny)
 {
     fprintf(file, "%lf\n", actualTime);
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
-            int index = i * N + j;
+            int index = i * Nx + j;
             fprintf(file, "%e ", V[index]);
         }
         fprintf(file, "\n");
@@ -435,25 +434,25 @@ void initialize2DVariableWithExactSolution(real *Var, int Nx, int Ny, real delta
     }
 }
 
-real calculateNorm2Error(real *V, real **exact, int N, real totalTime, real delta_x)
+real calculateNorm2Error(real *V, real **exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y)
 {
     real x, y;
     int index;
     real solution;
     real sum = 0.0f;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < Ny; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < Nx; j++)
         {
             x = j * delta_x;
-            y = i * delta_x;
-            index = i * N + j;
+            y = i * delta_y;
+            index = i * Nx + j;
             solution = exactSolution(totalTime, x, y);
             exact[i][j] = solution;
             sum += ((V[index] - solution) * (V[index] - solution));
         }
     }
-    return delta_x * sqrt(sum);
+    return sqrt(sum / (Nx * Ny));
 }
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // GPU
@@ -471,6 +470,7 @@ void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real p
         lb[i] = 1.0f + 2.0f * phi;
         lc[i] = -phi;
     }
+
     lc[0] = lc[0] + la[0];
     la[N - 1] = la[N - 1] + lc[N - 1];
     la[0] = 0.0f;
@@ -481,18 +481,25 @@ void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSav
 {
     // Build the path
     char path[MAX_STRING_SIZE];
-    #ifndef CABLEEQ
+
+#ifndef CABLEEQ
+
     snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
-    #else
+
+#else // if def CABLEEQ
+
     snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
-    #endif // not CABLEEQ
+
+#endif // not CABLEEQ
 
 #ifdef THETA
+
     // Add theta to the path
     char thetaPath[MAX_STRING_SIZE];
     snprintf(thetaPath, MAX_STRING_SIZE * sizeof(char), "%.2lf", THETA);
     strcat(path, "/");
     strcat(path, thetaPath);
+
 #endif // THETA
 
     // Update pathToSaveData
@@ -502,9 +509,7 @@ void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSav
 void initializeTimeArray(real *timeArray, int M, real dt)
 {
     for (int i = 0; i < M; i++)
-    {
         timeArray[i] = i * dt;
-    }
 }
 
 int lim(int num, int N)
@@ -512,14 +517,12 @@ int lim(int num, int N)
     if (num == -1)
         return 1;
     else if (num == N)
-    {
         return N - 2;
-    }
     return num;
 }
 
-#if defined(MONODOMAIN) || defined(CABLEEQ)
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+#if defined(MONODOMAIN) || defined(CABLEEQ)
 void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 {
     for (int i = 0; i < numberOfStimuli; i++)
@@ -534,18 +537,23 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
         stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_y);
         stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_y);
 
-        #if defined(INIT_WITH_SPIRAL) || defined(RESTORE_STATE_AND_SHIFT)
-        stimuli[i].strength = 0.0f;
-        #endif // INIT_WITH_SPIRAL || RESTORE_STATE_AND_SHIFT
+#if defined(RESTORE_STATE) || defined(SHIFT_STATE)
 
-        #ifdef CABLEEQ
+        stimuli[i].strength = 0.0f;
+
+#endif // RESTORE_STATE || SHIFT_STATE
+
+#ifdef CABLEEQ
+
         // Only one stimulus for CABLEEQ
         if (i > 0)
             stimuli[i].strength = 0.0f;
-        #endif // CABLEEQ
+
+#endif // CABLEEQ
+
     }
 }
-#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // MONODOMAIN || CABLEEQ
+#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #endif // AUXFUNCS_H
