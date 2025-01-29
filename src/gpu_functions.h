@@ -105,7 +105,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_W[index] = actualW + delta_t * (eta2 * ((Vtilde / vp) - (eta3 * Wtilde)));
     }
 }
-#else // not CONVERGENCE_ANALYSIS_FORCING_TERM
+
+#else // if not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
 __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
@@ -124,6 +125,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         int index_jm1 = i * Nx + (j - 1);
         int index_jp1 = i * Nx + (j + 1);
 
+        // Boundary conditions
         (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
         (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
@@ -170,6 +172,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
     }
 }
+
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
 
@@ -333,7 +336,6 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real tau_s = 85.0f * exp(-(actualV + 45.0f) * (actualV + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualV - 20.0f) / 5.0f)) + 3.0f;
 
 #endif // EPI || MCELL
-
 #ifdef ENDO
 
         real s_inf = 1.0f / (1.0f + exp((actualV + 28.0f) / 5.0f));
@@ -486,7 +488,6 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real tau_stilde = 85.0f * exp(-(Vtilde + 45.0f) * (Vtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((Vtilde - 20.0f) / 5.0f)) + 3.0f;
 
 #endif // EPI || MCELL
-
 #ifdef ENDO
 
         real s_inftilde = 1.0f / (1.0f + exp((Vtilde + 28.0f) / 5.0f));
@@ -599,27 +600,28 @@ __global__ void prepareRHSwithjDiff(int Nx, int Ny, real phi_x, real diff_coeff,
 
 // From GLOSTER, Andrew et al. Efficient Interleaved Batch Matrix Solvers for CUDA. arXiv preprint arXiv:1909.04539, 2019.
 // Kernel to solve the tridiagonal system using the Thomas algorithm
-// N -> Number of rows
+// numSys -> Number of systems to solve
+// sysSize -> Size of each system
 // d -> Result vector
 // la -> Lower diagonal
 // lb -> Main diagonal
 // lc -> Upper diagonal
-__global__ void parallelThomas(int N, real *d, real *la, real *lb, real *lc)
+__global__ void parallelThomas(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
 {
     int previousRow, nextRow;
     int currentRow = blockIdx.x * blockDim.x + threadIdx.x;
     int i = 0;
 
-    if (currentRow < N)
+    if (currentRow < numSys)
     {
         // 1st: update auxiliary arrays
         d[currentRow] = d[currentRow] / lb[i];
 
 #pragma unroll
-        for (i = 1; i < N; i++)
+        for (i = 1; i < sysSize; i++)
         {
             previousRow = currentRow;
-            currentRow += N;
+            currentRow += numSys;
 
             d[currentRow] = (d[currentRow] - la[i] * d[previousRow]) / (lb[i]);
         }
@@ -628,10 +630,10 @@ __global__ void parallelThomas(int N, real *d, real *la, real *lb, real *lc)
         d[currentRow] = d[currentRow];
 
 #pragma unroll
-        for (i = N - 2; i >= 0; i--)
+        for (i = sysSize - 2; i >= 0; i--)
         {
             nextRow = currentRow;
-            currentRow -= N;
+            currentRow -= numSys;
 
             d[currentRow] = d[currentRow] - lc[i] * d[nextRow];
         }

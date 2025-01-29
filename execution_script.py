@@ -9,16 +9,18 @@ def main():
     # refs
     dx = 0.0005
     dy = 0.0005
-
+    dts = [0.0001]
+    
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'restore_state' # 'initial_conditions', 'restore_state'
-    shift_state = True
+    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
+    shift_state = False
     frames = True
     save_last_frame = True
     save_last_state = False
+    measure_velocity = True
     
     for method in methods:
         for i in range(len(dts)):
@@ -29,7 +31,7 @@ def main():
                 execution_args = f'{dt} {dx}'
                 
             if 'theta' not in method:
-                compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method)
+                compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, method)
 
                 os.system(f'./{method} {execution_args}')
                 
@@ -41,7 +43,7 @@ def main():
                     
             else:
                 for theta in thetas:
-                    compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method, theta)
+                    compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, method, theta)
                     
                     if dt == 0.0001 and theta != '0.50':
                         continue

@@ -18,8 +18,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // not CABLEEQ
 
-    printf("\n");
-
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
@@ -227,6 +225,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef RESTORE_STATE
 
+    printf("\n");
+    printf("Restoring state variables...\n");
+
     // Initialize variables with a solution
     real real_ref_dx = 0.0005;
 
@@ -312,6 +313,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // RESTORE_STATE
 
 #ifdef SHIFT_STATE
+
+    printf("\n");
+    printf("Shifting state variables...\n");
 
     // Shift variables
     real lengthToShift = 0.5f;
@@ -445,20 +449,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // MONODOMAIN || CABLEEQ
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
-    // Create directories
-    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
-    createDirectories(delta_t, delta_x, delta_y, pathToSaveData);
-
-#ifdef SAVE_FRAMES
-
-    // Save frames
-    char framesPath[MAX_STRING_SIZE];
-    FILE *fpFrames;
-    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
-    fpFrames = fopen(framesPath, "w");
-
-#endif // SAVE_FRAMES
-
 #ifdef CABLEEQ
 
     // Choose cell at 0.5 cm to measure Action Potential
@@ -466,21 +456,44 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // CABLEEQ
 
+    // Create directories
+    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    createDirectories(delta_t, delta_x, delta_y, pathToSaveData);
+
+#ifdef SAVE_FRAMES
+
+    // Save frames variables
+    char framesPath[MAX_STRING_SIZE];
+    FILE *fpFrames;
+    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
+    fpFrames = fopen(framesPath, "w");
+    real startSaveFramesTime, finishSaveFramesTime, elapsedSaveFramesTime = 0.0f;
+
+#endif // SAVE_FRAMES
+
+#ifdef MEASURE_VELOCITY
+
     // Measure velocity
     real stim_velocity = 0.0;
     real first_point_time = 0.0;
     real last_point_time = 0.0;
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
+    real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
 
-    int timeStepCounter = 0;
-    real actualTime = 0.0f;
+#endif // MEASURE_VELOCITY
 
     // Variables for measuring the execution time
-    real startTime, finishTime, elapsedTime;
+    real startExecutionTime, finishExecutionTime, elapsedExecutionTime = 0.0f;
 
+    // Auxiliary variables for the time loop
+    int timeStepCounter = 0;
+    real actualTime = 0.0f;
+  
     // Start measuring the execution time
-    startTime = omp_get_wtime();
+    printf("\n");
+    printf("Starting simulation...\n");
+    startExecutionTime = omp_get_wtime();
 
 #if defined(LINMONO) || defined(MONODOMAIN)
 
@@ -498,7 +511,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             for (int j = 0; j < Nx; j++)
             {
                 
-
 #ifdef LINMONO
 
                 diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
@@ -686,17 +698,26 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 
+        startSaveFramesTime = omp_get_wtime();
+
         // If save frames is true and time step is multiple of frame save rate
         if (timeStepCounter % frameSaveRate == 0)
         {
             // Save frame
-            saveFrame(fpFrames, actualTime, V, Nx, Ny);
+            fprintf(fpFrames, "%lf\n", actualTime);
+            saveFrame(fpFrames, V, Nx, Ny);
             SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
+
+        finishSaveFramesTime = omp_get_wtime();
+        elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
 
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+#ifdef MEASURE_VELOCITY
+
+        startMeasureVelocityTime = omp_get_wtime();
 
         // Calculate stim velocity
         if (!stim_velocity_measured)
@@ -727,6 +748,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             }
         }
 
+        finishMeasureVelocityTime = omp_get_wtime();
+        elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+
+#endif // MEASURE_VELOCITY
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
         // Update time step counter
@@ -1134,6 +1159,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 K_i[i] = actualK_i + (delta_t * RHS_K_itilde_term);
 
 #endif // TT2
+
             }
 
             // ================================================!
@@ -1155,15 +1181,25 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 
+            startSaveFramesTime = omp_get_wtime();
+
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                saveFrame(fpFrames, actualTime, V, Nx);
+                fprintf(fpFrames, "%lf\n", actualTime);
+                saveFrame(fpFrames, V, Nx);
                 SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
             }
 
+            endSaveFramesTime = omp_get_wtime();
+            saveFramesElapsedTime += endSaveFramesTime - startSaveFramesTime;
+
 #endif // SAVE_FRAMES
+
+#ifdef MEASURE_VELOCITY
+
+            startMeasureVelocityTime = omp_get_wtime();
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
@@ -1194,6 +1230,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 }
             }
 
+            finishMeasureVelocityTime = omp_get_wtime();
+            elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+
+#endif // MEASURE_VELOCITY
+
             // Update time step counter
             timeStepCounter++;
         }
@@ -1201,17 +1242,20 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // CABLEEQ
 
-    finishTime = omp_get_wtime();
-    elapsedTime = finishTime - startTime;
+    finishExecutionTime = omp_get_wtime();
+    elapsedExecutionTime += finishExecutionTime - startExecutionTime;
 
 #ifdef SAVE_FRAMES
+
+    fprintf(fpFrames, "%lf\n", actualTime);
+
 #ifndef CABLEEQ
 
-    saveFrame(fpFrames, actualTime, V, Nx, Ny);
+    saveFrame(fpFrames, V, Nx, Ny);
 
 #else // if def CABLEEQ
 
-    saveFrame(fpFrames, actualTime, V, Nx);
+    saveFrame(fpFrames, V, Nx);
 
 #endif // CABLEEQ
 
@@ -1219,6 +1263,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fclose(fpFrames);
 
 #endif // SAVE_FRAMES
+
+    printf("Simulation done!\n");
+    printf("\n");
 
 #if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && !defined(CABLEEQ)
 
@@ -1262,10 +1309,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     char infosFilePath[MAX_STRING_SIZE];
     snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos.txt", pathToSaveData);
     FILE *fpInfos = fopen(infosFilePath, "w");
-    fprintf(fpInfos, "EXECUTION_TYPE = %s\n", EXECUTION_TYPE);
+    fprintf(fpInfos, "EXECUTION TYPE = %s\n", EXECUTION_TYPE);
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
     fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
-    fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
+    fprintf(fpInfos, "CELL MODEL = %s\n", CELL_MODEL);
     fprintf(fpInfos, "METHOD = %s\n", METHOD);
 
 #ifdef THETA
@@ -1303,12 +1350,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
 
 #endif // CABLEEQ
-    
+
+#ifdef MEASURE_VELOCITY
+
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
-    
-    fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "SIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
+
+#endif // MEASURE_VELOCITY
 
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
@@ -1316,9 +1364,26 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "NORM-2 ERROR = %lf\n", norm2error);
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+    
+    fprintf(fpInfos, "\n");
 
-    SUCCESSMSG("Infos saved to %s\n", infosFilePath);
+#ifdef MEASURE_VELOCITY
+
+    fprintf(fpInfos, "TIME TO MEASURE VELOCITY = %.5g s\n", elapsedMeasureVelocityTime);
+
+#endif // MEASURE_VELOCITY
+
+#ifdef SAVE_FRAMES
+
+    fprintf(fpInfos, "TIME TO SAVE FRAMES = %.5g s\n", elapsedSaveFramesTime);
+
+#endif // SAVE_FRAMES
+
+    fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
     fclose(fpInfos);
+
+    INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);
+    SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
 
 #ifdef SAVE_LAST_FRAME
 
@@ -1329,21 +1394,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     
 #ifndef CABLEEQ
 
-    for (int i = 0; i < Ny; i++)
-    {
-        for (int j = 0; j < Nx; j++)
-        {
-            fprintf(fpLast, "%e ", V[i][j]);
-        }
-        fprintf(fpLast, "\n");
-    }
+    saveFrame(fpLast, V, Nx, Ny);
 
 #else // if def CABLEEQ
 
-    for (int i = 0; i < Nx; i++)
-    {
-        fprintf(fpLast, "%e ", V[i]);
-    }
+    saveFrame(fpLast, V, Nx);
 
 #endif // CABLEEQ
 

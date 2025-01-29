@@ -21,8 +21,9 @@
 #define INFOMSG(msg, ...) printf(BLUE "[i] " RESET msg, ##__VA_ARGS__)
 #define SUCCESSMSG(msg, ...) printf(GREEN "[+] " RESET msg, ##__VA_ARGS__)
 #define WARNINGMSG(msg, ...) printf(YELLOW "[!] " RESET msg, ##__VA_ARGS__)
-#define ERRORMSG(msg, ...) printf(RED "[x] " RESET msg, ##__VA_ARGS__)
-#define DEBUGMSG(msg) printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
+#define ERRORMSG(msg, ...) printf(RED "\n[x] " RESET msg "\n", ##__VA_ARGS__)
+#define DEBUGMSG(msg, ...) printf(YELLOW "[.] " RESET msg, ##__VA_ARGS__)
+#define LINEMSG() printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
 
 // Define maximum string size
 #define MAX_STRING_SIZE 200
@@ -85,7 +86,7 @@ typedef float real;
         cudaError_t error = call;                                                                         \
         if (error != cudaSuccess)                                                                         \
         {                                                                                                 \
-            fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
+            fprintf(stderr, RED "\n[x] " RESET "CUDA error at %s:%d - %s\n\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
             exit(EXIT_FAILURE);                                                                           \
         }                                                                                                 \
     } while (0)

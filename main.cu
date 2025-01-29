@@ -84,7 +84,8 @@ int main(int argc, char *argv[])
     // Call function
     RUNSIMULATION(delta_t, delta_x, delta_y);
 
-    printf("\nSIMULATION FINISHED!\n");
+    printf("\n");
+    printf("EXECUTION FINISHED!\n\n");
 
     return 0;
 }

@@ -22,7 +22,7 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, method, theta=None):
+def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, method, theta=None):
     compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
     
     if real_type == 'double':
@@ -59,6 +59,9 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
 
     if save_last_state:
         compile_command += '-DSAVE_LAST_STATE '
+        
+    if measure_velocity:
+        compile_command += '-DMEASURE_VELOCITY '
 
     if method == 'ADI':
         compile_command += '-DADI '
@@ -75,7 +78,7 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
     elif method == 'FE':
         compile_command += '-DFE '
     
-    print(f'Compiling {compile_command}...')
+    print(f'Compiling {compile_command}...\n')
     os.system(compile_command)
 
 def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
@@ -208,7 +211,7 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
         plt.savefig(f'{save_dir}/lastframe{variable}.png')
         plt.close()
         
-        print(f'Last frame of {variable} saved to {save_dir}/lastframe{variable}.png')
+        print(f'Plot of {variable} last frame saved to {save_dir}/lastframe{variable}.png')
 
 def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
     save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -307,7 +310,7 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.savefig(f'{save_dir}/lastframe.png')
         plt.close()
     
-    print(f'Last frame saved to {save_dir}/lastframe.png')
+    print(f'Plot of last frame saved to {save_dir}/lastframe.png')
 
 def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -357,7 +360,7 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
     plt.savefig(f'{save_dir}/last.png')
     plt.close()
     
-    print(f'Last frame saved to {save_dir}/last.png')
+    print(f'Plot of last frame saved to {save_dir}/last.png')
 
     # Plot the exact
     plt.figure()
@@ -369,7 +372,7 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
     plt.savefig(f'{save_dir}/exact.png')
     plt.close()
     
-    print(f'Exact saved to {save_dir}/exact.png')
+    print(f'Plot of exact saved to {save_dir}/exact.png')
 
 def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -401,7 +404,7 @@ def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     plt.savefig(f'{save_dir}/exact.png')
     plt.close()
     
-    print(f'Exact saved to {save_dir}/exact.png')
+    print(f'Plot of exact saved to {save_dir}/exact.png')
     
 def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
     save_dir = f'./simulation_files/errors_dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -433,7 +436,7 @@ def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, d
     plt.savefig(f'{save_dir}/errors.png')
     plt.close()
     
-    print(f'Errors saved to {save_dir}/errors.png')
+    print(f'Plot of errors saved to {save_dir}/errors.png')
 
 def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, Nx, Ny, theta='0.00'):
     save_dir = f'./simulation_files/difference_maps/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -461,7 +464,7 @@ def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_
     plt.savefig(f'{save_dir}/diffmap.png')
     plt.close()
     
-    print(f'Difference map saved to {save_dir}/diffmap.png')
+    print(f'Plot of difference map saved to {save_dir}/diffmap.png')
 
 def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/difference_vector/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -492,7 +495,7 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
     plt.savefig(f'{save_dir}/diff.png')
     plt.close()
     
-    print(f'Difference vector saved to {save_dir}/diff.png')
+    print(f'Plot of difference vector saved to {save_dir}/diff.png')
 
 def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
     # Create gif directory

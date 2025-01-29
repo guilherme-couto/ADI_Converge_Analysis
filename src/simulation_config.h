@@ -4,37 +4,49 @@
 #include "include.h"
 
 #ifdef SAVE_FRAMES
-// Save frames parameters
-const int frameSaveRate = 1000;
+const int frameSaveRate = 10000;
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #ifdef CABLEEQ
+
 const real totalTime = 50.0f;      // Total time (ms)
 const __constant__ real Lx = 5.0f; // Length in x (cm)
-#else
+
+#else // if not CABLEEQ
+
 const real totalTime = 6.0f;        // Total time (ms)
 const __constant__ real Lx = 1.0f;  // Length in x (cm)
-const __constant__ real Ly = 0.01f; // Length in y (cm)
+const __constant__ real Ly = 1.0f; // Length in y (cm)
+
 #endif // CABLEEQ
-#else
+
+#else // if CONVERGENCE_ANALYSIS_FORCING_TERM
+
 const real totalTime = 0.1f;       // Total time (ms)
 const __constant__ real Lx = 1.0f; // Length in x (cm)
 const __constant__ real Ly = 1.0f; // Length in y (cm)
+
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
 // Stimulation parameters
 const __constant__ int numberOfStimuli = 2; // Number of stimuli
+
 #ifdef AFHN
 const real stimuliStrength = 100.0f; // Stimulation strength -> (amplitude)
 #endif                               // AFHN
+
 #ifdef TT2
 const real stimuliStrength = 38.0f; // Stimulation strength -> (amplitude)
 #endif                              // TT2
+
 #ifdef MV
 const real stimuliStrength = 1.0f;          // Stimulation strength -> (amplitude)
 #endif                                      // MV
+
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
 const real stimuliBegin[] = {0.0f, 120.0f}; // Stimuli begin time -> ms
 const real stimulixMax[] = {0.2f, 1.0f};    // Stimuli x max -> cm

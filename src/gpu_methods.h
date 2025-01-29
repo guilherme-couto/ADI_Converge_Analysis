@@ -13,7 +13,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Nx = %d\n", Nx);
     printf("Ny = %d\n", Ny);
     printf("Points in the domain = %d\n", Nx * Ny);
-    printf("\n");
 
     // Allocate and populate time array
     real *time = (real *)malloc(M * sizeof(real));
@@ -21,14 +20,14 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Allocate arrays for variables (2D matrices will be flattened)
     real *V, *Vtilde, *RHS, *partRHS;
-    V = (real *)malloc(Nx * Ny * sizeof(real *));
-    Vtilde = (real *)malloc(Nx * Ny * sizeof(real *));
-    RHS = (real *)malloc(Nx * Ny * sizeof(real *));
-    partRHS = (real *)malloc(Nx * Ny * sizeof(real *));
+    V = (real *)malloc(Nx * Ny * sizeof(real));
+    Vtilde = (real *)malloc(Nx * Ny * sizeof(real));
+    RHS = (real *)malloc(Nx * Ny * sizeof(real));
+    partRHS = (real *)malloc(Nx * Ny * sizeof(real));
 
 #ifdef AFHN
 
-    real *W = (real *)malloc(Nx * Ny * sizeof(real *));
+    real *W = (real *)malloc(Nx * Ny * sizeof(real));
 
 #endif // AFHN
 #ifdef TT2
@@ -95,6 +94,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef RESTORE_STATE
 
+    printf("\n");
+    printf("Restoring state variables...\n");
+
     // Initialize variables with a solution
     real real_ref_dx = 0.0005f;
     real real_def_dy = 0.0005f;
@@ -158,6 +160,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef SHIFT_STATE
 
+    printf("\n");
+    printf("Shifting state variables...\n");
+
     // Shift variables
     real lengthToShift = 0.5f;
     
@@ -220,12 +225,14 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #if defined(SSIADI)
 
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
 
 #endif // SSIADI
 
 #if defined(THETASSIADI)
 
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, THETA * phi_x * diff_coeff);
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, THETA * phi_y * diff_coeff);
     tau = 1.0f - THETA;
 
@@ -233,6 +240,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef OSADI
 
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, phi_x * diff_coeff);
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
 
 #endif // OSADI
@@ -347,40 +355,39 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Print information
     printf("\n");
-    printf("Device name: %s\n", prop.name);
-    printf("Number of SMs: %d\n", numSMs);
+    printf("Device name: %s (%d SMs)\n", prop.name, numSMs);
 
     // Calculate the number of blocks and threads for the full domain kernels
     dim3 blockSize(ceil(sqrt(BLOCK_SIZE)), ceil(sqrt(BLOCK_SIZE)));
-    dim3 numBlocks((Nx + blockSize.x - 1) / blockSize.x, (Ny + blockSize.y - 1) / blockSize.y);
+    dim3 gridSize((Nx + blockSize.x - 1) / blockSize.x, (Ny + blockSize.y - 1) / blockSize.y);
 
     // Adjust the number of blocks
-    if (numBlocks.x * numBlocks.y < minBlocks)
-        numBlocks.x = (minBlocks + numBlocks.y - 1) / numBlocks.y;
+    if (gridSize.x * gridSize.y < minBlocks)
+        gridSize.x = (minBlocks + gridSize.y - 1) / gridSize.y;
     
     // Print information
     printf("\n");
     printf("For full domain kernels:\n");
-    printf("Block size: %d x %d\n", blockSize.x, blockSize.y);
-    printf("Number of blocks: %d x %d (%d threads per block, total %d threads)\n", numBlocks.x, numBlocks.y, blockSize.x * blockSize.y, numBlocks.x * numBlocks.y * blockSize.x * blockSize.y);
+    printf("Block size: %d x %d threads (total %d threads per block)\n", blockSize.x, blockSize.y, blockSize.x * blockSize.y);
+    printf("Grid size: %d x %d blocks (total %d blocks, total %d threads)\n", gridSize.x, gridSize.y, gridSize.x * gridSize.y, gridSize.x * gridSize.y * blockSize.x * blockSize.y);
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
     // Calculate the number of blocks and threads for individual directions of ADI that will be used in Thomas kernel
-    int numBlocks_x = (Nx + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    int numBlocks_y = (Ny + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int gridSize_x = (Nx + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int gridSize_y = (Ny + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     // Adjust the number of blocks
-    if (numBlocks_x < minBlocks)
-        numBlocks_x = minBlocks;
-    if (numBlocks_y < minBlocks)
-        numBlocks_y = minBlocks;
+    if (gridSize_x < minBlocks)
+        gridSize_x = minBlocks;
+    if (gridSize_y < minBlocks)
+        gridSize_y = minBlocks;
 
     // Print information
     printf("\n");
     printf("For Thomas kernel:\n");
-    printf("Number of blocks in x: %d (%d threads per block, total %d threads)\n", numBlocks_x, BLOCK_SIZE, numBlocks_x * BLOCK_SIZE);
-    printf("Number of blocks in y: %d (%d threads per block, total %d threads)\n", numBlocks_y, BLOCK_SIZE, numBlocks_y * BLOCK_SIZE);
+    printf("Grid size for x: %d blocks (%d threads per block, total %d threads)\n", gridSize_x, BLOCK_SIZE, gridSize_x * BLOCK_SIZE);
+    printf("Grid size for y: %d blocks (%d threads per block, total %d threads)\n", gridSize_y, BLOCK_SIZE, gridSize_y * BLOCK_SIZE);
 
 #endif // SSIADI || THETASSIADI || OSADI
     
@@ -390,13 +397,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 
-    // Save frames
+    // Save frames variables
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
     snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
     fpFrames = fopen(framesPath, "w");
+    real startSaveFramesTime, finishSaveFramesTime, elapsedSaveFramesTime = 0.0f;
 
 #endif // SAVE_FRAMES
+
+#ifdef MEASURE_VELOCITY
 
     // Measure velocity
     real stim_velocity = 0.0;
@@ -404,15 +414,21 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real last_point_time = 0.0;
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
+    real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
 
+#endif // MEASURE_VELOCITY
+
+    // Variables for measuring the execution time
+    real startExecutionTime, finishExecutionTime, elapsedExecutionTime = 0.0f;
+
+    // Auxiliary variables for the time loop
     int timeStepCounter = 0;
     real actualTime = 0.0f;
 
-    // Variables for measuring the execution time
-    real startTime, finishTime, elapsedTime;
-
     // Start measuring the execution time
-    startTime = omp_get_wtime();
+    printf("\n");
+    printf("Starting simulation...\n");
+    startExecutionTime = omp_get_wtime();
 
 #if defined(LINMONO) || defined(MONODOMAIN)
 
@@ -428,81 +444,89 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #if defined(AFHN)
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
-        computeApprox<<<numBlocks, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, delta_x, delta_y, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
+        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, delta_x, delta_y, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
 
 #else // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
-        computeApprox<<<numBlocks, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
+        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
 
 #ifdef TT2
 
-        computeApprox<<<numBlocks, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
 
 #endif // TT2
 
-        cudaDeviceSynchronize();
+        CUDA_CALL(cudaDeviceSynchronize());
+
+#if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
         //  Calculate V at n+1/2 -> Result goes to RHS     !
         //  diffusion implicit in y and explicit in x      !
         // ================================================!
+        prepareRHSwithjDiff<<<gridSize, blockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
+        CUDA_CALL(cudaDeviceSynchronize());
 
-#if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
+        parallelThomas<<<gridSize_y, BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
+        CUDA_CALL(cudaDeviceSynchronize());
 
-        prepareRHSwithjDiff<<<numBlocks, blockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
-        cudaDeviceSynchronize();
-
-        parallelThomas<<<numBlocks_y, BLOCK_SIZE>>>(Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
-        cudaDeviceSynchronize();
-#endif // SSIADI || THETASSIADI || OSADI
+#endif // SSIADI || THETASSIADI
 
         // =========================================================!
         //  Transpose d_RHS to d_Vtilde (d_Vtilde as an aux var)    !
         // =========================================================!
-        parallelTranspose<<<numBlocks, blockSize>>>(Nx, Ny, d_RHS, d_Vtilde);
-        cudaDeviceSynchronize();
+        parallelTranspose<<<gridSize, blockSize>>>(Nx, Ny, d_RHS, d_Vtilde);
+        CUDA_CALL(cudaDeviceSynchronize());
+
+#if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
         //  Calculate V at n+1 -> Result goes to V         !
         //  diffusion implicit in x and explicit in y      !
         // ================================================!
+        prepareRHSwithiDiff<<<gridSize, blockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_Vtilde, d_V, d_partRHS);
+        CUDA_CALL(cudaDeviceSynchronize());
 
-#if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
-
-        prepareRHSwithiDiff<<<numBlocks, blockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_V, d_RHS, d_partRHS);
-        cudaDeviceSynchronize();
-
-        parallelThomas<<<numBlocks, blockSize>>>(Nx, d_V, d_la_x, d_lb_x, d_lc_x);
-        cudaDeviceSynchronize();
+        parallelThomas<<<gridSize_x, BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
+        CUDA_CALL(cudaDeviceSynchronize());
         
-#endif // SSIADI || THETASSIADI || OSADI
-        
+#endif // SSIADI || THETASSIADI
 
 #ifdef SAVE_FRAMES
+
+        startSaveFramesTime = omp_get_wtime();
 
         // If save frames is true and time step is multiple of frame save rate
         if (timeStepCounter % frameSaveRate == 0)
         {
             // Copy memory of d_V from device to host V
             CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-            cudaDeviceSynchronize();
+            CUDA_CALL(cudaDeviceSynchronize());
 
             // Save frame
-            saveFrame(fpFrames, actualTime, V, Nx, Ny);
-            printf("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
+            fprintf(fpFrames, "%lf\n", actualTime);
+            saveFrame(fpFrames, V, Nx, Ny);
+            SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
+
+        finishSaveFramesTime = omp_get_wtime();
+        elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
         
 #endif // SAVE_FRAMES
+
+#ifdef MEASURE_VELOCITY
+
+        startMeasureVelocityTime = omp_get_wtime();
 
         // Calculate stim velocity
         if (!stim_velocity_measured)
         {
             // Copy memory of d_V from device to host V
             CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-            cudaDeviceSynchronize();
+            CUDA_CALL(cudaDeviceSynchronize());
 
             real begin = Lx / 3.0f;
             real end = 2.0f * begin;
@@ -525,10 +549,15 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
                     stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
                     stim_velocity = stim_velocity * 10.0; // m/s
                     stim_velocity_measured = true;
-                    printf("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
+                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
                 }
             }
         }
+
+        finishMeasureVelocityTime = omp_get_wtime();
+        elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+
+#endif // MEASURE_VELOCITY
 
         // Update time step counter
         timeStepCounter++;
@@ -536,19 +565,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     
 #endif // LINMONO || MONODOMAIN
 
-    finishTime = omp_get_wtime();
-    elapsedTime = finishTime - startTime;
+    finishExecutionTime = omp_get_wtime();
+    elapsedExecutionTime += finishExecutionTime - startExecutionTime;
 
     // Copy memory of d_V from device to host V
     CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
 
 #ifdef SAVE_FRAMES
 
-    saveFrame(fpFrames, actualTime, V, Nx, Ny);
+    fprintf(fpFrames, "%lf\n", actualTime);
+    saveFrame(fpFrames, V, Nx, Ny);
     SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
     fclose(fpFrames);
 
 #endif // SAVE_FRAMES
+
+    printf("Simulation done!\n");
+    printf("\n");
 
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
@@ -593,10 +626,10 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     char infosFilePath[MAX_STRING_SIZE];
     snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos.txt", pathToSaveData);
     FILE *fpInfos = fopen(infosFilePath, "w");
-    fprintf(fpInfos, "EXECUTION_TYPE = %s\n", EXECUTION_TYPE);
+    fprintf(fpInfos, "EXECUTION TYPE = %s\n", EXECUTION_TYPE);
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
     fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
-    fprintf(fpInfos, "CELL_MODEL = %s\n", CELL_MODEL);
+    fprintf(fpInfos, "CELL MODEL = %s\n", CELL_MODEL);
     fprintf(fpInfos, "METHOD = %s\n", METHOD);
 
 #ifdef THETA
@@ -617,28 +650,28 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);  
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "DEVICE NAME = %s\n", prop.name);
-    fprintf(fpInfos, "NUMBER OF SMs = %d\n", numSMs);
+    fprintf(fpInfos, "DEVICE NAME = %s (%d SMs)\n", prop.name, numSMs);
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "FOR FULL DOMAIN KERNELS:\n");
-    fprintf(fpInfos, "BLOCK SIZE = %d x %d\n", blockSize.x, blockSize.y);
-    fprintf(fpInfos, "NUMBER OF BLOCKS = %d x %d (%d threads per block, total %d threads)\n", numBlocks.x, numBlocks.y, blockSize.x * blockSize.y, numBlocks.x * numBlocks.y * blockSize.x * blockSize.y);
+    fprintf(fpInfos, "BLOCK SIZE = %d x %d threads (%d threads per block)\n", blockSize.x, blockSize.y, blockSize.x * blockSize.y);
+    fprintf(fpInfos, "GRID SIZE = %d x %d blocks (total %d blocks, total %d threads)\n", gridSize.x, gridSize.y, gridSize.x * gridSize.y, gridSize.x * gridSize.y * blockSize.x * blockSize.y);
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "FOR THOMAS KERNEL:\n");
-    fprintf(fpInfos, "NUMBER OF BLOCKS IN X = %d (%d threads per block, total %d threads)\n", numBlocks_x, BLOCK_SIZE, numBlocks_x * BLOCK_SIZE);
-    fprintf(fpInfos, "NUMBER OF BLOCKS IN Y = %d (%d threads per block, total %d threads)\n", numBlocks_y, BLOCK_SIZE, numBlocks_y * BLOCK_SIZE);
+    fprintf(fpInfos, "GRID SIZE FOR X = %d blocks (%d threads per block, total %d threads)\n", gridSize_x, BLOCK_SIZE, gridSize_x * BLOCK_SIZE);
+    fprintf(fpInfos, "GRID SIZE FOR Y = %d blocks (%d threads per block, total %d threads)\n", gridSize_y, BLOCK_SIZE, gridSize_y * BLOCK_SIZE);
 
 #endif // SSIADI || THETASSIADI || OSADI
+
+#ifdef MEASURE_VELOCITY
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
 
-    fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "SIMULATION EXECUTION TIME = %lf s\n", elapsedTime);
+#endif // MEASURE_VELOCITY
 
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
@@ -646,9 +679,26 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "NORM-2 ERROR = %lf\n", norm2error);
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+    
+    fprintf(fpInfos, "\n");
 
-    SUCCESSMSG("Infos saved to %s\n", infosFilePath);
+#ifdef MEASURE_VELOCITY
+
+    fprintf(fpInfos, "TIME TO MEASURE VELOCITY = %.5g s\n", elapsedMeasureVelocityTime);
+
+#endif // MEASURE_VELOCITY
+
+#ifdef SAVE_FRAMES
+
+    fprintf(fpInfos, "TIME TO SAVE FRAMES = %.5g s\n", elapsedSaveFramesTime);
+
+#endif // SAVE_FRAMES
+
+    fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
     fclose(fpInfos);
+
+    INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);
+    SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
 
 #ifdef SAVE_LAST_FRAME
 
@@ -657,15 +707,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
 
-    for (int i = 0; i < Ny; i++)
-    {
-        for (int j = 0; j < Nx; j++)
-        {
-            int index = i * Nx + j;
-            fprintf(fpLast, "%e ", V[index]);
-        }
-        fprintf(fpLast, "\n");
-    }
+    saveFrame(fpLast, V, Nx, Ny);
 
     SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
     fclose(fpLast);

@@ -263,9 +263,8 @@ void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, 
 }
 
 #ifndef CABLEEQ
-void saveFrame(FILE *file, real actualTime, real **V, int Nx, int Ny)
+void saveFrame(FILE *file, real **V, int Nx, int Ny)
 {
-    fprintf(file, "%lf\n", actualTime);
     for (int i = 0; i < Ny; i++)
     {
         for (int j = 0; j < Nx; j++)
@@ -276,9 +275,8 @@ void saveFrame(FILE *file, real actualTime, real **V, int Nx, int Ny)
     }
 }
 #else
-void saveFrame(FILE *file, real actualTime, real *V, int N)
+void saveFrame(FILE *file, real *V, int N)
 {
-    fprintf(file, "%lf\n", actualTime);
     for (int i = 0; i < N; i++)
     {
         fprintf(file, "%e ", V[i]);
@@ -289,6 +287,7 @@ void saveFrame(FILE *file, real actualTime, real *V, int N)
 #endif // SERIAL
 
 #ifdef GPU
+
 void initialize2DVariableWithValue(real *Var, int Nx, int Ny, real value)
 {
     int index;
@@ -375,7 +374,6 @@ void shift2DVariableToLeft(real *Var, int Nx, int Ny, real length, real delta_x,
 
 void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
 {
-
     int rowCurrent;
     int rowPrevious;
 
@@ -403,9 +401,8 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
     lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
 }
 
-void saveFrame(FILE *file, real actualTime, real *V, int Nx, int Ny)
+void saveFrame(FILE *file, real *V, int Nx, int Ny)
 {
-    fprintf(file, "%lf\n", actualTime);
     for (int i = 0; i < Ny; i++)
     {
         for (int j = 0; j < Nx; j++)
