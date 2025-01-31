@@ -452,6 +452,36 @@ real calculateNorm2Error(real *V, real **exact, int Nx, int Ny, real totalTime, 
     return sqrt(sum / (Nx * Ny));
 }
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
+// Temporary function to test the tridiagonal solver
+void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result)
+{
+    c_prime[0] = lc[0] / lb[0];
+    for (int i = 1; i < N - 1; i++)
+    {
+        c_prime[i] = lc[i] / (lb[i] - c_prime[i - 1] * la[i]);
+    }
+    d_prime[0] = d[0] / lb[0];
+    for (int i = 1; i < N; i++)
+    {
+        d_prime[i] = (d[i] - d_prime[i - 1] * la[i]) / (lb[i] - c_prime[i - 1] * la[i]);
+    }
+    result[N - 1] = d_prime[N - 1];
+    for (int i = N - 2; i >= 0; i--)
+    {
+        result[i] = d_prime[i] - c_prime[i] * result[i + 1];
+    }
+}
+
+real RHS_V(real V, real W)
+{
+    return (G*V*(1.0f-(V/vth)) * (1.0f-(V/vp))) + (eta1*V*W);
+}
+
+real RHS_W(real V, real W)
+{
+    return eta2*((V/vp)-(eta3*W));
+}
 #endif // GPU
 
 // Populate diagonals for Thomas algorithm

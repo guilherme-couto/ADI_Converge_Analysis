@@ -19,9 +19,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     initializeTimeArray(time, M, delta_t);
 
     // Allocate arrays for variables (2D matrices will be flattened)
-    real *V, *Vtilde, *RHS, *partRHS;
+    real *V, *RHS, *partRHS;
     V = (real *)malloc(Nx * Ny * sizeof(real));
-    Vtilde = (real *)malloc(Nx * Ny * sizeof(real));
     RHS = (real *)malloc(Nx * Ny * sizeof(real));
     partRHS = (real *)malloc(Nx * Ny * sizeof(real));
 
@@ -268,12 +267,11 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // SSIADI || THETASSIADI || OSADI
 
     // Create device variables
-    real *d_V, *d_RHS, *d_Vtilde, *d_partRHS;
+    real *d_V, *d_RHS, *d_partRHS;
     
     // Allocate memory on device
     CUDA_CALL(cudaMalloc(&d_V, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_RHS, Nx * Ny * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_Vtilde, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_partRHS, Nx * Ny * sizeof(real)));
     
     // Copy memory from host to device
@@ -351,43 +349,37 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Number of SMs and minimum number of blocks to maximize the parallelism
     int numSMs = prop.multiProcessorCount;
-    int minBlocks = 4 * numSMs;
+    int minBlocks = 2 * numSMs;
 
     // Print information
     printf("\n");
     printf("Device name: %s (%d SMs)\n", prop.name, numSMs);
 
     // Calculate the number of blocks and threads for the full domain kernels
-    dim3 blockSize(ceil(sqrt(BLOCK_SIZE)), ceil(sqrt(BLOCK_SIZE)));
-    dim3 gridSize((Nx + blockSize.x - 1) / blockSize.x, (Ny + blockSize.y - 1) / blockSize.y);
+    dim3 fullDomainBlockSize(FULL_DOMAIN_BLOCK_SIZE_X, FULL_DOMAIN_BLOCK_SIZE_Y);
+    dim3 fullDomainGridSize((Nx + fullDomainBlockSize.x - 1) / fullDomainBlockSize.x, (Ny + fullDomainBlockSize.y - 1) / fullDomainBlockSize.y);
 
     // Adjust the number of blocks
-    if (gridSize.x * gridSize.y < minBlocks)
-        gridSize.x = (minBlocks + gridSize.y - 1) / gridSize.y;
+    if (fullDomainGridSize.x * fullDomainGridSize.y < minBlocks)
+        fullDomainGridSize.x = (minBlocks + fullDomainGridSize.y - 1) / fullDomainGridSize.y;
     
     // Print information
     printf("\n");
     printf("For full domain kernels:\n");
-    printf("Block size: %d x %d threads (total %d threads per block)\n", blockSize.x, blockSize.y, blockSize.x * blockSize.y);
-    printf("Grid size: %d x %d blocks (total %d blocks, total %d threads)\n", gridSize.x, gridSize.y, gridSize.x * gridSize.y, gridSize.x * gridSize.y * blockSize.x * blockSize.y);
+    printf("Block size: %d x %d threads (total %d threads per block)\n", fullDomainBlockSize.x, fullDomainBlockSize.y, fullDomainBlockSize.x * fullDomainBlockSize.y);
+    printf("Grid size: %d x %d blocks (total %d blocks, total %d threads)\n", fullDomainGridSize.x, fullDomainGridSize.y, fullDomainGridSize.x * fullDomainGridSize.y, fullDomainGridSize.x * fullDomainGridSize.y * fullDomainBlockSize.x * fullDomainBlockSize.y);
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
     // Calculate the number of blocks and threads for individual directions of ADI that will be used in Thomas kernel
-    int gridSize_x = (Nx + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    int gridSize_y = (Ny + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-    // Adjust the number of blocks
-    if (gridSize_x < minBlocks)
-        gridSize_x = minBlocks;
-    if (gridSize_y < minBlocks)
-        gridSize_y = minBlocks;
+    int gridSize_x = (Nx + THOMAS_KERNEL_BLOCK_SIZE - 1) / THOMAS_KERNEL_BLOCK_SIZE;
+    int gridSize_y = (Ny + THOMAS_KERNEL_BLOCK_SIZE - 1) / THOMAS_KERNEL_BLOCK_SIZE;
 
     // Print information
     printf("\n");
     printf("For Thomas kernel:\n");
-    printf("Grid size for x: %d blocks (%d threads per block, total %d threads)\n", gridSize_x, BLOCK_SIZE, gridSize_x * BLOCK_SIZE);
-    printf("Grid size for y: %d blocks (%d threads per block, total %d threads)\n", gridSize_y, BLOCK_SIZE, gridSize_y * BLOCK_SIZE);
+    printf("Grid size for x: %d blocks (%d threads per block, total %d threads)\n", gridSize_x, THOMAS_KERNEL_BLOCK_SIZE, gridSize_x * THOMAS_KERNEL_BLOCK_SIZE);
+    printf("Grid size for y: %d blocks (%d threads per block, total %d threads)\n", gridSize_y, THOMAS_KERNEL_BLOCK_SIZE, gridSize_y * THOMAS_KERNEL_BLOCK_SIZE);
 
 #endif // SSIADI || THETASSIADI || OSADI
     
@@ -444,18 +436,18 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #if defined(AFHN)
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
-        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, delta_x, delta_y, actualTime, d_V, d_Vtilde, d_partRHS, d_W);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, delta_x, delta_y, actualTime, d_V, d_partRHS, d_W);
 
 #else // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
-        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
 
 #ifdef TT2
 
-        computeApprox<<<gridSize, blockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
 
 #endif // TT2
 
@@ -467,30 +459,20 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         //  Calculate V at n+1/2 -> Result goes to RHS     !
         //  diffusion implicit in y and explicit in x      !
         // ================================================!
-        prepareRHSwithjDiff<<<gridSize, blockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
+        prepareRHSjDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
-        parallelThomas<<<gridSize_y, BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
+        parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
         CUDA_CALL(cudaDeviceSynchronize());
-
-#endif // SSIADI || THETASSIADI
-
-        // =========================================================!
-        //  Transpose d_RHS to d_Vtilde (d_Vtilde as an aux var)    !
-        // =========================================================!
-        parallelTranspose<<<gridSize, blockSize>>>(Nx, Ny, d_RHS, d_Vtilde);
-        CUDA_CALL(cudaDeviceSynchronize());
-
-#if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
         //  Calculate V at n+1 -> Result goes to V         !
         //  diffusion implicit in x and explicit in y      !
         // ================================================!
-        prepareRHSwithiDiff<<<gridSize, blockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_Vtilde, d_V, d_partRHS);
+        prepareRHSiDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_RHS, d_V, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
-        parallelThomas<<<gridSize_x, BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
+        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
         CUDA_CALL(cudaDeviceSynchronize());
         
 #endif // SSIADI || THETASSIADI
@@ -504,7 +486,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         {
             // Copy memory of d_V from device to host V
             CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-            CUDA_CALL(cudaDeviceSynchronize());
 
             // Save frame
             fprintf(fpFrames, "%lf\n", actualTime);
@@ -526,7 +507,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         {
             // Copy memory of d_V from device to host V
             CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-            CUDA_CALL(cudaDeviceSynchronize());
 
             real begin = Lx / 3.0f;
             real end = 2.0f * begin;
@@ -654,15 +634,15 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "FOR FULL DOMAIN KERNELS:\n");
-    fprintf(fpInfos, "BLOCK SIZE = %d x %d threads (%d threads per block)\n", blockSize.x, blockSize.y, blockSize.x * blockSize.y);
-    fprintf(fpInfos, "GRID SIZE = %d x %d blocks (total %d blocks, total %d threads)\n", gridSize.x, gridSize.y, gridSize.x * gridSize.y, gridSize.x * gridSize.y * blockSize.x * blockSize.y);
+    fprintf(fpInfos, "BLOCK SIZE = %d x %d threads (%d threads per block)\n", fullDomainBlockSize.x, fullDomainBlockSize.y, fullDomainBlockSize.x * fullDomainBlockSize.y);
+    fprintf(fpInfos, "GRID SIZE = %d x %d blocks (total %d blocks, total %d threads)\n", fullDomainGridSize.x, fullDomainGridSize.y, fullDomainGridSize.x * fullDomainGridSize.y, fullDomainGridSize.x * fullDomainGridSize.y * fullDomainBlockSize.x * fullDomainBlockSize.y);
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "FOR THOMAS KERNEL:\n");
-    fprintf(fpInfos, "GRID SIZE FOR X = %d blocks (%d threads per block, total %d threads)\n", gridSize_x, BLOCK_SIZE, gridSize_x * BLOCK_SIZE);
-    fprintf(fpInfos, "GRID SIZE FOR Y = %d blocks (%d threads per block, total %d threads)\n", gridSize_y, BLOCK_SIZE, gridSize_y * BLOCK_SIZE);
+    fprintf(fpInfos, "GRID SIZE FOR X = %d blocks (%d threads per block, total %d threads)\n", gridSize_x, THOMAS_KERNEL_BLOCK_SIZE, gridSize_x * THOMAS_KERNEL_BLOCK_SIZE);
+    fprintf(fpInfos, "GRID SIZE FOR Y = %d blocks (%d threads per block, total %d threads)\n", gridSize_y, THOMAS_KERNEL_BLOCK_SIZE, gridSize_y * THOMAS_KERNEL_BLOCK_SIZE);
 
 #endif // SSIADI || THETASSIADI || OSADI
 
@@ -906,11 +886,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     free(pathToSaveData);
 
     free(V);
-    free(Vtilde);
     free(RHS);
     free(partRHS);
     CUDA_CALL(cudaFree(d_V));
-    CUDA_CALL(cudaFree(d_Vtilde));
     CUDA_CALL(cudaFree(d_RHS));
     CUDA_CALL(cudaFree(d_partRHS));
 

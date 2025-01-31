@@ -8,6 +8,7 @@
         "functional": "cpp",
         "random": "cpp",
         "__locale": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "initializer_list": "cpp"
     }
 }

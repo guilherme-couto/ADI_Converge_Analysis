@@ -53,17 +53,17 @@ __device__ real forcingTerm(real x, real y, real t, real W)
 }
 
 // Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
-__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real delta_x, real delta_y, real actualTime, real *d_V, real *d_Vtilde, real *d_partRHS, real *d_W)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real delta_x, real delta_y, real actualTime, real *d_V, real *d_partRHS, real *d_W)
 {
     // Obtain the index of the thread
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
     int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
-
-    if (index < Nx * Ny)
+    if (i < Ny && j < Nx)
     {
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
+
         real x = j * delta_x;
         real y = i * delta_y;
 
@@ -89,9 +89,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 
         real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
         real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
-        d_Vtilde[index] = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
-
-        real Vtilde = d_Vtilde[index];
+        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
 
         // Calculate approximation for state variables
         real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
@@ -115,11 +113,11 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
     int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
-
-    if (index < Nx * Ny)
+    if (i < Ny && j < Nx)
     {
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
+
         int index_im1 = (i - 1) * Nx + j;
         int index_ip1 = (i + 1) * Nx + j;
         int index_jm1 = i * Nx + (j - 1);
@@ -185,11 +183,11 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
     int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
-
-    if (index < Nx * Ny)
+    if (i < Ny && j < Nx)
     {
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
+
         int index_im1 = (i - 1) * Nx + j;
         int index_ip1 = (i + 1) * Nx + j;
         int index_jm1 = i * Nx + (j - 1);
@@ -548,17 +546,17 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 
 #endif // TT2
 
-__global__ void prepareRHSwithiDiff(int Nx, int Ny, real phi_y, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSiDiff(int Nx, int Ny, real phi_y, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     // Obtain the index of the thread
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
     int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
-
-    if (index < Nx * Ny)
+    if (i < Ny && j < Nx)
     {
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
+
         int index_im1 = (i - 1) * Nx + j;
         int index_ip1 = (i + 1) * Nx + j;
 
@@ -572,18 +570,16 @@ __global__ void prepareRHSwithiDiff(int Nx, int Ny, real phi_y, real diff_coeff,
     }
 }
 
-__global__ void prepareRHSwithjDiff(int Nx, int Ny, real phi_x, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
+__global__ void prepareRHSjDiff(int Nx, int Ny, real phi_x, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     // Obtain the index of the thread
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
     int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
-
-    if (index < Nx * Ny)
+    if (i < Ny && j < Nx)
     {
-        int transposedIndex = j * Ny + i;
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
 
         int index_jm1 = i * Nx + (j - 1);
         int index_jp1 = i * Nx + (j + 1);
@@ -594,7 +590,7 @@ __global__ void prepareRHSwithjDiff(int Nx, int Ny, real phi_x, real diff_coeff,
         real actualV = d_V[index];
 
         real diff_term = diff_coeff * tau * phi_x * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
-        d_RHS[transposedIndex] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
+        d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
 
@@ -606,7 +602,7 @@ __global__ void prepareRHSwithjDiff(int Nx, int Ny, real phi_x, real diff_coeff,
 // la -> Lower diagonal
 // lb -> Main diagonal
 // lc -> Upper diagonal
-__global__ void parallelThomas(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
+__global__ void parallelThomasVertical(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
 {
     int previousRow, nextRow;
     int currentRow = blockIdx.x * blockDim.x + threadIdx.x;
@@ -640,17 +636,37 @@ __global__ void parallelThomas(int numSys, int sysSize, real *d, real *la, real 
     }
 }
 
-__global__ void parallelTranspose(int Nx, int Ny, real *in, real *out)
+__global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
 {
-    // Obtain the index of the thread
-    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
-    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
+    int previousColumn, nextColumn;
+    int currentColumn = blockIdx.x * blockDim.x + threadIdx.x;
+    currentColumn *= numSys;
+    int i = 0;
 
-    // Calculate the index in the 1D array
-    int index = i * Nx + j;
+    if (currentColumn < numSys)
+    {
+        // 1st: update auxiliary arrays
+        d[currentColumn] = d[currentColumn] / lb[i];
 
-    if (index < Nx * Ny)
-        out[j * Ny + i] = in[index];
+        for (i = 1; i < sysSize; i++)
+        {
+            previousColumn = currentColumn;
+            currentColumn += 1;
+
+            d[currentColumn] = (d[currentColumn] - la[i] * d[previousColumn]) / (lb[i]);
+        }
+
+        // 2nd: update solution
+        d[currentColumn] = d[currentColumn];
+
+        for (i = sysSize - 2; i >= 0; i--)
+        {
+            nextColumn = currentColumn;
+            currentColumn -= 1;
+
+            d[currentColumn] = d[currentColumn] - lc[i] * d[nextColumn];
+        }
+    }
 }
 
 #endif // MONODOMAIN
