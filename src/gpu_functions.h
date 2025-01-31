@@ -3,108 +3,9 @@
 
 #include "simulation_config.h"
 
-#ifdef DIFF
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-__device__ real exactSolution(real t, real x, real y)
-{
-    return (exp(-t)) * cos(_pi * x) * cos(_pi * y);
-}
-__device__ real forcingTerm(real x, real y, real t)
-{
-    return exactSolution(t, x, y) * (-1.0f + 2.0f * (_pi * _pi));
-}
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-#endif // DIFF
-
-#ifdef LINMONO
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-__device__ real exactSolution(real t, real x, real y)
-{
-    return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
-}
-
-__device__ real forcingTerm(real x, real y, real t)
-{
-    return exactSolution(t, x, y) * (-(chi * Cm) + chi * G + 2.0f * (sigma / (chi * Cm)) * _pi * _pi / (L * L));
-}
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-#endif // LINMONO
-
 #ifdef MONODOMAIN
 
 #ifdef AFHN
-
-#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM)
-
-__host__ __device__ real exactSolution(real t, real x, real y)
-{
-    return (exp(-t)) * cos(_pi * x / L) * cos(_pi * y / L);
-}
-
-__device__ real forcingTerm(real x, real y, real t, real W)
-{
-    real exactV = exactSolution(t, x, y);
-    real reaction = (G * exactV * (1.0f - (exactV / vth)) * (1.0f - (exactV / vp))) + (eta1 * exactV * W);
-    return (exactV * (-(chi * Cm) + 2.0f * (sigma / (chi * Cm)) * _pi * _pi / (L * L))) + (chi * reaction);
-}
-
-// Kernel to compute the approximate solution of the reaction-diffusion system using the SSI-ADI
-__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real delta_x, real delta_y, real actualTime, real *d_V, real *d_partRHS, real *d_W)
-{
-    // Obtain the index of the thread
-    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
-    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
-
-    if (i < Ny && j < Nx)
-    {
-        // Calculate the index in the 1D array
-        int index = i * Nx + j;
-
-        real x = j * delta_x;
-        real y = i * delta_y;
-
-        int index_im1 = (i - 1) * Nx + j;
-        int index_ip1 = (i + 1) * Nx + j;
-        int index_jm1 = i * Nx + (j - 1);
-        int index_jp1 = i * Nx + (j + 1);
-
-        (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
-        (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
-
-        real actualV = d_V[index];
-        real im1V = d_V[index_im1];
-        real ip1V = d_V[index_ip1];
-        real jm1V = d_V[index_jm1];
-        real jp1V = d_V[index_jp1];
-
-        real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
-
-        real actualW = d_W[index];
-
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
-        real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t), actualW) / (chi * Cm);
-        real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
-
-        // Calculate approximation for state variables
-        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
-        real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
-
-        // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = ((G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde)) / (Cm * chi);
-        d_partRHS[index] = delta_t * (for_term - RHS_Vtilde_term);
-
-        // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
-        d_W[index] = actualW + delta_t * (eta2 * ((Vtilde / vp) - (eta3 * Wtilde)));
-    }
-}
-
-#else // if not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
 __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_V, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
@@ -117,6 +18,30 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
     {
         // Calculate the index in the 1D array
         int index = i * Nx + j;
+        real actualV = d_V[index];
+
+        // State variable
+        real actualW = d_W[index];
+
+        // Calculate RHS_V at actual time
+        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
+
+        // Stimulation
+        real stim = 0.0f;
+#pragma unroll
+        for (int si = 0; si < numberOfStimuli; si++)
+        {
+            const Stimulus &stimulus = d_stimuli[si];
+            if (actualTime >= stimulus.begin && actualTime <= stimulus.begin + stimulus.duration &&
+                j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
+                i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
+            {
+                stim = stimulus.strength;
+                break;
+            }
+        }
+
+#if defined(SSIADI) || defined(THETASSIADI)
 
         int index_im1 = (i - 1) * Nx + j;
         int index_ip1 = (i + 1) * Nx + j;
@@ -129,30 +54,12 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
         (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
 
-        real actualV = d_V[index];
         real im1V = d_V[index_im1];
         real ip1V = d_V[index_ip1];
         real jm1V = d_V[index_jm1];
         real jp1V = d_V[index_jp1];
 
         real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
-
-        // State variable
-        real actualW = d_W[index];
-
-        // Calculate RHS_V at actual time
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
-        
-        // Stimulation
-        real stim = 0.0f;
-        for (int si = 0; si < numberOfStimuli; si++)
-        {
-            if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
-            {
-                stim = d_stimuli[si].strength;
-                break;
-            }
-        }
 
         // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
         real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
@@ -168,10 +75,31 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
         real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
+
+#endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+        // Calculate part of the RHS of the following linear systems with Forward Euler
+        d_partRHS[index] = delta_t * (stim - RHS_V_term);
+
+        // Update state variables
+        d_W[index] = actualW + delta_t * eta2 * ((actualV / vp) - (eta3 * actualW)); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+
+#endif // OSADI
+
+#ifdef FE
+
+        // Update variables explicitly
+        real diff_term = diff_coeff * (phi_x * (d_V[lim(i, j - 1, Nx)] - 2.0f * actualV + d_V[lim(i, j + 1, Nx)]) + phi_y * (d_V[lim(i - 1, j, Ny)] - 2.0f * actualV + d_V[lim(i + 1, j, Ny)]));
+        d_partRHS[index] = actualV + diff_term + delta_t * (stim - RHS_V_term);
+        d_W[index] = actualW + delta_t * eta2 * ((actualV / vp) - (eta3 * actualW));
+
+#endif // FE
+        
     }
 }
 
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
 
 #ifdef TT2
@@ -188,6 +116,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Calculate the index in the 1D array
         int index = i * Nx + j;
 
+        // Boundary conditions
         int index_im1 = (i - 1) * Nx + j;
         int index_ip1 = (i + 1) * Nx + j;
         int index_jm1 = i * Nx + (j - 1);
@@ -546,6 +475,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 
 #endif // TT2
 
+#if defined(SSIADI) || defined(THETASSIADI)
+
 __global__ void prepareRHSiDiff(int Nx, int Ny, real phi_y, real diff_coeff, real tau, real *d_V, real *d_RHS, real *d_partRHS)
 {
     // Obtain the index of the thread
@@ -593,6 +524,25 @@ __global__ void prepareRHSjDiff(int Nx, int Ny, real phi_x, real diff_coeff, rea
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
+
+#endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+__global__ void prepareRHS(int Nx, int Ny, real *d_V, real *d_partRHS)
+{
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
+
+    if (i < Ny && j < Nx)
+    {
+        int index = i * Nx + j;
+        d_V[index] = d_V[index] + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
+    }
+}
+
+#endif // OSADI
 
 // From GLOSTER, Andrew et al. Efficient Interleaved Batch Matrix Solvers for CUDA. arXiv preprint arXiv:1909.04539, 2019.
 // Kernel to solve the tridiagonal system using the Thomas algorithm

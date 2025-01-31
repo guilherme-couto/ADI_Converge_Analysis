@@ -25,19 +25,21 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifndef CABLEEQ
 
     // Allocate 2D arrays for variables
-    real **V, **Vtilde, **RHS, **partRHS;
+    real **V, **partRHS;
     V = (real **)malloc(Ny * sizeof(real *));
-    Vtilde = (real **)malloc(Ny * sizeof(real *));
-    RHS = (real **)malloc(Ny * sizeof(real *));
     partRHS = (real **)malloc(Ny * sizeof(real *));
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+    real **RHS = (real **)malloc(Ny * sizeof(real *));
+
+#endif // SSIADI || THETASSIADI
 
 #else // if def CABLEEQ
 
     // Allocate 1D arrays for variables
-    real *V, *Vtilde, *RHS, *partRHS, *AP;
+    real *V, *partRHS, *AP;
     V = (real *)malloc(Nx * sizeof(real));
-    Vtilde = (real *)malloc(Nx * sizeof(real));
-    RHS = (real *)malloc(Nx * sizeof(real));
     partRHS = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 
@@ -107,9 +109,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     for (int i = 0; i < Ny; i++)
     {
         V[i] = (real *)malloc(Nx * sizeof(real));
-        Vtilde[i] = (real *)malloc(Nx * sizeof(real));
-        RHS[i] = (real *)malloc(Nx * sizeof(real));
         partRHS[i] = (real *)malloc(Nx * sizeof(real));
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+        RHS[i] = (real *)malloc(Nx * sizeof(real));
+
+#endif // SSIADI || THETASSIADI
 
 #ifdef MONODOMAIN
 #ifdef AFHN
@@ -627,35 +633,26 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             }
         }
 
-        // Alternative Direction Implicit (ADI) part
-#if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
+#if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
         //  Calculate V at n+1/2 -> Result goes to RHS     !
+        //  diffusion implicit in y and explicit in x      !
         // ================================================!
         for (int j = 0; j < Nx; j++)
         {
+            // Calculate the RHS of the linear system with the explicit diffusion term along x
             for (int i = 0; i < Ny; i++)
             {
-                // Calculate the RHS of the linear system
                 real actualV = V[i][j];
-
-#if defined(SSIADI) || defined(THETASSIADI)
-
-                // Calculate the explicit diffusion along x
                 diff_term = diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
                 LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
-
-#endif // SSIADI || THETASSIADI
-
-#if defined(OSADI)
-
-                LS_b_y[i] = actualV + 0.5f * partRHS[i][j];
-
-#endif // OSADI
             }
 
+            // Solve the linear system
             tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+            
+            // Update with the result
             for (int i = 0; i < Ny; i++)
             {
                 RHS[i][j] = result_y[i];
@@ -664,37 +661,75 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
         // ================================================!
         //  Calculate V at n+1 -> Result goes to V         !
+        //  diffusion implicit in x and explicit in y      !
         // ================================================!
         for (int i = 0; i < Ny; i++)
         {
+            // Calculate the RHS of the linear system with the explicit diffusion term along y
             for (int j = 0; j < Nx; j++)
             {
-                // Calculate the RHS of the linear system
                 real actualV = RHS[i][j];
-
-#if defined(SSIADI) || defined(THETASSIADI)
-
-                // Calculate the explicit diffusion along y
                 diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
                 LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
-
-#endif // SSIADI || THETASSIADI
-
-#if defined(OSADI)
-
-                LS_b_x[j] = actualV + 0.5f * partRHS[i][j];
-
-#endif // OSADI
             }
 
+            // Solve the linear system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+
+            // Update with the result
             for (int j = 0; j < Nx; j++)
             {
                 V[i][j] = result_x[j];
             }
         }
 
-#endif // SSIADI || THETASSIADI || OSADI
+#endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+        // ================================================!
+        //  Calculate V at n+1/2 -> Result goes to V       !
+        // ================================================!
+        for (int j = 0; j < Nx; j++)
+        {
+            // Calculate the RHS of the linear system
+            for (int i = 0; i < Ny; i++)
+            {
+                LS_b_y[i] = V[i][j] + 0.5f * partRHS[i][j];
+            }
+
+            // Solve the linear system
+            tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+
+            // Update with the result
+            for (int i = 0; i < Ny; i++)
+            {
+                V[i][j] = result_y[i];
+            }
+        }
+
+        // ================================================!
+        //  Calculate V at n+1 -> Result goes to V         !
+        // ================================================!
+        for (int i = 0; i < Ny; i++)
+        {
+            // Calculate the RHS of the linear system
+            for (int j = 0; j < Nx; j++)
+            {
+                LS_b_x[j] = V[i][j] + 0.5f * partRHS[i][j];
+            }
+
+            // Solve the linear system
+            tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            
+            // Update with the result
+            for (int j = 0; j < Nx; j++)
+            {
+                V[i][j] = result_x[j];
+            }
+        }
+
+#endif // OSADI
 
 #ifdef SAVE_FRAMES
 
@@ -1165,6 +1200,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // ================================================!
             //  Calculate V at n + 1 -> Result goes to V       !
             // ================================================!
+            // Calculate the RHS
             for (int i = 0; i < Nx; i++)
             {
                 real actualV = V[i];
@@ -1173,7 +1209,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 LS_b_x[i] = actualV + (1.0f - THETA) * diff_term + partRHS[i];
             }
 
+            // Solve the tridiagonal system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            
+            // Update V
             for (int i = 0; i < Nx; i++)
             {
                 V[i] = result_x[i];
@@ -1637,9 +1676,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     for (int i = 0; i < Ny; i++)
     {
         free(V[i]);
-        free(Vtilde[i]);
-        free(RHS[i]);
         free(partRHS[i]);
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+        free(RHS[i]);
+
+#endif // SSIADI || THETASSIADI
 
 #ifdef MONODOMAIN
 #ifdef AFHN
@@ -1673,6 +1716,12 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     }
 
+#if defined(SSIADI) || defined(THETASSIADI)
+
+    free(RHS);
+
+#endif // SSIADI || THETASSIADI
+
     free(c_prime_y);
     free(d_prime_y);
     free(LS_b_y);
@@ -1684,8 +1733,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // not CABLEEQ
 
     free(V);
-    free(Vtilde);
-    free(RHS);
     free(partRHS);
     
     free(c_prime_x);

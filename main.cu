@@ -38,10 +38,10 @@ int main(int argc, char *argv[])
 
     #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
     printf("CONVERGENCE ANALYSIS WITH FORCING TERM\n");
-    #ifdef MONODOMAIN
-    #define AFHN
-    printf("By now, Convergence Analysis with forcing term for MONODOMAIN is only implemented with AFHN cell model\n");
-    #endif // MONODOMAIN
+    #if !defined(MONODOMAIN) || !defined(AFHN) || !defined(SERIAL)
+    ERRORMSG("Convergence analysis with forcing term is only implemented for MONODOMAIN with AFHN in SERIAL execution\n");
+    return 1;
+    #endif // not MONODOMAIN or not AFHN or not SERIAL
     #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     #ifdef LINMONO

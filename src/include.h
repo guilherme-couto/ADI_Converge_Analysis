@@ -29,8 +29,8 @@
 #define MAX_STRING_SIZE 200
 
 // Define block size for GPU
-#define FULL_DOMAIN_BLOCK_SIZE_X 8
-#define FULL_DOMAIN_BLOCK_SIZE_Y 8
+#define FULL_DOMAIN_BLOCK_SIZE_X 16
+#define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
 
 // Convert CM to UM

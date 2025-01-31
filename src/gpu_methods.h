@@ -18,11 +18,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
 
-    // Allocate arrays for variables (2D matrices will be flattened)
-    real *V, *RHS, *partRHS;
-    V = (real *)malloc(Nx * Ny * sizeof(real));
-    RHS = (real *)malloc(Nx * Ny * sizeof(real));
-    partRHS = (real *)malloc(Nx * Ny * sizeof(real));
+    // Allocate arrays for variables (2D matrices will be flattened);
+    real *V = (real *)malloc(Nx * Ny * sizeof(real));
 
 #ifdef AFHN
 
@@ -52,15 +49,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-    initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
-
-#else // not CONVERGENCE_ANALYSIS_FORCING_TERM
-
     initialize2DVariableWithValue(V, Nx, Ny, V_init);
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifdef AFHN
 
@@ -264,15 +253,30 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMemcpy(d_lb_y, lb_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_lc_y, lc_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
 
+    // Free host memory
+    free(la_x);
+    free(lb_x);
+    free(lc_x);
+    free(la_y);
+    free(lb_y);
+    free(lc_y);
+
 #endif // SSIADI || THETASSIADI || OSADI
 
     // Create device variables
-    real *d_V, *d_RHS, *d_partRHS;
+    real *d_V, *d_partRHS;
     
     // Allocate memory on device
     CUDA_CALL(cudaMalloc(&d_V, Nx * Ny * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_RHS, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_partRHS, Nx * Ny * sizeof(real)));
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+    // Allocate memory for the RHS
+    real *d_RHS;
+    CUDA_CALL(cudaMalloc(&d_RHS, Nx * Ny * sizeof(real)));
+
+#endif // SSIADI || THETASSIADI
     
     // Copy memory from host to device
     CUDA_CALL(cudaMemcpy(d_V, V, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
@@ -327,7 +331,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 
-#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifdef MONODOMAIN
 
     // Allocate array for the stimuli
@@ -340,7 +343,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMemcpy(d_stimuli, stimuli, numberOfStimuli * sizeof(Stimulus), cudaMemcpyHostToDevice));
 
 #endif // MONODOMAIN
-#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // CUDA grid and block allocation
     // Device properties
@@ -422,7 +424,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Starting simulation...\n");
     startExecutionTime = omp_get_wtime();
 
-#if defined(LINMONO) || defined(MONODOMAIN)
+#if defined(MONODOMAIN)
 
     while (timeStepCounter < M)
     {
@@ -433,18 +435,11 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         //  Calculate Approx. and ODEs                     !
         // ================================================!
         
-#if defined(AFHN)
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, delta_x, delta_y, actualTime, d_V, d_partRHS, d_W);
-
-#else // not CONVERGENCE_ANALYSIS_FORCING_TERM
+#ifdef AFHN
 
         computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
 
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 #endif // AFHN
-
 #ifdef TT2
 
         computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
@@ -459,9 +454,11 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         //  Calculate V at n+1/2 -> Result goes to RHS     !
         //  diffusion implicit in y and explicit in x      !
         // ================================================!
+        // Calculate RHS for Thomas batch algorithm
         prepareRHSjDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
         CUDA_CALL(cudaDeviceSynchronize());
 
@@ -469,13 +466,47 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         //  Calculate V at n+1 -> Result goes to V         !
         //  diffusion implicit in x and explicit in y      !
         // ================================================!
+        // Calculate RHS for Thomas batch algorithm
         prepareRHSiDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_RHS, d_V, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Solve the linear systems
         parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
         CUDA_CALL(cudaDeviceSynchronize());
         
 #endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+        // ================================================!
+        //  Calculate V at n+1/2 -> Result goes to RHS     !
+        // ================================================!
+        // Calculate RHS for Thomas batch algorithm
+        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_V, d_partRHS);
+        CUDA_CALL(cudaDeviceSynchronize());
+
+        // Solve the linear systems
+        parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_V, d_la_y, d_lb_y, d_lc_y);
+        CUDA_CALL(cudaDeviceSynchronize());
+
+        // ================================================!
+        //  Calculate V at n+1 -> Result goes to V         !
+        // ================================================!
+        // Calculate RHS for Thomas batch algorithm
+        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_V, d_partRHS);
+        CUDA_CALL(cudaDeviceSynchronize());
+
+        // Solve the linear systems
+        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
+        CUDA_CALL(cudaDeviceSynchronize());
+
+#endif // OSADI
+
+#ifdef FE
+
+        CUDA_CALL(cudaMemcpy(d_V, d_partRHS, Nx * Ny * sizeof(real), cudaMemcpyDeviceToDevice));
+
+#endif // FE
 
 #ifdef SAVE_FRAMES
 
@@ -543,7 +574,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         timeStepCounter++;
     }
     
-#endif // LINMONO || MONODOMAIN
+#endif // MONODOMAIN
 
     finishExecutionTime = omp_get_wtime();
     elapsedExecutionTime += finishExecutionTime - startExecutionTime;
@@ -562,45 +593,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     printf("Simulation done!\n");
     printf("\n");
-
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-    real **exact = (real **)malloc(Ny * sizeof(real *));
-    for (int i = 0; i < Ny; i++)
-        exact[i] = (real *)malloc(Nx * sizeof(real));
-
-    real norm2error = calculateNorm2Error(V, exact, Nx, Ny, totalTime, delta_x, delta_y);
-
-    char exactFilePath[MAX_STRING_SIZE];
-    snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
-    FILE *fpExact = fopen(exactFilePath, "w");
-    
-    char errorsFilePath[MAX_STRING_SIZE];
-    snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
-    FILE *fpErrors = fopen(errorsFilePath, "w");
-
-    for (int i = 0; i < Ny; i++)
-    {
-        for (int j = 0; j < Nx; j++)
-        {
-            int index = i * Nx + j;
-            fprintf(fpExact, "%e ", exact[i][j]);
-            fprintf(fpErrors, "%e ", abs(V[index] - exact[i][j]));
-        }
-        fprintf(fpExact, "\n");
-        fprintf(fpErrors, "\n");
-    }
-
-    for (int i = 0; i < Ny; i++)
-        free(exact[i]);
-    free(exact);
-
-    SUCCESSMSG("Exact solution saved to %s\n", exactFilePath);
-    SUCCESSMSG("Errors saved to %s\n", errorsFilePath);
-    fclose(fpExact);
-    fclose(fpErrors);
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
@@ -652,13 +644,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
 
 #endif // MEASURE_VELOCITY
-
-#ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
-
-    fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "NORM-2 ERROR = %lf\n", norm2error);
-
-#endif // CONVERGENCE_ANALYSIS_FORCING_TERM
     
     fprintf(fpInfos, "\n");
 
@@ -886,20 +871,11 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     free(pathToSaveData);
 
     free(V);
-    free(RHS);
-    free(partRHS);
     CUDA_CALL(cudaFree(d_V));
-    CUDA_CALL(cudaFree(d_RHS));
     CUDA_CALL(cudaFree(d_partRHS));
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
-    free(la_x);
-    free(lb_x);
-    free(lc_x);
-    free(la_y);
-    free(lb_y);
-    free(lc_y);
     CUDA_CALL(cudaFree(d_la_x));
     CUDA_CALL(cudaFree(d_lb_x));
     CUDA_CALL(cudaFree(d_lc_x));
@@ -907,15 +883,18 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaFree(d_lb_y));
     CUDA_CALL(cudaFree(d_lc_y));
 
+#ifndef OSADI
+    
+    CUDA_CALL(cudaFree(d_RHS));
+
+#endif // OSADI
+
 #endif // SSIADI || THETASSIADI || OSADI
 
 #ifdef MONODOMAIN
-#ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 
     free(stimuli);
     CUDA_CALL(cudaFree(d_stimuli));
-
-#endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifdef AFHN
 
