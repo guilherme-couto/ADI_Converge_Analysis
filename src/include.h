@@ -32,6 +32,7 @@
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
+#define MAX_SYS_SIZE 2001
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -458,25 +459,8 @@ const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0f;   // cm^-1
 const __constant__ real Cm = 1.0f;    // mF * cm^-2
 #endif                                // LINMONO
-#ifdef DIFFREAC
-const __constant__ real sigma = 1.0f;
-#endif // DIFFREAC
-#ifdef DIFF
-const __constant__ real sigma = 1.0f;
-#endif // DIFF
 #ifdef MONODOMAIN
-#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
-const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
-const __constant__ real chi = 1.0f;   // cm^-1
-const __constant__ real Cm = 1.0f;    // mF * cm^-2
-
-const __constant__ real G = 1.0f;    // omega^-1 * cm^-2
-const __constant__ real eta1 = 1.0f; // omega^-1 * cm^-1
-const __constant__ real eta2 = 1.0f; // dimensionless
-const __constant__ real eta3 = 1.0f; // dimensionless
-const __constant__ real vth = 1.0f;  // mV
-const __constant__ real vp = 1.0f;   // mV
-#elif defined(AFHN)
+#ifdef AFHN
 // Model parameters - Based on Gerardo_Giorda 2007
 const __constant__ real sigma = 1.2e-3f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0e3f;    // cm^-1

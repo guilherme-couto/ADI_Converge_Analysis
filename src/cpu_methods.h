@@ -481,12 +481,16 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     // Measure velocity
     real stim_velocity = 0.0;
-    real first_point_time = 0.0;
-    real last_point_time = 0.0;
+    real begin_point = Lx / 3.0f;
+    real end_point = 2.0f * begin_point;
+    int begin_point_index = round(begin_point / delta_x) + 1;
+    int end_point_index = round(end_point / delta_x) + 1;
+    real begin_point_time = 0.0;
+    real end_point_time = 0.0;
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
-
+    
 #endif // MEASURE_VELOCITY
 
     // Variables for measuring the execution time
@@ -576,6 +580,8 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
                 // Stimulation
                 real stim = 0.0f;
+
+#pragma unroll
                 for (int si = 0; si < numberOfStimuli; si++)
                 {
                     if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration
@@ -616,7 +622,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
                 // Update variables explicitly
                 diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
-                V[i][j] = actualV + diff_term + delta_t * (stim - RHS_V_term);
+                partRHS[i][j] = actualV + diff_term + delta_t * (stim - RHS_V_term);
 
                 W[i][j] = actualW + delta_t * RHS_W(actualV, actualW);
 
@@ -731,6 +737,17 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // OSADI
 
+#ifdef FE
+
+        // ==================!
+        //  Update V         !
+        // ==================!
+        for (int i = 0; i < Ny; i++)
+            for (int j = 0; j < Nx; j++)
+                V[i][j] = partRHS[i][j];
+
+#endif // FE
+
 #ifdef SAVE_FRAMES
 
         startSaveFramesTime = omp_get_wtime();
@@ -757,28 +774,23 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         // Calculate stim velocity
         if (!stim_velocity_measured)
         {
-            real begin = Lx / 3.0f;
-            real end = 2.0f * begin;
-
             if (!aux_stim_velocity_flag)
             {
-                int first_point_index = round(begin / delta_x) + 1;
-                if (V[0][first_point_index] > 10.0f)
+                if (V[0][begin_point_index] > 10.0f)
                 {
-                    first_point_time = actualTime;
+                    begin_point_time = actualTime;
                     aux_stim_velocity_flag = true;
                 }
             }
             else
             {
-                int last_point_index = round(end / delta_x) + 1;
-                if (V[0][last_point_index] > 10.0f)
+                if (V[0][end_point_index] > 10.0f)
                 {
-                    last_point_time = actualTime;
-                    stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
+                    end_point_time = actualTime;
+                    stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
                     stim_velocity = stim_velocity * 10.0f;                                // m/s
                     stim_velocity_measured = true;
-                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
+                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                 }
             }
         }
@@ -1243,28 +1255,23 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
-                real begin = Lx / 3.0f;
-                real end = 2.0f * begin;
-
                 if (!aux_stim_velocity_flag)
                 {
-                    int first_point_index = round(begin / delta_x) + 1;
-                    if (V[first_point_index] > 10.0f)
+                    if (V[begin_point_index] > 10.0f)
                     {
-                        first_point_time = actualTime;
+                        begin_point_time = actualTime;
                         aux_stim_velocity_flag = true;
                     }
                 }
                 else
                 {
-                    int last_point_index = round(end / delta_x) + 1;
-                    if (V[last_point_index] > 10.0f)
+                    if (V[end_point_index] > 10.0f)
                     {
-                        last_point_time = actualTime;
-                        stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
+                        end_point_time = actualTime;
+                        stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
                         stim_velocity = stim_velocity * 10.0f;                                // m/s
                         stim_velocity_measured = true;
-                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
+                        INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                     }
                 }
             }

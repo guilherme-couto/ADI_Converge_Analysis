@@ -4,7 +4,7 @@
 #include "include.h"
 
 #ifdef SAVE_FRAMES
-const int frameSaveRate = 10000;
+const int frameSaveRate = 1000;
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -18,7 +18,7 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 const real totalTime = 6.0f;        // Total time (ms)
 const __constant__ real Lx = 1.0f;  // Length in x (cm)
-const __constant__ real Ly = 0.05f; // Length in y (cm)
+const __constant__ real Ly = 0.01f; // Length in y (cm)
 
 #endif // CABLEEQ
 

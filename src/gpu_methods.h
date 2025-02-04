@@ -188,7 +188,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     // Populate auxiliary arrays for Thomas algorithm
     real phi_x = delta_t / (delta_x * delta_x);
     real phi_y = delta_t / (delta_y * delta_y);
-    real tau = 0.5f;
+    real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
 
 #ifndef TT2
     
@@ -232,10 +232,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
 
 #endif // OSADI
-
-    // Prefactorization
-    thomasFactorConstantBatch(la_x, lb_x, lc_x, Nx);
-    thomasFactorConstantBatch(la_y, lb_y, lc_y, Ny);
 
     // Malloc and copy to device
     real *d_la_x, *d_lb_x, *d_lc_x, *d_la_y, *d_lb_y, *d_lc_y;
@@ -404,12 +400,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Measure velocity
     real stim_velocity = 0.0;
-    real first_point_time = 0.0;
-    real last_point_time = 0.0;
+    real begin_point = Lx / 3.0f;
+    real end_point = 2.0f * begin_point;
+    int begin_point_index = round(begin_point / delta_x) + 1;
+    int end_point_index = round(end_point / delta_x) + 1;
+    real begin_point_time = 0.0;
+    real end_point_time = 0.0;
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
-
+    
 #endif // MEASURE_VELOCITY
 
     // Variables for measuring the execution time
@@ -536,31 +536,28 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         // Calculate stim velocity
         if (!stim_velocity_measured)
         {
-            // Copy memory of d_V from device to host V
-            CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-
-            real begin = Lx / 3.0f;
-            real end = 2.0f * begin;
-
+            real point_potential = 0.0;
             if (!aux_stim_velocity_flag)
             {
-                int first_point_index = round(begin / delta_x) + 1;
-                if (V[first_point_index] > 10.0)
+                // Copy memory of d_V[begin_point_index] from device to host
+                CUDA_CALL(cudaMemcpy(&point_potential, &d_V[begin_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+                if (point_potential > 10.0)
                 {
-                    first_point_time = actualTime;
+                    begin_point_time = actualTime;
                     aux_stim_velocity_flag = true;
                 }
             }
             else
             {
-                int last_point_index = round(end / delta_x) + 1;
-                if (V[last_point_index] > 10.0)
+                // Copy memory of d_V[end_point_index] from device to host
+                CUDA_CALL(cudaMemcpy(&point_potential, &d_V[end_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+                if (point_potential > 10.0)
                 {
-                    last_point_time = actualTime;
-                    stim_velocity = (end - begin) / (last_point_time - first_point_time); // cm/ms
+                    end_point_time = actualTime;
+                    stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
                     stim_velocity = stim_velocity * 10.0; // m/s
                     stim_velocity_measured = true;
-                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin, end, stim_velocity);
+                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                 }
             }
         }

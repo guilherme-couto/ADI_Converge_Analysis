@@ -18,16 +18,10 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
     {
         // Calculate the index in the 1D array
         int index = i * Nx + j;
-        real actualV = d_V[index];
-
-        // State variable
-        real actualW = d_W[index];
-
-        // Calculate RHS_V at actual time
-        real RHS_V_term = ((G * actualV * (1.0f - (actualV / vth)) * (1.0f - (actualV / vp))) + (eta1 * actualV * actualW)) / (Cm * chi);
 
         // Stimulation
         real stim = 0.0f;
+
 #pragma unroll
         for (int si = 0; si < numberOfStimuli; si++)
         {
@@ -41,39 +35,41 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
             }
         }
 
+        // Get the actual central value
+        real actualV = d_V[index];
+
+        // State variable
+        real actualW = d_W[index];
+
+        // Calculate useful denominators
+        real denom_vth = 1.0f / vth;
+        real denom_vp = 1.0f / vp;
+        real denom_Cm_chi = 1.0f / (Cm * chi);
+
 #if defined(SSIADI) || defined(THETASSIADI)
 
-        int index_im1 = (i - 1) * Nx + j;
-        int index_ip1 = (i + 1) * Nx + j;
-        int index_jm1 = i * Nx + (j - 1);
-        int index_jp1 = i * Nx + (j + 1);
-
         // Boundary conditions
-        (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
-        (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
-
-        real im1V = d_V[index_im1];
-        real ip1V = d_V[index_ip1];
-        real jm1V = d_V[index_jm1];
-        real jp1V = d_V[index_jp1];
+        real im1V = (i - 1 == -1) ? d_V[index + Nx] : d_V[index - Nx];
+        real ip1V = (i + 1 == Ny) ? d_V[index - Nx] : d_V[index + Nx];
+        real jm1V = (j - 1 == -1) ? d_V[index + 1] : d_V[index - 1];
+        real jp1V = (j + 1 == Nx) ? d_V[index - 1] : d_V[index + 1];
 
         real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
 
         // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+        real RHS_V_term = ((G * actualV * (1.0f - (actualV * denom_vth)) * (1.0f - (actualV * denom_vp))) + (eta1 * actualV * actualW)) * denom_Cm_chi;
         real Vtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
 
         // Calculate approximation for state variables
-        real RHS_W_term = eta2 * ((actualV / vp) - (eta3 * actualW));
+        real RHS_W_term = eta2 * ((actualV * denom_vp) - (eta3 * actualW));
         real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
         // Preparing part of the RHS of the following linear systems
-        real RHS_Vtilde_term = ((G * Vtilde * (1.0f - (Vtilde / vth)) * (1.0f - (Vtilde / vp))) + (eta1 * Vtilde * Wtilde)) / (Cm * chi); // RHS with V* and W*
+        real RHS_Vtilde_term = ((G * Vtilde * (1.0f - (Vtilde * denom_vth)) * (1.0f - (Vtilde * denom_vp))) + (eta1 * Vtilde * Wtilde)) * denom_Cm_chi; // RHS with V* and W*
         d_partRHS[index] = delta_t * (stim - RHS_Vtilde_term);
 
         // Update state variables with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
-        real RHS_Wtilde_term = eta2 * ((Vtilde / vp) - (eta3 * Wtilde));
+        real RHS_Wtilde_term = eta2 * ((Vtilde * denom_vp) - (eta3 * Wtilde));
         d_W[index] = actualW + delta_t * RHS_Wtilde_term;
 
 #endif // SSIADI || THETASSIADI
@@ -81,19 +77,31 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 #ifdef OSADI
 
         // Calculate part of the RHS of the following linear systems with Forward Euler
+        real RHS_V_term = ((G * actualV * (1.0f - (actualV * denom_vth)) * (1.0f - (actualV * denom_vp))) + (eta1 * actualV * actualW)) * denom_Cm_chi;
         d_partRHS[index] = delta_t * (stim - RHS_V_term);
 
         // Update state variables
-        d_W[index] = actualW + delta_t * eta2 * ((actualV / vp) - (eta3 * actualW)); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+        d_W[index] = actualW + delta_t * eta2 * ((actualV * denom_vp) - (eta3 * actualW)); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
 
 #endif // OSADI
 
 #ifdef FE
 
-        // Update variables explicitly
-        real diff_term = diff_coeff * (phi_x * (d_V[lim(i, j - 1, Nx)] - 2.0f * actualV + d_V[lim(i, j + 1, Nx)]) + phi_y * (d_V[lim(i - 1, j, Ny)] - 2.0f * actualV + d_V[lim(i + 1, j, Ny)]));
+        // Boundary conditions
+        real im1V = (i - 1 == -1) ? d_V[index + Nx] : d_V[index - Nx];
+        real ip1V = (i + 1 == Ny) ? d_V[index - Nx] : d_V[index + Nx];
+        real jm1V = (j - 1 == -1) ? d_V[index + 1] : d_V[index - 1];
+        real jp1V = (j + 1 == Nx) ? d_V[index - 1] : d_V[index + 1];
+
+        // Calculate the diffusion term
+        real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
+
+        // Calculate part of the RHS of the following linear systems with Forward Euler
+        real RHS_V_term = ((G * actualV * (1.0f - (actualV * denom_vth)) * (1.0f - (actualV * denom_vp))) + (eta1 * actualV * actualW)) * denom_Cm_chi;
         d_partRHS[index] = actualV + diff_term + delta_t * (stim - RHS_V_term);
-        d_W[index] = actualW + delta_t * eta2 * ((actualV / vp) - (eta3 * actualW));
+
+        // Update state variables with Forward Euler
+        d_W[index] = actualW + delta_t * eta2 * ((actualV * denom_vp) - (eta3 * actualW));
 
 #endif // FE
         
@@ -116,22 +124,14 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Calculate the index in the 1D array
         int index = i * Nx + j;
 
-        // Boundary conditions
-        int index_im1 = (i - 1) * Nx + j;
-        int index_ip1 = (i + 1) * Nx + j;
-        int index_jm1 = i * Nx + (j - 1);
-        int index_jp1 = i * Nx + (j + 1);
-
-        (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
-        (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
-
+        // Load central
         real actualV = d_V[index];
-        real im1V = d_V[index_im1];
-        real ip1V = d_V[index_ip1];
-        real jm1V = d_V[index_jm1];
-        real jp1V = d_V[index_jp1];
+        
+        // Boundary conditions
+        real im1V = (i - 1 == -1) ? d_V[index + Nx] : d_V[index - Nx];
+        real ip1V = (i + 1 == Ny) ? d_V[index - Nx] : d_V[index + Nx];
+        real jm1V = (j - 1 == -1) ? d_V[index + 1] : d_V[index - 1];
+        real jp1V = (j + 1 == Nx) ? d_V[index - 1] : d_V[index + 1];
 
         real diff_term = diff_coeff * (phi_x * (jm1V - 2.0f * actualV + jp1V) + phi_y * (im1V - 2.0f * actualV + ip1V));
 
@@ -186,11 +186,16 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real RHS_V_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
 
         real stim = 0.0f;
+        
+#pragma unroll
         for (int si = 0; si < numberOfStimuli; si++)
         {
-            if (actualTime >= d_stimuli[si].begin && actualTime <= d_stimuli[si].begin + d_stimuli[si].duration && j >= d_stimuli[si].xMinDisc && j <= d_stimuli[si].xMaxDisc && i >= d_stimuli[si].yMinDisc && i <= d_stimuli[si].yMaxDisc)
+            const Stimulus &stimulus = d_stimuli[si];
+            if (actualTime >= stimulus.begin && actualTime <= stimulus.begin + stimulus.duration &&
+                j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
+                i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
             {
-                stim = d_stimuli[si].strength;
+                stim = stimulus.strength;
                 break;
             }
         }
@@ -488,15 +493,17 @@ __global__ void prepareRHSiDiff(int Nx, int Ny, real phi_y, real diff_coeff, rea
         // Calculate the index in the 1D array
         int index = i * Nx + j;
 
-        int index_im1 = (i - 1) * Nx + j;
-        int index_ip1 = (i + 1) * Nx + j;
-
-        (i - 1 == -1) ? (index_im1 = index_ip1) : index_im1;
-        (i + 1 == Ny) ? (index_ip1 = index_im1) : index_ip1;
-
+        // Load central
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * tau * phi_y * (d_V[index_im1] - 2.0f * actualV + d_V[index_ip1]);
+        // Boundary conditions
+        real im1V = (i - 1 == -1) ? d_V[index + Nx] : d_V[index - Nx];
+        real ip1V = (i + 1 == Ny) ? d_V[index - Nx] : d_V[index + Nx];
+
+        // Calculate the diffusion term
+        real diff_term = diff_coeff * tau * phi_y * (im1V - 2.0f * actualV + ip1V);
+
+        // Update d_RHS
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
@@ -512,15 +519,17 @@ __global__ void prepareRHSjDiff(int Nx, int Ny, real phi_x, real diff_coeff, rea
         // Calculate the index in the 1D array
         int index = i * Nx + j;
 
-        int index_jm1 = i * Nx + (j - 1);
-        int index_jp1 = i * Nx + (j + 1);
-
-        (j - 1 == -1) ? (index_jm1 = index_jp1) : index_jm1;
-        (j + 1 == Nx) ? (index_jp1 = index_jm1) : index_jp1;
-
+        // Load central
         real actualV = d_V[index];
 
-        real diff_term = diff_coeff * tau * phi_x * (d_V[index_jm1] - 2.0f * actualV + d_V[index_jp1]);
+        // Boundary conditions
+        real jm1V = (j - 1 == -1) ? d_V[index + 1] : d_V[index - 1];
+        real jp1V = (j + 1 == Nx) ? d_V[index - 1] : d_V[index + 1];
+
+        // Calculate the diffusion term
+        real diff_term = diff_coeff * tau * phi_x * (jm1V - 2.0f * actualV + jp1V);
+        
+        // Update d_RHS
         d_RHS[index] = actualV + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
 }
@@ -544,77 +553,95 @@ __global__ void prepareRHS(int Nx, int Ny, real *d_V, real *d_partRHS)
 
 #endif // OSADI
 
-// From GLOSTER, Andrew et al. Efficient Interleaved Batch Matrix Solvers for CUDA. arXiv preprint arXiv:1909.04539, 2019.
-// Kernel to solve the tridiagonal system using the Thomas algorithm
-// numSys -> Number of systems to solve
-// sysSize -> Size of each system
-// d -> Result vector
-// la -> Lower diagonal
-// lb -> Main diagonal
-// lc -> Upper diagonal
 __global__ void parallelThomasVertical(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
-{
-    int previousRow, nextRow;
-    int currentRow = blockIdx.x * blockDim.x + threadIdx.x;
-    int i = 0;
+{   
+    // Each thread will solve a system
+    int systemIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (currentRow < numSys)
+    if (systemIdx < numSys)
     {
-        // 1st: update auxiliary arrays
-        d[currentRow] = d[currentRow] / lb[i];
+        // Local variables
+        real c_prime[MAX_SYS_SIZE];
+        real d_prime[MAX_SYS_SIZE];
 
-#pragma unroll
-        for (i = 1; i < sysSize; i++)
+        // Declare and load shared memory
+        __shared__ real shared_la[MAX_SYS_SIZE];
+        __shared__ real shared_lb[MAX_SYS_SIZE];
+        __shared__ real shared_lc[MAX_SYS_SIZE];
+
+        for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
         {
-            previousRow = currentRow;
-            currentRow += numSys;
+            shared_la[i] = la[i];
+            shared_lb[i] = lb[i];
+            shared_lc[i] = lc[i];
+        }
+        __syncthreads();
 
-            d[currentRow] = (d[currentRow] - la[i] * d[previousRow]) / (lb[i]);
+        c_prime[0] = shared_lc[0] / shared_lb[0];
+        d_prime[0] = d[systemIdx] / shared_lb[0];
+
+        for (int i = 1; i < sysSize; i++)
+        {
+            real denom = 1.0f / (shared_lb[i] - c_prime[i - 1] * shared_la[i]);
+            if (i < sysSize - 1)
+            {
+                c_prime[i] = shared_lc[i] * denom;
+            }
+            d_prime[i] = (d[systemIdx + i * numSys] - d_prime[i - 1] * shared_la[i]) * denom;
         }
 
-        // 2nd: update solution
-        d[currentRow] = d[currentRow];
-
-#pragma unroll
-        for (i = sysSize - 2; i >= 0; i--)
+        d[systemIdx + (sysSize - 1) * numSys] = d_prime[sysSize - 1];
+        for (int i = sysSize - 2; i >= 0; i--)
         {
-            nextRow = currentRow;
-            currentRow -= numSys;
-
-            d[currentRow] = d[currentRow] - lc[i] * d[nextRow];
+            d[systemIdx + i * numSys] = d_prime[i] - c_prime[i] * d[systemIdx + (i + 1) * numSys];
         }
     }
 }
 
 __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
 {
-    int previousColumn, nextColumn;
-    int currentColumn = blockIdx.x * blockDim.x + threadIdx.x;
-    currentColumn *= numSys;
-    int i = 0;
+    // Each thread will solve a system
+    int systemIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (currentColumn < numSys)
+    if (systemIdx < numSys)
     {
-        // 1st: update auxiliary arrays
-        d[currentColumn] = d[currentColumn] / lb[i];
+        // Calculate the offset of the system
+        int offset = systemIdx * sysSize;
 
-        for (i = 1; i < sysSize; i++)
+        // Local variables
+        real c_prime[MAX_SYS_SIZE];
+        real d_prime[MAX_SYS_SIZE];
+
+        // Declare and load shared memory
+        __shared__ real shared_la[MAX_SYS_SIZE];
+        __shared__ real shared_lb[MAX_SYS_SIZE];
+        __shared__ real shared_lc[MAX_SYS_SIZE];
+
+        for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
         {
-            previousColumn = currentColumn;
-            currentColumn += 1;
-
-            d[currentColumn] = (d[currentColumn] - la[i] * d[previousColumn]) / (lb[i]);
+            shared_la[i] = la[i];
+            shared_lb[i] = lb[i];
+            shared_lc[i] = lc[i];
         }
+        __syncthreads();
 
-        // 2nd: update solution
-        d[currentColumn] = d[currentColumn];
+        c_prime[0] = shared_lc[0] / shared_lb[0];
+        d_prime[0] = d[offset] / shared_lb[0];
 
-        for (i = sysSize - 2; i >= 0; i--)
+        for (int i = 1; i < sysSize; i++)
         {
-            nextColumn = currentColumn;
-            currentColumn -= 1;
-
-            d[currentColumn] = d[currentColumn] - lc[i] * d[nextColumn];
+            real denom = 1.0f / (shared_lb[i] - c_prime[i - 1] * shared_la[i]);
+            if (i < sysSize - 1)
+            {
+                c_prime[i] = shared_lc[i] * denom;
+            }
+            d_prime[i] = (d[offset + i] - d_prime[i - 1] * shared_la[i]) * denom;
+        }
+        
+        d[offset + sysSize - 1] = d_prime[sysSize - 1];
+        for (int i = sysSize - 2; i >= 0; i--)
+        {
+            d[offset + i] = d_prime[i] - c_prime[i] * d[offset + i + 1];
         }
     }
 }

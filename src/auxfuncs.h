@@ -486,7 +486,6 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
     rowCurrent = 0;
 
     // First row
-    lb[rowCurrent] = lb[rowCurrent];
     lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
 
     for (int i = 1; i < n - 1; i++)
@@ -494,7 +493,6 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
         rowPrevious = rowCurrent;
         rowCurrent += 1;
 
-        la[rowCurrent] = la[rowCurrent];
         lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
         lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
     }
@@ -503,7 +501,6 @@ void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
     rowCurrent += 1;
 
     // Last row
-    la[rowCurrent] = la[rowCurrent];
     lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
 }
 

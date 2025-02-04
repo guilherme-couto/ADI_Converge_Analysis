@@ -3,14 +3,16 @@ Antes do restore, colocarei 12ms de tempo de simulação
 Farei o restore state e um shift de 0.5cm para rodar por 6ms
 
 Os resultados que estão no analysis tiveram que ser feitos na mão um por um, por conta de algum vazamento de memória que ainda não identifiquei.
-depois de rodar uma execução, a seguinte costuma dar problema.
+depois de rodar uma execução, a seguinte costuma dar problema. OBS: descobri que isso é algum problema com a escrita de arquivos do próprio lab.
+Se a pasta já existir, ele roda normalmente.
+
 os resultados do analysis foram feitos com shift de 0.5cm por 6ms
 referência foi 
 delta_t = 0.0001 ms (60000 time steps)
 delta_x = 0.0005 cm (2001 space steps in x)
 delta_y = 0.0005 cm (21 space steps in y)
 
-For method theta-ADI
+For method theta-ADI (SERIAL)
 with theta=0.50
 dt 		| dx 		| dy 		| N-2 Error 	| slope
 ------------------------------------------------------------------------

@@ -10,7 +10,7 @@ def main():
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
+    serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
     

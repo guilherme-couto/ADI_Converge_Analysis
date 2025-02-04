@@ -3,20 +3,21 @@ from functions import *
 def main():
     dts = [0.005, 0.01, 0.02, 0.04] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
     dts = [0.001, 0.002, 0.004, 0.005]
-    methods = ['SSI-ADI'] #'SSI-ADI', 'theta-SSI-ADI', 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
+    methods = ['SSI-ADI', 'OS-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
     # refs
     dx = 0.0005
     dy = 0.0005
-    dts = [0.0001]
+    # dts = [0.0001]
+    # methods = ['SSI-ADI']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
-    shift_state = False
+    init = 'restore_state' # 'initial_conditions', 'restore_state'
+    shift_state = True
     frames = True
     save_last_frame = True
     save_last_state = False
