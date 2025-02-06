@@ -87,6 +87,15 @@ int lim(int num, int N)
     return num;
 }
 
+#ifdef MV
+
+real rescaleVm(real Vm)
+{
+    return 85.7f * Vm - 84.0f;
+}
+
+#endif // MV
+
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 
@@ -117,13 +126,11 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
             stimuli[i].strength = 0.0f;
 
 #endif // CABLEEQ
-
     }
 }
 
 #endif // MONODOMAIN || CABLEEQ
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
-
 
 #ifdef SERIAL
 
@@ -336,7 +343,11 @@ void saveFrame(FILE *file, real **Vm, int Nx, int Ny)
     {
         for (int j = 0; j < Nx; j++)
         {
+#ifndef MV
             fprintf(file, "%e ", Vm[i][j]);
+#else  // if def MV
+            fprintf(file, "%e ", rescaleVm(Vm[i][j]));
+#endif // not MV
         }
         fprintf(file, "\n");
     }
@@ -348,7 +359,11 @@ void saveFrame(FILE *file, real *Vm, int N)
 {
     for (int i = 0; i < N; i++)
     {
+#ifndef MV
         fprintf(file, "%e ", Vm[i]);
+#else  // if def MV
+        fprintf(file, "%e ", rescaleVm(Vm[i]));
+#endif // not MV
     }
     fprintf(file, "\n");
 }
@@ -449,7 +464,11 @@ void saveFrame(FILE *file, real *Vm, int Nx, int Ny)
         for (int j = 0; j < Nx; j++)
         {
             int index = i * Nx + j;
+#ifndef MV
             fprintf(file, "%e ", Vm[index]);
+#else  // if def MV
+            fprintf(file, "%e ", rescaleVm(Vm[index]));
+#endif // not MV
         }
         fprintf(file, "\n");
     }

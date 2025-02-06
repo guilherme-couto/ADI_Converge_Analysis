@@ -83,15 +83,15 @@ typedef float real;
 
 // Define CUDA error checking
 #ifdef GPU
-#define CUDA_CALL(call)                                                                                   \
-    do                                                                                                    \
-    {                                                                                                     \
-        cudaError_t error = call;                                                                         \
-        if (error != cudaSuccess)                                                                         \
-        {                                                                                                 \
+#define CUDA_CALL(call)                                                                                                        \
+    do                                                                                                                         \
+    {                                                                                                                          \
+        cudaError_t error = call;                                                                                              \
+        if (error != cudaSuccess)                                                                                              \
+        {                                                                                                                      \
             fprintf(stderr, RED "\n[x] " RESET "CUDA error at %s:%d - %s\n\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
-            exit(EXIT_FAILURE);                                                                           \
-        }                                                                                                 \
+            exit(EXIT_FAILURE);                                                                                                \
+        }                                                                                                                      \
     } while (0)
 #endif // GPU
 
@@ -278,7 +278,7 @@ const real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delayed rectifier p
 
 #ifdef MCELL
 
-const real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
+const real G_Ks = 0.098f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
 
 #endif // MCELL
 
@@ -581,7 +581,7 @@ const __constant__ real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delaye
 
 #ifdef MCELL
 
-const __constant__ real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
+const __constant__ real G_Ks = 0.098f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
 
 #endif // MCELL
 
@@ -629,7 +629,9 @@ const __constant__ real K_bufSS = 0.00025f; // Half-saturation constant of subsp
 #ifdef MV
 
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
-const __constant__ real Dtilde = 1.171f;
+const __constant__ real Dtilde = 1.171f; // cm^2/ms
+// const __constant__ real Dtilde = 0.8122f; // cm^2/ms (to be like TT2)
+const __constant__ real Dtilde = 0.836429f; // cm^2/ms (equivalent to 1.171 but dividing by 1000 instead of 1400)
 const __constant__ real chi = 1400.0f;
 
 #ifdef EPI

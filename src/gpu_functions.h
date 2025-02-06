@@ -8,7 +8,7 @@
 #ifdef AFHN
 
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_Vm, real *d_partRHS, real *d_W, Stimulus *d_stimuli)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, Stimulus *d_stimuli, real *d_Vm, real *d_partRHS, real *d_W)
 {
     // Obtain the index of the thread
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
@@ -81,7 +81,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_partRHS[index] = delta_t * (stim - RHS_Vm_term);
 
         // Update state variables
-        d_W[index] = actualW + delta_t * eta2 * ((actualVm * denom_vp) - (eta3 * actualW)); // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
+        real RHS_W_term = eta2 * ((actualVm * denom_vp) - (eta3 * actualW));
+        d_W[index] = actualW + delta_t * RHS_W_term; // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
 
 #endif // OSADI
 
@@ -101,10 +102,10 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_partRHS[index] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
 
         // Update state variables with Forward Euler
-        d_W[index] = actualW + delta_t * eta2 * ((actualVm * denom_vp) - (eta3 * actualW));
+        real RHS_W_term = eta2 * ((actualVm * denom_vp) - (eta3 * actualW));
+        d_W[index] = actualW + delta_t * RHS_W_term;
 
 #endif // FE
-        
     }
 }
 
@@ -113,7 +114,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 #ifdef TT2
 
 // Kernel to compute the approximate solution of the reaction-diffusion system and update the state variables
-__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, real *d_Vm, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i, Stimulus *d_stimuli)
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, Stimulus *d_stimuli, real *d_Vm, real *d_partRHS, real *d_X_r1, real *d_X_r2, real *d_X_s, real *d_m, real *d_h, real *d_j, real *d_d, real *d_f, real *d_f2, real *d_fCaSS, real *d_s, real *d_r, real *d_Ca_i, real *d_Ca_SR, real *d_Ca_SS, real *d_R_prime, real *d_Na_i, real *d_K_i)
 {
     // Obtain the index of the thread
     int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
@@ -124,9 +125,24 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Calculate the index in the 1D array
         int index = i * Nx + j;
 
+        real stim = 0.0f;
+
+#pragma unroll
+        for (int si = 0; si < numberOfStimuli; si++)
+        {
+            const Stimulus &stimulus = d_stimuli[si];
+            if (actualTime >= stimulus.begin && actualTime <= stimulus.begin + stimulus.duration &&
+                j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
+                i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
+            {
+                stim = stimulus.strength;
+                break;
+            }
+        }
+
         // Load central
         real actualVm = d_Vm[index];
-        
+
         // Boundary conditions
         real im1Vm = (i - 1 == -1) ? d_Vm[index + Nx] : d_Vm[index - Nx];
         real ip1Vm = (i + 1 == Ny) ? d_Vm[index - Nx] : d_Vm[index + Nx];
@@ -185,20 +201,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // RHS_Vm at actual time
         real RHS_Vm_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
 
-        real stim = 0.0f;
-        
-#pragma unroll
-        for (int si = 0; si < numberOfStimuli; si++)
-        {
-            const Stimulus &stimulus = d_stimuli[si];
-            if (actualTime >= stimulus.begin && actualTime <= stimulus.begin + stimulus.duration &&
-                j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
-                i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
-            {
-                stim = stimulus.strength;
-                break;
-            }
-        }
+#if defined(SSIADI) || defined(THETASSIADI)
 
         // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
         real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
@@ -475,10 +478,141 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_Ca_SS[index] = actualCa_SS + (delta_t * RHS_Ca_SStilde_term);
         d_Na_i[index] = actualNa_i + (delta_t * RHS_Na_itilde_term);
         d_K_i[index] = actualK_i + (delta_t * RHS_K_itilde_term);
+
+#endif // SSIADI || THETASSIADI
     }
 }
 
 #endif // TT2
+
+#ifdef MV
+
+__global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi_y, real diff_coeff, real actualTime, Stimulus *d_stimuli, real *d_Vm, real *d_partRHS, real *d_v, real *d_w, real *d_s)
+{
+    // Obtain the index of the thread
+    int i = blockIdx.y * blockDim.y + threadIdx.y; // Coordinate y
+    int j = blockIdx.x * blockDim.x + threadIdx.x; // Coordinate x
+
+    if (i < Ny && j < Nx)
+    {
+        // Calculate the index in the 1D array
+        int index = i * Nx + j;
+
+        // Stimulation
+        real stim = 0.0f;
+
+#pragma unroll
+        for (int si = 0; si < numberOfStimuli; si++)
+        {
+            const Stimulus &stimulus = d_stimuli[si];
+            if (actualTime >= stimulus.begin && actualTime <= stimulus.begin + stimulus.duration &&
+                j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
+                i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
+            {
+                stim = stimulus.strength;
+                break;
+            }
+        }
+
+        // Get the actual central value
+        real actualVm = d_Vm[index];
+
+        // State variable
+        real actualv = d_v[index];
+        real actualw = d_w[index];
+        real actuals = d_s[index];
+
+        // Boundary conditions
+        real im1Vm = (i - 1 == -1) ? d_Vm[index + Nx] : d_Vm[index - Nx];
+        real ip1Vm = (i + 1 == Ny) ? d_Vm[index - Nx] : d_Vm[index + Nx];
+        real jm1Vm = (j - 1 == -1) ? d_Vm[index + 1] : d_Vm[index - 1];
+        real jp1Vm = (j + 1 == Nx) ? d_Vm[index - 1] : d_Vm[index + 1];
+
+        real diff_term = diff_coeff * (phi_x * (jm1Vm - 2.0f * actualVm + jp1Vm) + phi_y * (im1Vm - 2.0f * actualVm + ip1Vm));
+
+        // Calculate RHS of the equations
+        // Auxiliary variables
+        real Htheta_w = (actualVm - theta_w > 0.0f) ? 1.0f : 0.0f;
+        real Htheta_o = (actualVm - theta_o > 0.0f) ? 1.0f : 0.0f;
+        real Htheta_v = (actualVm - theta_v > 0.0f) ? 1.0f : 0.0f;
+        real Htheta_vminus = (actualVm - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+
+        // Currents
+        real J_fi = -actualv * ((actualVm - theta_v > 0.0f) ? 1.0f : 0.0f) * (actualVm - theta_v) * (u_u - actualVm) / tau_fi;
+        real J_so = ((actualVm - u_o) * (1.0f - Htheta_w) / ((1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2)) + (Htheta_w / (tau_so1 + (((tau_so2 - tau_so1) * (1.0f + tanh(k_so * (actualVm - u_so)))) * 0.5f)));
+        real J_si = -Htheta_w * actualw * actuals / tau_si;
+
+        // RHS of the state variables
+        real RHS_Vm_term = J_fi + J_so + J_si;
+        real RHS_v_term = (1.0f - Htheta_v) * (((actualVm < theta_vminus) ? 1.0f : 0.0f) - actualv) / ((1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus) - (Htheta_v * actualv / tau_vplus);
+        real RHS_w_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar) - actualw) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus)))) * 0.5f)) - (Htheta_w * actualw / tau_wplus);
+        real RHS_s_term = (((1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f) - actuals) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+        // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+        real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
+
+        // Calculate approximation for state variables
+        real vtilde = actualv + (0.5f * delta_t * RHS_v_term);
+        real wtilde = actualw + (0.5f * delta_t * RHS_w_term);
+        real stilde = actuals + (0.5f * delta_t * RHS_s_term);
+
+        // Calculate RHS of the equations with approximations
+        // Auxiliary variables
+        Htheta_w = (Vmtilde - theta_w > 0.0f) ? 1.0f : 0.0f;
+        Htheta_o = (Vmtilde - theta_o > 0.0f) ? 1.0f : 0.0f;
+        Htheta_v = (Vmtilde - theta_v > 0.0f) ? 1.0f : 0.0f;
+        Htheta_vminus = (Vmtilde - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+
+        // Currents
+        real J_fi_tilde = -vtilde * ((Vmtilde - theta_v > 0.0f) ? 1.0f : 0.0f) * (Vmtilde - theta_v) * (u_u - Vmtilde) / tau_fi;
+        real J_so_tilde = ((Vmtilde - u_o) * (1.0f - Htheta_w) / ((1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2)) + (Htheta_w / (tau_so1 + (((tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vmtilde - u_so)))) * 0.5f)));
+        real J_si_tilde = -Htheta_w * wtilde * stilde / tau_si;
+
+        // RHS of the state variables
+        real RHS_Vmtilde_term = J_fi + J_so + J_si;
+        real RHS_vtilde_term = (1.0f - Htheta_v) * (((Vmtilde < theta_vminus) ? 1.0f : 0.0f) - vtilde) / ((1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus) - (Htheta_v * vtilde / tau_vplus);
+        real RHS_wtilde_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (Vmtilde / tau_winf)) + Htheta_o * w_infstar) - wtilde) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (Vmtilde - u_wminus)))) * 0.5f)) - (Htheta_w * wtilde / tau_wplus);
+        real RHS_stilde_term = (((1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f) - stilde) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
+
+        // Update d_partRHS
+        d_partRHS[index] = delta_t * (stim - RHS_Vmtilde_term);
+
+        // Update state variables with RK2
+        d_v[index] = vtilde + delta_t * RHS_vtilde_term;
+        d_w[index] = wtilde + delta_t * RHS_wtilde_term;
+        d_s[index] = stilde + delta_t * RHS_stilde_term;
+
+#endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+        // Update d_partRHS
+        d_partRHS[index] = delta_t * (stim - RHS_Vm_term);
+
+        // Update state variables with Forward Euler
+        d_v[index] = actualv + delta_t * RHS_v_term;
+        d_w[index] = actualw + delta_t * RHS_w_term;
+        d_s[index] = actuals + delta_t * RHS_s_term;
+
+#endif // OSADI
+
+#ifdef FE
+
+        // Update d_partRHS (auxiliary variable) with Forward Euler
+        d_partRHS[index] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
+
+        // Update state variables with Forward Euler
+        d_v[index] = actualv + delta_t * RHS_v_term;
+        d_w[index] = actualw + delta_t * RHS_w_term;
+        d_s[index] = actuals + delta_t * RHS_s_term;
+
+#endif // FE
+    }
+}
+
+#endif // MV
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
@@ -528,7 +662,7 @@ __global__ void prepareRHSjDiff(int Nx, int Ny, real phi_x, real diff_coeff, rea
 
         // Calculate the diffusion term
         real diff_term = diff_coeff * tau * phi_x * (jm1Vm - 2.0f * actualVm + jp1Vm);
-        
+
         // Update d_RHS
         d_RHS[index] = actualVm + diff_term + 0.5f * d_partRHS[index]; // this 0.5f is associated to a two dimension case of ADI
     }
@@ -554,7 +688,7 @@ __global__ void prepareRHS(int Nx, int Ny, real *d_Vm, real *d_partRHS)
 #endif // OSADI
 
 __global__ void parallelThomasVertical(int numSys, int sysSize, real *d, real *la, real *lb, real *lc)
-{   
+{
     // Each thread will solve a system
     int systemIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -637,7 +771,7 @@ __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real 
             }
             d_prime[i] = (d[offset + i] - d_prime[i - 1] * shared_la[i]) * denom;
         }
-        
+
         d[offset + sysSize - 1] = d_prime[sysSize - 1];
         for (int i = sysSize - 2; i >= 0; i--)
         {
@@ -648,7 +782,7 @@ __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real 
 
 // TODO: Implement the following functions that use prefactorization
 // __global__ void parallelThomasVertical(int numSys, int sysSize, real *d, real *la, real *c_prime, real *denominator)
-// {   
+// {
 //     // Each thread will solve a system
 //     int systemIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -717,7 +851,7 @@ __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real 
 //         {
 //             d_prime[i] = (d[offset + i] - d_prime[i - 1] * shared_la[i]) * shared_denominator[i];
 //         }
-        
+
 //         d[offset + sysSize - 1] = d_prime[sysSize - 1];
 //         for (int i = sysSize - 2; i >= 0; i--)
 //         {

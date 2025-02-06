@@ -16,9 +16,9 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 2.0f;        // Total time (ms)
+const real totalTime = 10.0f;       // Total time (ms)
 const __constant__ real Lx = 1.0f;  // Length in x (cm)
-const __constant__ real Ly = 0.01f; // Length in y (cm)
+const __constant__ real Ly = 0.05f; // Length in y (cm)
 
 #endif // CABLEEQ
 
@@ -44,8 +44,8 @@ const real stimuliStrength = 38.0f; // Stimulation strength -> (amplitude)
 #endif                              // TT2
 
 #ifdef MV
-const real stimuliStrength = 1.0f;          // Stimulation strength -> (amplitude)
-#endif                                      // MV
+const real stimuliStrength = 1.0f; // Stimulation strength -> (amplitude)
+#endif                             // MV
 
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
 const real stimuliBegin[] = {0.0f, 120.0f}; // Stimuli begin time -> ms
@@ -64,7 +64,7 @@ const real W_init = 0.0f;
 #ifdef EPI
 // Initial conditions for EPI cells
 // from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/
-const real Vm_init = -85.23f;       // Initial membrane potential -> mV
+const real Vm_init = -85.23f;      // Initial membrane potential -> mV
 const real X_r1_init = 0.00621f;   // Initial rapid time-dependent potassium current Xr1 gate -> dimensionless
 const real X_r2_init = 0.4712f;    // Initial rapid time-dependent potassium current Xr2 gate -> dimensionless
 const real X_s_init = 0.0095f;     // Initial slow time-dependent potassium current Xs gate -> dimensionless
@@ -87,7 +87,7 @@ const real K_i_init = 136.89f;     // Initial intracellular K+ concentration -> 
 #if defined(ENDO) || defined(MCELL)
 // Initial conditions for ENDO and MCELL cells
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/
-const real Vm_init = -86.2f;       // Initial membrane potential -> mV
+const real Vm_init = -86.2f;      // Initial membrane potential -> mV
 const real X_r1_init = 0.0f;      // Initial rapid time-dependent potassium current Xr1 gate -> dimensionless
 const real X_r2_init = 1.0f;      // Initial rapid time-dependent potassium current Xr2 gate -> dimensionless
 const real X_s_init = 0.0f;       // Initial slow time-dependent potassium current Xs gate -> dimensionless

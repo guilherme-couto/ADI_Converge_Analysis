@@ -15,7 +15,7 @@ def main():
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
-    cell_model = 'AFHN' # 'AFHN', 'TT2'
+    cell_model = 'MV' # 'AFHN', 'TT2', 'MV' (only in GPU by now)
     init = 'initial_conditions' # 'initial_conditions', 'restore_state'
     shift_state = False
     frames = True

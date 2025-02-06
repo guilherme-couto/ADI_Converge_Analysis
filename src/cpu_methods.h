@@ -25,9 +25,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifndef CABLEEQ
 
     // Allocate 2D arrays for variables
-    real **Vm, **partRHS;
-    Vm = (real **)malloc(Ny * sizeof(real *));
-    partRHS = (real **)malloc(Ny * sizeof(real *));
+    real **partRHS = (real **)malloc(Ny * sizeof(real *));
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
@@ -38,27 +36,31 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #else // if def CABLEEQ
 
     // Allocate 1D arrays for variables
-    real *Vm, *partRHS, *AP;
-    Vm = (real *)malloc(Nx * sizeof(real));
+    real *partRHS, *AP;
     partRHS = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 
 #endif // not CABLEEQ
+
 #ifdef MONODOMAIN
+
 #ifdef AFHN
 
+    real **Vm = (real **)malloc(Ny * sizeof(real *));
     real **W = (real **)malloc(Ny * sizeof(real *));
 
 #endif // AFHN
+
 #ifdef TT2
 
-    real **X_r1, **X_r2, **X_s, **m, **h, **j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
+    real **Vm, **X_r1, **X_r2, **X_s, **m, **h, **_j, **d, **f, **f2, **fCaSS, **s, **r, **Ca_i, **Ca_SR, **Ca_SS, **R_prime, **Na_i, **K_i;
+    Vm = (real **)malloc(Ny * sizeof(real *));
     X_r1 = (real **)malloc(Ny * sizeof(real *));
     X_r2 = (real **)malloc(Ny * sizeof(real *));
     X_s = (real **)malloc(Ny * sizeof(real *));
     m = (real **)malloc(Ny * sizeof(real *));
     h = (real **)malloc(Ny * sizeof(real *));
-    j = (real **)malloc(Ny * sizeof(real *));
+    _j = (real **)malloc(Ny * sizeof(real *));
     d = (real **)malloc(Ny * sizeof(real *));
     f = (real **)malloc(Ny * sizeof(real *));
     f2 = (real **)malloc(Ny * sizeof(real *));
@@ -73,22 +75,38 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     K_i = (real **)malloc(Ny * sizeof(real *));
 
 #endif // TT2
+
+#ifdef MV
+
+    real **Vm, **v, **w, **s;
+    Vm = (real **)malloc(Ny * sizeof(real *));
+    v = (real **)malloc(Ny * sizeof(real *));
+    w = (real **)malloc(Ny * sizeof(real *));
+    s = (real **)malloc(Ny * sizeof(real *));
+
+#endif // MV
+
 #endif // MONODOMAIN
+
 #ifdef CABLEEQ
+
 #ifdef AFHN
 
+    real *Vm = (real *)malloc(Nx * sizeof(real));
     real *W = (real *)malloc(Nx * sizeof(real));
 
 #endif // AFHN
+
 #ifdef TT2
 
-    real *X_r1, *X_r2, *X_s, *m, *h, *j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
+    real *Vm, *X_r1, *X_r2, *X_s, *m, *h, *_j, *d, *f, *f2, *fCaSS, *s, *r, *Ca_i, *Ca_SR, *Ca_SS, *R_prime, *Na_i, *K_i;
+    Vm = (real *)malloc(Nx * sizeof(real));
     X_r1 = (real *)malloc(Nx * sizeof(real));
     X_r2 = (real *)malloc(Nx * sizeof(real));
     X_s = (real *)malloc(Nx * sizeof(real));
     m = (real *)malloc(Nx * sizeof(real));
     h = (real *)malloc(Nx * sizeof(real));
-    j = (real *)malloc(Nx * sizeof(real));
+    _j = (real *)malloc(Nx * sizeof(real));
     d = (real *)malloc(Nx * sizeof(real));
     f = (real *)malloc(Nx * sizeof(real));
     f2 = (real *)malloc(Nx * sizeof(real));
@@ -104,11 +122,19 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 
+#ifdef MV
+
+    real *Vm = (real *)malloc(Nx * sizeof(real));
+    real *v = (real *)malloc(Nx * sizeof(real));
+    real *w = (real *)malloc(Nx * sizeof(real));
+    real *s = (real *)malloc(Nx * sizeof(real));
+
+#endif // MV
+
 #else // if not CABLEEQ
 
     for (int i = 0; i < Ny; i++)
     {
-        Vm[i] = (real *)malloc(Nx * sizeof(real));
         partRHS[i] = (real *)malloc(Nx * sizeof(real));
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -118,19 +144,23 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // SSIADI || THETASSIADI
 
 #ifdef MONODOMAIN
+
 #ifdef AFHN
 
+        Vm[i] = (real *)malloc(Nx * sizeof(real));
         W[i] = (real *)malloc(Nx * sizeof(real));
 
 #endif // AFHN
+
 #ifdef TT2
 
+        Vm[i] = (real *)malloc(Nx * sizeof(real));
         X_r1[i] = (real *)malloc(Nx * sizeof(real));
         X_r2[i] = (real *)malloc(Nx * sizeof(real));
         X_s[i] = (real *)malloc(Nx * sizeof(real));
         m[i] = (real *)malloc(Nx * sizeof(real));
         h[i] = (real *)malloc(Nx * sizeof(real));
-        j[i] = (real *)malloc(Nx * sizeof(real));
+        _j[i] = (real *)malloc(Nx * sizeof(real));
         d[i] = (real *)malloc(Nx * sizeof(real));
         f[i] = (real *)malloc(Nx * sizeof(real));
         f2[i] = (real *)malloc(Nx * sizeof(real));
@@ -145,31 +175,35 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         K_i[i] = (real *)malloc(Nx * sizeof(real));
 
 #endif // TT2
-#endif // MONODOMAIN
 
+#ifdef MV
+
+        Vm[i] = (real *)malloc(Nx * sizeof(real));
+        v[i] = (real *)malloc(Nx * sizeof(real));
+        w[i] = (real *)malloc(Nx * sizeof(real));
+        s[i] = (real *)malloc(Nx * sizeof(real));
+
+#endif // MV
+
+#endif // MONODOMAIN
     }
 
 #endif // CABLEEQ
 
     // Initialize variables
+#ifdef MONODOMAIN
+
+#ifdef AFHN
+
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
     initialize2DVariableWithExactSolution(Vm, Nx, Ny, delta_x, delta_y);
 
 #else // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
-#ifndef CABLEEQ
 
     initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
 
-#else // if def CABLEEQ
-
-    initialize1DVariableWithValue(Vm, Nx, Vm_init);
-
-#endif // not CABLEEQ
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-
-#ifdef MONODOMAIN
-#ifdef AFHN
 
     initialize2DVariableWithValue(W, Nx, Ny, W_init);
 
@@ -177,12 +211,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef TT2
 
+    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
     initialize2DVariableWithValue(X_r1, Nx, Ny, X_r1_init);
     initialize2DVariableWithValue(X_r2, Nx, Ny, X_r2_init);
     initialize2DVariableWithValue(X_s, Nx, Ny, X_s_init);
     initialize2DVariableWithValue(m, Nx, Ny, m_init);
     initialize2DVariableWithValue(h, Nx, Ny, h_init);
-    initialize2DVariableWithValue(j, Nx, Ny, j_init);
+    initialize2DVariableWithValue(_j, Nx, Ny, j_init);
     initialize2DVariableWithValue(d, Nx, Ny, d_init);
     initialize2DVariableWithValue(f, Nx, Ny, f_init);
     initialize2DVariableWithValue(f2, Nx, Ny, f2_init);
@@ -197,22 +232,35 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize2DVariableWithValue(K_i, Nx, Ny, K_i_init);
 
 #endif // TT2
+
+#ifdef MV
+
+    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
+    initialize2DVariableWithValue(v, Nx, Ny, v_init);
+    initialize2DVariableWithValue(w, Nx, Ny, w_init);
+    initialize2DVariableWithValue(s, Nx, Ny, s_init);
+
+#endif // MV
 #endif // MONODOMAIN
+
 #ifdef CABLEEQ
+
 #ifdef AFHN
 
+    initialize1DVariableWithValue(Vm, Nx, Vm_init);
     initialize1DVariableWithValue(W, Nx, W_init);
 
 #endif // AFHN
 
 #ifdef TT2
 
+    initialize1DVariableWithValue(Vm, Nx, Vm_init);
     initialize1DVariableWithValue(X_r1, Nx, X_r1_init);
     initialize1DVariableWithValue(X_r2, Nx, X_r2_init);
     initialize1DVariableWithValue(X_s, Nx, X_s_init);
     initialize1DVariableWithValue(m, Nx, m_init);
     initialize1DVariableWithValue(h, Nx, h_init);
-    initialize1DVariableWithValue(j, Nx, j_init);
+    initialize1DVariableWithValue(_j, Nx, j_init);
     initialize1DVariableWithValue(d, Nx, d_init);
     initialize1DVariableWithValue(f, Nx, f_init);
     initialize1DVariableWithValue(f2, Nx, f2_init);
@@ -227,6 +275,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize1DVariableWithValue(K_i, Nx, K_i_init);
 
 #endif // TT2
+
+#ifdef MV
+
+    initialize1DVariableWithValue(Vm, Nx, Vm_init);
+    initialize1DVariableWithValue(v, Nx, v_init);
+    initialize1DVariableWithValue(w, Nx, w_init);
+    initialize1DVariableWithValue(s, Nx, s_init);
+
+#endif // MV
 #endif // CABLEEQ
 
 #ifdef RESTORE_STATE
@@ -245,20 +302,21 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-
 #ifdef CABLEEQ
-
-    initialize1DVariableFromFile(Vm, Nx, pathToRestoreStateFiles, delta_x, "Vm", real_ref_dx);
 
 #ifdef AFHN
 
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Vm, Nx, pathToRestoreStateFiles, delta_x, "Vm", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(W, Nx, pathToRestoreStateFiles, delta_x, "W", real_ref_dx);
 
 #endif // AFHN
+
 #ifdef TT2
 
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Vm, Nx, pathToRestoreStateFiles, delta_x, "Vm", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(X_r1, Nx, pathToRestoreStateFiles, delta_x, "X_r1", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
@@ -270,7 +328,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(h, Nx, pathToRestoreStateFiles, delta_x, "h", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize1DVariableFromFile(j, Nx, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
+    initialize1DVariableFromFile(_j, Nx, pathToRestoreStateFiles, delta_x, "j", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize1DVariableFromFile(d, Nx, pathToRestoreStateFiles, delta_x, "d", real_ref_dx);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
@@ -297,25 +355,78 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize1DVariableFromFile(K_i, Nx, pathToRestoreStateFiles, delta_x, "K_i", real_ref_dx);
 
 #endif // TT2
+
+#ifdef MV
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(Vm, Nx, pathToRestoreStateFiles, delta_x, "Vm", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframev.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(v, Nx, pathToRestoreStateFiles, delta_x, "v", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframew.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(w, Nx, pathToRestoreStateFiles, delta_x, "w", real_ref_dx);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize1DVariableFromFile(s, Nx, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
+
+#endif // MV
 #endif // CABLEEQ
 
 #ifdef MONODOMAIN
 
-    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
-
 #ifdef AFHN
 
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
 
 #endif // AFHN
+
 #ifdef TT2
-// TODO
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_r1, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r1", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_r2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r2", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(X_s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_s", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframem.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(m, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "m", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(h, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "h", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(_j, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "j", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(d, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "d", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(f, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(f2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f2", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframefCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(fCaSS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "fCaSS", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframer.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(r, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "r", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_i", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_SR, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SR", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Ca_SS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SS", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(R_prime, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "R_prime", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Na_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Na_i", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(K_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "K_i", real_ref_dx, real_def_dy);
+
 #endif // TT2
 #endif // MONODOMAIN
 
     free(pathToRestoreStateFiles);
-    
+
 #endif // RESTORE_STATE
 
 #ifdef SHIFT_STATE
@@ -490,7 +601,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
-    
+
 #endif // MEASURE_VELOCITY
 
     // Variables for measuring the execution time
@@ -499,7 +610,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     // Auxiliary variables for the time loop
     int timeStepCounter = 0;
     real actualTime = 0.0f;
-  
+
     // Start measuring the execution time
     printf("\n");
     printf("Starting simulation...\n");
@@ -520,7 +631,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         {
             for (int j = 0; j < Nx; j++)
             {
-                
+
 #ifdef LINMONO
 
                 diff_term = diff_coeff * 0.5f * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * Vm[i][j] + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * Vm[i][j] + Vm[lim(i + 1, Ny)][j]));
@@ -576,7 +687,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // OSADI
 
-#else  // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
+#else // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
 
                 // Stimulation
                 real stim = 0.0f;
@@ -584,8 +695,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #pragma unroll
                 for (int si = 0; si < numberOfStimuli; si++)
                 {
-                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration
-                        && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
                         stim = stimuli[si].strength;
                         break;
@@ -635,7 +745,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 // TODO
 #endif // TT2
 #endif // MONODOMAIN
-
             }
         }
 
@@ -657,7 +766,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
             // Solve the linear system
             tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
-            
+
             // Update with the result
             for (int i = 0; i < Ny; i++)
             {
@@ -727,7 +836,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
             // Solve the linear system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
-            
+
             // Update with the result
             for (int j = 0; j < Nx; j++)
             {
@@ -788,7 +897,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
-                    stim_velocity = stim_velocity * 10.0f;                                // m/s
+                    stim_velocity = stim_velocity * 10.0f;                                           // m/s
                     stim_velocity_measured = true;
                     INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                 }
@@ -864,7 +973,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef TT2
 
                 real actualVm = Vm[i];
-                
+
                 diff_term = diff_coeff * phi_x * (Vm[lim(i - 1, Nx)] - 2.0f * actualVm + Vm[lim(i + 1, Nx)]);
 
                 // State variables
@@ -1204,7 +1313,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 K_i[i] = actualK_i + (delta_t * RHS_K_itilde_term);
 
 #endif // TT2
-
             }
 
             // ================================================!
@@ -1221,7 +1329,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
             // Solve the tridiagonal system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
-            
+
             // Update Vm
             for (int i = 0; i < Nx; i++)
             {
@@ -1267,7 +1375,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                     {
                         end_point_time = actualTime;
                         stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 10.0f;                                // m/s
+                        stim_velocity = stim_velocity * 10.0f;                                           // m/s
                         stim_velocity_measured = true;
                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                     }
@@ -1316,13 +1424,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     real **exact = (real **)malloc(Ny * sizeof(real *));
     for (int i = 0; i < Ny; i++)
         exact[i] = (real *)malloc(Nx * sizeof(real));
-        
+
     real norm2error = calculateNorm2Error(Vm, exact, Nx, Ny, totalTime, delta_x, delta_y);
 
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
     FILE *fpExact = fopen(exactFilePath, "w");
-    
+
     char errorsFilePath[MAX_STRING_SIZE];
     snprintf(errorsFilePath, MAX_STRING_SIZE * sizeof(char), "%s/errors.txt", pathToSaveData);
     FILE *fpErrors = fopen(errorsFilePath, "w");
@@ -1408,7 +1516,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "NORM-2 ERROR = %lf\n", norm2error);
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
-    
+
     fprintf(fpInfos, "\n");
 
 #ifdef MEASURE_VELOCITY
@@ -1435,7 +1543,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     char lastFrameFilePath[MAX_STRING_SIZE];
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
-    
+
 #ifndef CABLEEQ
 
     saveFrame(fpLast, Vm, Nx, Ny);
@@ -1494,10 +1602,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef TT2
 
     char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
-         lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
-         lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
-         lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
-         lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
+        lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
+        lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
+        lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
+        lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
     snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
@@ -1661,7 +1769,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     char APFilePath[MAX_STRING_SIZE];
     snprintf(APFilePath, MAX_STRING_SIZE * sizeof(char), "%s/AP.txt", pathToSaveData);
     FILE *fpAP = fopen(APFilePath, "w");
-    
+
     for (int i = 0; i < M; i++)
     {
         fprintf(fpAP, "%e ", AP[i]);
@@ -1718,7 +1826,6 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 #endif // MONODOMAIN
-
     }
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -1739,7 +1846,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     free(Vm);
     free(partRHS);
-    
+
     free(c_prime_x);
     free(d_prime_x);
     free(LS_b_x);

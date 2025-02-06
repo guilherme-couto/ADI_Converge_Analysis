@@ -8,7 +8,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     // Number of steps
     int M = round(totalTime / delta_t); // Number of time steps
     int Nx = round(Lx / delta_x) + 1;   // Spatial steps in x
-    int Ny = round(Ly / delta_y) + 1; // Spatial steps in y
+    int Ny = round(Ly / delta_y) + 1;   // Spatial steps in y
 
     printf("Nx = %d\n", Nx);
     printf("Ny = %d\n", Ny);
@@ -109,7 +109,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // AFHN
 
 #ifdef TT2
-    
+
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
@@ -163,8 +163,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
 
 #endif // MV
-    
-        free(pathToRestoreStateFiles);
+
+    free(pathToRestoreStateFiles);
 
 #endif // RESTORE_STATE
 
@@ -224,7 +224,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
 
 #ifdef AFHN
-    
+
     real diff_coeff = sigma / (Cm * chi);
 
 #endif // AFHN
@@ -237,7 +237,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef MV
 
-    real diff_coeff = Dtilde;
+    real diff_coeff = Dtilde / chi;
 
 #endif // MV
 
@@ -443,7 +443,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     // Adjust the number of blocks
     if (fullDomainGridSize.x * fullDomainGridSize.y < minBlocks)
         fullDomainGridSize.x = (minBlocks + fullDomainGridSize.y - 1) / fullDomainGridSize.y;
-    
+
     // Print information
     printf("\n");
     printf("For full domain kernels:\n");
@@ -463,7 +463,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Grid size for y: %d blocks (%d threads per block, total %d threads)\n", gridSize_y, THOMAS_KERNEL_BLOCK_SIZE, gridSize_y * THOMAS_KERNEL_BLOCK_SIZE);
 
 #endif // SSIADI || THETASSIADI || OSADI
-    
+
     // Create directories
     char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
     createDirectories(delta_t, delta_x, delta_y, pathToSaveData);
@@ -492,7 +492,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     bool aux_stim_velocity_flag = false;
     bool stim_velocity_measured = false;
     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
-    
+
 #endif // MEASURE_VELOCITY
 
     // Variables for measuring the execution time
@@ -517,22 +517,22 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         // ================================================!
         //  Calculate Approx. and ODEs                     !
         // ================================================!
-        
+
 #ifdef AFHN
 
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_W, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_stimuli, d_Vm, d_partRHS, d_W);
 
 #endif // AFHN
 
 #ifdef TT2
 
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_stimuli, d_Vm, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i);
 
 #endif // TT2
 
 #ifdef MV
 
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_v, d_w, d_s, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_stimuli, d_Vm, d_partRHS, d_v, d_w, d_s);
 
 #endif // MV
 
@@ -550,7 +550,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
         // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
-        // parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_c_prime_y, d_denominator_y);        
+        // parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_c_prime_y, d_denominator_y);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // ================================================!
@@ -565,7 +565,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
         // parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_RHS, d_la_x, d_c_prime_x, d_denominator_x);
         CUDA_CALL(cudaDeviceSynchronize());
-        
+
 #endif // SSIADI || THETASSIADI
 
 #ifdef OSADI
@@ -618,7 +618,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
         finishSaveFramesTime = omp_get_wtime();
         elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
-        
+
 #endif // SAVE_FRAMES
 
 #ifdef MEASURE_VELOCITY
@@ -633,6 +633,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             {
                 // Copy memory of d_Vm[begin_point_index] from device to host
                 CUDA_CALL(cudaMemcpy(&point_potential, &d_Vm[begin_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+#ifdef MV
+                point_potential = rescaleVm(point_potential);
+#endif // MV
                 if (point_potential > 10.0)
                 {
                     begin_point_time = actualTime;
@@ -643,11 +646,14 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             {
                 // Copy memory of d_Vm[end_point_index] from device to host
                 CUDA_CALL(cudaMemcpy(&point_potential, &d_Vm[end_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+#ifdef MV
+                point_potential = rescaleVm(point_potential);
+#endif // MV
                 if (point_potential > 10.0)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
-                    stim_velocity = stim_velocity * 10.0; // m/s
+                    stim_velocity = stim_velocity * 10.0;                                            // m/s
                     stim_velocity_measured = true;
                     INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
                 }
@@ -662,7 +668,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         // Update time step counter
         timeStepCounter++;
     }
-    
+
 #endif // MONODOMAIN
 
     finishExecutionTime = omp_get_wtime();
@@ -696,7 +702,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef THETA
 
     fprintf(fpInfos, "theta = %.2f\n", THETA);
-    
+
 #endif // THETA
 
     fprintf(fpInfos, "\n");
@@ -708,7 +714,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", delta_t, M);
     fprintf(fpInfos, "delta_x = %.5g cm (%d um) (%d space steps in x)\n", delta_x, CM_TO_UM(delta_x), Nx);
     fprintf(fpInfos, "delta_y = %.5g cm (%d um) (%d space steps in y)\n", delta_y, CM_TO_UM(delta_y), Ny);
-    fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);  
+    fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "DEVICE NAME = %s (%d SMs)\n", prop.name, numSMs);
@@ -733,7 +739,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
 
 #endif // MEASURE_VELOCITY
-    
+
     fprintf(fpInfos, "\n");
 
 #ifdef MEASURE_VELOCITY
@@ -769,6 +775,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // SAVE_LAST_FRAME
 
 #ifdef SAVE_LAST_STATE
+
 #ifdef AFHN
 
     char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
@@ -802,10 +809,10 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef TT2
 
     char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
-         lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
-         lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
-         lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
-         lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
+        lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
+        lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
+        lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
+        lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
     snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
@@ -1016,7 +1023,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaFree(d_lc_y));
 
 #ifndef OSADI
-    
+
     CUDA_CALL(cudaFree(d_RHS));
 
 #endif // OSADI
@@ -1031,8 +1038,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef AFHN
 
     free(Vm);
-    CUDA_CALL(cudaFree(d_Vm));
     free(W);
+    CUDA_CALL(cudaFree(d_Vm));
     CUDA_CALL(cudaFree(d_W));
 
 #endif // AFHN

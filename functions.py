@@ -44,6 +44,8 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
         compile_command += '-DAFHN '
     elif cell_model == 'TT2':
         compile_command += '-DTT2 -DENDO '
+    elif cell_model == 'MV':
+        compile_command += '-DMV -DENDO '
 
     if init == 'restore_state':
         compile_command += '-DRESTORE_STATE '
@@ -157,6 +159,8 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
         variables = ['Vm', 'W']
     elif cell_model == 'TT2':
         variables = ['Vm', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
+    elif cell_model == 'MV':
+        variables = ['Vm', 'v', 'w', 's']
     
     for variable in variables:
         if 'theta' not in method:
@@ -189,10 +193,6 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
             x = np.arange(0, (len(data_last)-1) * float(dx), float(dx))
             x = np.append(x, (len(data_last)-1) * float(dx))
             
-            if cell_model == 'AFHN':
-                plt.plot(x, data_last)
-            elif cell_model == 'TT2':
-                plt.plot(x, data_last)
             plt.ylim(min_value, max_value)
             plt.title(f'{title}')
             plt.ylabel('Vm (mV)')
@@ -231,6 +231,9 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
     elif cell_model == 'TT2':
         max_value = 100.0
         min_value = -90.0
+    elif cell_model == 'MV':
+        max_value = 50.0
+        min_value = -100.0
     
     if 'theta' not in method:
         file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe.txt'
@@ -571,6 +574,9 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                 elif cell_model == 'TT2':
                     plt.plot(x, frame[0])
                     plt.ylim(-90.0, 100.0)
+                elif cell_model == 'MV':
+                    plt.plot(x, frame[0])
+                    plt.ylim(-100.0, 50.0)
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 # plt.tight_layout()
                 plt.ylabel('Vm (mV)')
@@ -584,6 +590,8 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                     plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
                 elif cell_model == 'TT2':
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
+                elif cell_model == 'MV':
+                    plt.imshow(frame, cmap='plasma', vmin=-100.0, vmax=50.0, origin='lower')
                 plt.colorbar(label='Vm (mV)', fraction=0.04, pad=0.04, orientation='horizontal')
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 plt.xticks([])
