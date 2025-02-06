@@ -127,6 +127,7 @@ typedef float real;
 
 // Define aux structures for MONODOMAIN
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
 typedef struct
 {
     real strength;
@@ -137,6 +138,7 @@ typedef struct
     int yMaxDisc;
     int yMinDisc;
 } Stimulus;
+
 #endif // MONODOMAIN || CABLEEQ
 
 // Define method via compile command line (-D{OPTION}):
@@ -168,22 +170,34 @@ typedef struct
 
 // If defined SERIAL, constants are defined only as const for CPU
 #ifdef SERIAL
+
 const real _pi = 3.14159265358979323846f;
 
 #ifdef LINMONO
+
 const real G = 1.0f;     // omega^-1 * cm^-2
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
 const real Cm = 1.0f;    // mF * cm^-2
-#endif                   // LINMONO
+
+#endif // LINMONO
+
 #ifdef DIFFREAC
+
 const real sigma = 1.0f;
+
 #endif // DIFFREAC
+
 #ifdef DIFF
+
 const real sigma = 1.0f;
+
 #endif // DIFF
+
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
 #if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
+
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
 const real Cm = 1.0f;    // mF * cm^-2
@@ -194,7 +208,9 @@ const real eta2 = 1.0f; // dimensionless
 const real eta3 = 1.0f; // dimensionless
 const real vth = 1.0f;  // mV
 const real vp = 1.0f;   // mV
+
 #elif defined(AFHN)
+
 // Model parameters - Based on Gerardo_Giorda 2007
 const real sigma = 1.2e-3f; // omega^-1 * cm^-1
 const real chi = 1.0e3f;    // cm^-1
@@ -206,9 +222,11 @@ const real eta2 = 0.012f; // dimensionless
 const real eta3 = 1.0f;   // dimensionless
 const real vth = 13.0f;   // mV
 const real vp = 100.0f;   // mV
+
 #endif // AFHN
 
 #ifdef TT2
+
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/Source/Main.cc - ten Tusscher code
 // https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/ - Benchmark
@@ -237,19 +255,33 @@ const real Ca_o = 2.0f;   // Extracellular calcium (Ca++) concentration -> mM
 // Parameters for currents
 const real G_Na = 14.838f; // Maximal I_Na (sodium current) conductance -> nS/pF
 const real G_K1 = 5.405f;  // Maximal I_K1 (late rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(MCELL)
+
 const real G_to = 0.294f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (epi and M cells)
-#endif                    // EPI || MCELL
+
+#endif // EPI || MCELL
+
 #ifdef ENDO
+
 const real G_to = 0.073f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (endo cells)
-#endif                    // ENDO
+
+#endif // ENDO
+
 const real G_Kr = 0.153f; // Maximal I_Kr (rapidly activating delayed rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(ENDO)
+
 const real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (epi and endo cells)
-#endif                    // EPI || ENDO
+
+#endif // EPI || ENDO
+
 #ifdef MCELL
+
 const real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
-#endif                           // MCELL
+
+#endif // MCELL
+
 const real p_KNa = 0.03f;        // Relative I_Ks permeability to Na+ over K+ -> dimensionless
 const real G_CaL = 3.98e-5f;     // Maximal I_CaL (L-type calcium current) conductance -> cm/ms/uF
 const real k_NaCa = 1000.0f;     // Maximal I_NaCa (Na+/Ca++ exchanger current) -> pA/pF
@@ -291,11 +323,13 @@ const real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer ->
 #endif                         // TT2
 
 #ifdef MV
+
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
 const real Dtilde = 1.171f;
 const real chi = 1400.0f;
 
 #ifdef EPI
+
 const real u_o = 0.0f;
 const real u_u = 1.55f;
 const real theta_v = 0.3f;
@@ -324,8 +358,11 @@ const real u_s = 0.9087f;
 const real tau_si = 1.8875f;
 const real tau_winf = 0.07f;
 const real w_infstar = 0.94f;
+
 #endif // EPI
+
 #ifdef ENDO
+
 const real u_o = 0.0f;
 const real u_u = 1.56f;
 const real theta_v = 0.3f;
@@ -354,8 +391,11 @@ const real u_s = 0.9087f;
 const real tau_si = 2.9013f;
 const real tau_winf = 0.0273f;
 const real w_infstar = 0.78f;
+
 #endif // ENDO
+
 #ifdef MCELL
+
 const real u_o = 0.0f;
 const real u_u = 1.61f;
 const real theta_v = 0.3f;
@@ -384,8 +424,11 @@ const real u_s = 0.9087f;
 const real tau_si = 3.3849f;
 const real tau_winf = 0.01f;
 const real w_infstar = 0.5f;
+
 #endif // MCELL
+
 #ifdef PB
+
 const real u_o = 0.0f;
 const real u_u = 1.45f;
 const real theta_v = 0.35f;
@@ -414,8 +457,11 @@ const real u_s = 0.9087f;
 const real tau_si = 1.8875f;
 const real tau_winf = 0.175f;
 const real w_infstar = 0.9f;
+
 #endif // PB
+
 #ifdef TNNP
+
 const real u_o = 0.0f;
 const real u_u = 1.58f;
 const real theta_v = 0.3f;
@@ -444,6 +490,7 @@ const real u_s = 0.9087f;
 const real tau_si = 2.8723f;
 const real tau_winf = 0.07f;
 const real w_infstar = 0.94f;
+
 #endif // TNNP
 #endif // MV
 #endif // MONODOMAIN || CABLEEQ
@@ -451,16 +498,22 @@ const real w_infstar = 0.94f;
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU
 #ifdef GPU
+
 const __constant__ real _pi = 3.14159265358979323846f;
 
 #ifdef LINMONO
+
 const __constant__ real G = 1.0f;     // omega^-1 * cm^-2
 const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0f;   // cm^-1
 const __constant__ real Cm = 1.0f;    // mF * cm^-2
-#endif                                // LINMONO
+
+#endif // LINMONO
+
 #ifdef MONODOMAIN
+
 #ifdef AFHN
+
 // Model parameters - Based on Gerardo_Giorda 2007
 const __constant__ real sigma = 1.2e-3f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0e3f;    // cm^-1
@@ -472,9 +525,11 @@ const __constant__ real eta2 = 0.012f; // dimensionless
 const __constant__ real eta3 = 1.0f;   // dimensionless
 const __constant__ real vth = 13.0f;   // mV
 const __constant__ real vp = 100.0f;   // mV
+
 #endif // AFHN
 
 #ifdef TT2
+
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/Source/Main.cc - ten Tusscher code
 // https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/ - Benchmark
@@ -503,19 +558,33 @@ const __constant__ real Ca_o = 2.0f;   // Extracellular calcium (Ca++) concentra
 // Parameters for currents
 const __constant__ real G_Na = 14.838f; // Maximal I_Na (sodium current) conductance -> nS/pF
 const __constant__ real G_K1 = 5.405f;  // Maximal I_K1 (late rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(MCELL)
+
 const __constant__ real G_to = 0.294f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (epi and M cells)
-#endif                                 // EPI || MCELL
+
+#endif // EPI || MCELL
+
 #ifdef ENDO
+
 const __constant__ real G_to = 0.073f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (endo cells)
-#endif                                 // ENDO
+
+#endif // ENDO
+
 const __constant__ real G_Kr = 0.153f; // Maximal I_Kr (rapidly activating delayed rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(ENDO)
+
 const __constant__ real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (epi and endo cells)
-#endif                                 // EPI || ENDO
+
+#endif // EPI || ENDO
+
 #ifdef MCELL
+
 const __constant__ real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
-#endif                                        // MCELL
+
+#endif // MCELL
+
 const __constant__ real p_KNa = 0.03f;        // Relative I_Ks permeability to Na+ over K+ -> dimensionless
 const __constant__ real G_CaL = 3.98e-5f;     // Maximal I_CaL (L-type calcium current) conductance -> cm/ms/uF
 const __constant__ real k_NaCa = 1000.0f;     // Maximal I_NaCa (Na+/Ca++ exchanger current) -> pA/pF
@@ -554,14 +623,17 @@ const __constant__ real bufSR = 10.0f;      // Total sarcoplasmic reticulum buff
 const __constant__ real K_bufSR = 0.3f;     // Half-saturation constant of sarcoplasmic reticulum buffers -> mM
 const __constant__ real bufSS = 0.4f;       // Total subspace buffer concentration -> mM
 const __constant__ real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer -> mM
-#endif                                      // TT2
+
+#endif // TT2
 
 #ifdef MV
+
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
 const __constant__ real Dtilde = 1.171f;
 const __constant__ real chi = 1400.0f;
 
 #ifdef EPI
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.55f;
 const __constant__ real theta_v = 0.3f;
@@ -590,8 +662,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 1.8875f;
 const __constant__ real tau_winf = 0.07f;
 const __constant__ real w_infstar = 0.94f;
+
 #endif // EPI
+
 #ifdef ENDO
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.56f;
 const __constant__ real theta_v = 0.3f;
@@ -620,8 +695,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 2.9013f;
 const __constant__ real tau_winf = 0.0273f;
 const __constant__ real w_infstar = 0.78f;
+
 #endif // ENDO
+
 #ifdef MCELL
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.61f;
 const __constant__ real theta_v = 0.3f;
@@ -650,8 +728,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 3.3849f;
 const __constant__ real tau_winf = 0.01f;
 const __constant__ real w_infstar = 0.5f;
+
 #endif // MCELL
+
 #ifdef PB
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.45f;
 const __constant__ real theta_v = 0.35f;
@@ -680,8 +761,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 1.8875f;
 const __constant__ real tau_winf = 0.175f;
 const __constant__ real w_infstar = 0.9f;
+
 #endif // PB
+
 #ifdef TNNP
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.58f;
 const __constant__ real theta_v = 0.3f;
@@ -710,6 +794,7 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 2.8723f;
 const __constant__ real tau_winf = 0.07f;
 const __constant__ real w_infstar = 0.94f;
+
 #endif // TNNP
 #endif // MV
 #endif // MONODOMAIN

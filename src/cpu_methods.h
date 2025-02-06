@@ -25,8 +25,8 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifndef CABLEEQ
 
     // Allocate 2D arrays for variables
-    real **V, **partRHS;
-    V = (real **)malloc(Ny * sizeof(real *));
+    real **Vm, **partRHS;
+    Vm = (real **)malloc(Ny * sizeof(real *));
     partRHS = (real **)malloc(Ny * sizeof(real *));
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -38,8 +38,8 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #else // if def CABLEEQ
 
     // Allocate 1D arrays for variables
-    real *V, *partRHS, *AP;
-    V = (real *)malloc(Nx * sizeof(real));
+    real *Vm, *partRHS, *AP;
+    Vm = (real *)malloc(Nx * sizeof(real));
     partRHS = (real *)malloc(Nx * sizeof(real));
     AP = (real *)malloc(M * sizeof(real));
 
@@ -108,7 +108,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     for (int i = 0; i < Ny; i++)
     {
-        V[i] = (real *)malloc(Nx * sizeof(real));
+        Vm[i] = (real *)malloc(Nx * sizeof(real));
         partRHS[i] = (real *)malloc(Nx * sizeof(real));
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -154,16 +154,16 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     // Initialize variables
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
-    initialize2DVariableWithExactSolution(V, Nx, Ny, delta_x, delta_y);
+    initialize2DVariableWithExactSolution(Vm, Nx, Ny, delta_x, delta_y);
 
 #else // if not def CONVERGENCE_ANALYSIS_FORCING_TERM
 #ifndef CABLEEQ
 
-    initialize2DVariableWithValue(V, Nx, Ny, V_init);
+    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
 
 #else // if def CABLEEQ
 
-    initialize1DVariableWithValue(V, Nx, V_init);
+    initialize1DVariableWithValue(Vm, Nx, Vm_init);
 
 #endif // not CABLEEQ
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -245,11 +245,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
 
 #ifdef CABLEEQ
 
-    initialize1DVariableFromFile(V, Nx, pathToRestoreStateFiles, delta_x, "V", real_ref_dx);
+    initialize1DVariableFromFile(Vm, Nx, pathToRestoreStateFiles, delta_x, "Vm", real_ref_dx);
 
 #ifdef AFHN
 
@@ -301,7 +301,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef MONODOMAIN
 
-    initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
 
 #ifdef AFHN
 
@@ -328,7 +328,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef CABLEEQ
 
-    shift1DVariableToLeft(V, Nx, lengthToShift, delta_x, V_init, "V");
+    shift1DVariableToLeft(Vm, Nx, lengthToShift, delta_x, Vm_init, "Vm");
 
 #ifdef AFHN
 
@@ -360,7 +360,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // CABLEEQ
 #ifdef MONODOMAIN
 
-    shift2DVariableToLeft(V, Nx, Ny, lengthToShift, delta_x, delta_y, V_init, "V");
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
 
 #ifdef AFHN
 
@@ -523,15 +523,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 
 #ifdef LINMONO
 
-                diff_term = diff_coeff * 0.5f * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * V[i][j] + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * V[i][j] + V[lim(i + 1, Ny)][j]));
+                diff_term = diff_coeff * 0.5f * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * Vm[i][j] + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * Vm[i][j] + Vm[lim(i + 1, Ny)][j]));
                 real x = j * delta_x;
                 real y = i * delta_y;
                 real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
-                real reac_term = G * V[i][j] / Cm;
-                real actualVtilde = V[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
+                real reac_term = G * Vm[i][j] / Cm;
+                real actualVmtilde = Vm[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
 
                 // Preparing part of the RHS of the following linear systems
-                real reac_tilde_term = G * actualVtilde / Cm;
+                real reac_tilde_term = G * actualVmtilde / Cm;
                 partRHS[i][j] = delta_t * (for_term - reac_tilde_term);
 
 #endif // LINMONO
@@ -540,9 +540,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef AFHN
 
                 // Calculate the explicit part of the RHS, including the diffusion term in both directions
-                real actualV = V[i][j];
+                real actualVm = Vm[i][j];
                 real actualW = W[i][j];
-                real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
+                real RHS_Vm_term = RHS_Vm(actualVm, actualW) / (Cm * chi);
 
 #ifdef CONVERGENCE_ANALYSIS_FORCING_TERM
 
@@ -553,26 +553,26 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
-                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
-                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_V_term));
+                diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
+                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_Vm_term));
 
                 // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
-                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualV, actualW));
-                real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
-                partRHS[i][j] = delta_t * (for_term - RHS_Vtilde_term);
+                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualVm, actualW));
+                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                partRHS[i][j] = delta_t * (for_term - RHS_Vmtilde_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
+                W[i][j] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
 
 #endif // SSIADI || THETASSIADI
 
 #if defined(OSADI)
 
                 // Calculate part of the RHS of the following linear systems with Forward Euler
-                partRHS[i][j] = delta_t * (for_term - RHS_V_term);
+                partRHS[i][j] = delta_t * (for_term - RHS_Vm_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+                W[i][j] = actualW + delta_t * RHS_W(actualVm, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
 
 #endif // OSADI
 
@@ -594,37 +594,37 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
-                // Calculate aproximation with RK2 -> Vn+1/2 = Vn + 0.5*diffusion + 0.5*dt*R(Vn, Wn)
-                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
-                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
+                // Calculate aproximation with RK2 -> Vmn+1/2 = Vmn + 0.5*diffusion + 0.5*dt*R(Vmn, Wn)
+                diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
+                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
-                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualV, actualW));
-                real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
-                partRHS[i][j] = delta_t * (stim - RHS_Vtilde_term);
+                real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualVm, actualW));
+                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                partRHS[i][j] = delta_t * (stim - RHS_Vmtilde_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualVtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
+                W[i][j] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
 
 #endif // SSIADI || THETASSIADI
 
 #if defined(OSADI)
 
                 // Calculate part of the RHS of the following linear systems with Forward Euler
-                partRHS[i][j] = delta_t * (stim - RHS_V_term);
+                partRHS[i][j] = delta_t * (stim - RHS_Vm_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vn, Wn)
+                W[i][j] = actualW + delta_t * RHS_W(actualVm, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
 
 #endif // OSADI
 
 #ifdef FE
 
                 // Update variables explicitly
-                diff_term = diff_coeff * (phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]) + phi_y * (V[lim(i - 1, Ny)][j] - 2.0f * actualV + V[lim(i + 1, Ny)][j]));
-                partRHS[i][j] = actualV + diff_term + delta_t * (stim - RHS_V_term);
+                diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
+                partRHS[i][j] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
 
-                W[i][j] = actualW + delta_t * RHS_W(actualV, actualW);
+                W[i][j] = actualW + delta_t * RHS_W(actualVm, actualW);
 
 #endif // FE
 
@@ -642,7 +642,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
-        //  Calculate V at n+1/2 -> Result goes to RHS     !
+        //  Calculate Vm at n+1/2 -> Result goes to RHS    !
         //  diffusion implicit in y and explicit in x      !
         // ================================================!
         for (int j = 0; j < Nx; j++)
@@ -650,9 +650,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Calculate the RHS of the linear system with the explicit diffusion term along x
             for (int i = 0; i < Ny; i++)
             {
-                real actualV = V[i][j];
-                diff_term = diff_coeff * tau * phi_x * (V[i][lim(j - 1, Nx)] - 2.0f * actualV + V[i][lim(j + 1, Nx)]);
-                LS_b_y[i] = actualV + diff_term + 0.5f * partRHS[i][j];
+                real actualVm = Vm[i][j];
+                diff_term = diff_coeff * tau * phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]);
+                LS_b_y[i] = actualVm + diff_term + 0.5f * partRHS[i][j];
             }
 
             // Solve the linear system
@@ -666,7 +666,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         }
 
         // ================================================!
-        //  Calculate V at n+1 -> Result goes to V         !
+        //  Calculate Vm at n+1 -> Result goes to Vm       !
         //  diffusion implicit in x and explicit in y      !
         // ================================================!
         for (int i = 0; i < Ny; i++)
@@ -674,9 +674,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Calculate the RHS of the linear system with the explicit diffusion term along y
             for (int j = 0; j < Nx; j++)
             {
-                real actualV = RHS[i][j];
-                diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualV + RHS[lim(i + 1, Ny)][j]);
-                LS_b_x[j] = actualV + diff_term + 0.5f * partRHS[i][j];
+                real actualVm = RHS[i][j];
+                diff_term = diff_coeff * tau * phi_y * (RHS[lim(i - 1, Ny)][j] - 2.0f * actualVm + RHS[lim(i + 1, Ny)][j]);
+                LS_b_x[j] = actualVm + diff_term + 0.5f * partRHS[i][j];
             }
 
             // Solve the linear system
@@ -685,7 +685,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Update with the result
             for (int j = 0; j < Nx; j++)
             {
-                V[i][j] = result_x[j];
+                Vm[i][j] = result_x[j];
             }
         }
 
@@ -694,14 +694,14 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef OSADI
 
         // ================================================!
-        //  Calculate V at n+1/2 -> Result goes to V       !
+        //  Calculate Vm at n+1/2 -> Result goes to Vm       !
         // ================================================!
         for (int j = 0; j < Nx; j++)
         {
             // Calculate the RHS of the linear system
             for (int i = 0; i < Ny; i++)
             {
-                LS_b_y[i] = V[i][j] + 0.5f * partRHS[i][j];
+                LS_b_y[i] = Vm[i][j] + 0.5f * partRHS[i][j];
             }
 
             // Solve the linear system
@@ -710,19 +710,19 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Update with the result
             for (int i = 0; i < Ny; i++)
             {
-                V[i][j] = result_y[i];
+                Vm[i][j] = result_y[i];
             }
         }
 
         // ================================================!
-        //  Calculate V at n+1 -> Result goes to V         !
+        //  Calculate Vm at n+1 -> Result goes to Vm         !
         // ================================================!
         for (int i = 0; i < Ny; i++)
         {
             // Calculate the RHS of the linear system
             for (int j = 0; j < Nx; j++)
             {
-                LS_b_x[j] = V[i][j] + 0.5f * partRHS[i][j];
+                LS_b_x[j] = Vm[i][j] + 0.5f * partRHS[i][j];
             }
 
             // Solve the linear system
@@ -731,7 +731,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             // Update with the result
             for (int j = 0; j < Nx; j++)
             {
-                V[i][j] = result_x[j];
+                Vm[i][j] = result_x[j];
             }
         }
 
@@ -740,11 +740,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef FE
 
         // ==================!
-        //  Update V         !
+        //  Update Vm         !
         // ==================!
         for (int i = 0; i < Ny; i++)
             for (int j = 0; j < Nx; j++)
-                V[i][j] = partRHS[i][j];
+                Vm[i][j] = partRHS[i][j];
 
 #endif // FE
 
@@ -757,7 +757,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         {
             // Save frame
             fprintf(fpFrames, "%lf\n", actualTime);
-            saveFrame(fpFrames, V, Nx, Ny);
+            saveFrame(fpFrames, Vm, Nx, Ny);
             SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
 
@@ -776,7 +776,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         {
             if (!aux_stim_velocity_flag)
             {
-                if (V[0][begin_point_index] > 10.0f)
+                if (Vm[0][begin_point_index] > 10.0f)
                 {
                     begin_point_time = actualTime;
                     aux_stim_velocity_flag = true;
@@ -784,7 +784,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             }
             else
             {
-                if (V[0][end_point_index] > 10.0f)
+                if (Vm[0][end_point_index] > 10.0f)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
@@ -817,7 +817,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             actualTime = time[timeStepCounter];
 
             // Get info for Action Potential
-            AP[timeStepCounter] = V[APCellIndex];
+            AP[timeStepCounter] = Vm[APCellIndex];
 
             // ================================================!
             //  Calcula Approx.                                !
@@ -828,11 +828,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef AFHN
 
-                real actualV = V[i];
+                real actualVm = Vm[i];
                 real actualW = W[i];
 
-                diff_term = diff_coeff * phi_x * (V[lim(i - 1, Nx)] - 2.0f * actualV + V[lim(i + 1, Nx)]);
-                real RHS_V_term = RHS_V(actualV, actualW) / (Cm * chi);
+                diff_term = diff_coeff * phi_x * (Vm[lim(i - 1, Nx)] - 2.0f * actualVm + Vm[lim(i + 1, Nx)]);
+                real RHS_Vm_term = RHS_Vm(actualVm, actualW) / (Cm * chi);
 
                 // Stimulation
                 real stim = 0.0f;
@@ -845,29 +845,27 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                     }
                 }
 
-                // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
+                // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Calculate W approximation
-                real RHS_W_term = RHS_W(actualV, actualW);
+                real RHS_W_term = RHS_W(actualVm, actualW);
                 real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
                 // Preparing part of the RHS of the following linear systems
-                real RHS_Vtilde_term = RHS_V(actualVtilde, Wtilde) / (Cm * chi);
-                partRHS[i] = delta_t * (stim - RHS_Vtilde_term);
+                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                partRHS[i] = delta_t * (stim - RHS_Vmtilde_term);
 
-                // Update Wn+1 with RK2 -> Wn+1 = Wn + dt*R(V*, W*)
-                W[i] = actualW + delta_t * RHS_W(actualVtilde, Wtilde);
+                // Update Wn+1 with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
+                W[i] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde);
 
 #endif // AFHN
 
 #ifdef TT2
 
-                real actualV = V[i];
-                real im1V = V[lim(i - 1, Nx)];
-                real ip1V = V[lim(i + 1, Nx)];
-
-                diff_term = diff_coeff * phi_x * (im1V - 2.0f * actualV + ip1V);
+                real actualVm = Vm[i];
+                
+                diff_term = diff_coeff * phi_x * (Vm[lim(i - 1, Nx)] - 2.0f * actualVm + Vm[lim(i + 1, Nx)]);
 
                 // State variables
                 real actualX_r1 = X_r1[i];
@@ -890,11 +888,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real actualK_i = K_i[i];
 
                 // Auxiliary variables
-                real VmENa = actualV - (RTONF * log(Na_o / actualNa_i));
+                real VmENa = actualVm - (RTONF * log(Na_o / actualNa_i));
                 real E_K = (RTONF * log(K_o / actualK_i));
-                real VmEK = actualV - E_K;
-                real alpha_K1 = 0.1f / (1.0f + exp(0.06f * (actualV - E_K - 200.0f)));
-                real beta_K1 = (3.0f * exp(0.0002f * (actualV - E_K + 100.0f)) + exp(0.1f * (actualV - E_K - 10.0f))) / (1.0f + exp(-0.5f * (actualV - E_K)));
+                real VmEK = actualVm - E_K;
+                real alpha_K1 = 0.1f / (1.0f + exp(0.06f * (actualVm - E_K - 200.0f)));
+                real beta_K1 = (3.0f * exp(0.0002f * (actualVm - E_K + 100.0f)) + exp(0.1f * (actualVm - E_K - 10.0f))) / (1.0f + exp(-0.5f * (actualVm - E_K)));
                 real E_Ks = (RTONF * log((K_o + p_KNa * Na_o) / (actualK_i + p_KNa * actualNa_i)));
                 real E_Ca = 0.5f * RTONF * log(Ca_o / actualCa_i);
 
@@ -904,20 +902,20 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real IK1 = G_K1 * (alpha_K1 / (alpha_K1 + beta_K1)) * VmEK;
                 real Ito = G_to * actualr * actuals * VmEK;
                 real IKr = G_Kr * sqrt(K_o / 5.4f) * actualX_r1 * actualX_r2 * VmEK;
-                real IKs = G_Ks * actualX_s * actualX_s * (actualV - E_Ks);
+                real IKs = G_Ks * actualX_s * actualX_s * (actualVm - E_Ks);
                 real ICaL; // !!!
-                (actualV < 15.0f - 1.0e-5f)
-                    ? (ICaL = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 4.0f * (actualV - 15.0f) * (F * F) * (0.25f * actualCa_SS * exp(2.0f * (actualV - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualV - 15.0f) * FONRT) - 1.0f)))
+                (actualVm < 15.0f - 1.0e-5f)
+                    ? (ICaL = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 4.0f * (actualVm - 15.0f) * (F * F) * (0.25f * actualCa_SS * exp(2.0f * (actualVm - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualVm - 15.0f) * FONRT) - 1.0f)))
                     : (ICaL = G_CaL * actuald * actualf * actualf2 * actualfCaSS * 2.0f * F * (0.25f * actualCa_SS - Ca_o));
-                real INaK = ((((p_KNa * K_o) / (K_o + K_mK)) * actualNa_i) / (actualNa_i + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualV * FONRT))) + (0.0353f * exp(((-actualV) * FONRT))));
+                real INaK = ((((p_KNa * K_o) / (K_o + K_mK)) * actualNa_i) / (actualNa_i + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualVm * FONRT))) + (0.0353f * exp(((-actualVm) * FONRT))));
                 real INaCa; // !!!
-                INaCa = (k_NaCa * ((exp((gamma_I_NaCa * actualV * FONRT)) * (actualNa_i * actualNa_i * actualNa_i) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualV * FONRT)) * (Na_o * Na_o * Na_o) * actualCa_i * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualV * FONRT)))));
+                INaCa = (k_NaCa * ((exp((gamma_I_NaCa * actualVm * FONRT)) * (actualNa_i * actualNa_i * actualNa_i) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualVm * FONRT)) * (Na_o * Na_o * Na_o) * actualCa_i * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualVm * FONRT)))));
                 real IpCa = (G_pCa * actualCa_i) / (K_pCa + actualCa_i);
-                real IpK = (G_pK * VmEK) / (1.0f + exp((25.0f - actualV) / 5.98f));
-                real IbCa = G_bCa * (actualV - E_Ca);
+                real IpK = (G_pK * VmEK) / (1.0f + exp((25.0f - actualVm) / 5.98f));
+                real IbCa = G_bCa * (actualVm - E_Ca);
 
                 // RHS of the main equation
-                real RHS_V_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
+                real RHS_Vm_term = INa + IbNa + IK1 + Ito + IKr + IKs + ICaL + INaK + INaCa + IpCa + IpK + IbCa;
 
                 real stim = 0.0f;
                 for (int si = 0; si < numberOfStimuli; si++)
@@ -929,83 +927,83 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                     }
                 }
 
-                // Calculate Vtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-                real actualVtilde = actualV + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_V_term));
+                // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Preparing part of the RHS of the following linear systems
                 // Calculate approximation for state variables
                 // Rush-Larsen method - auxiliary variables
-                real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualV) / 7.0f));
-                real alpha_X_r1 = 450.0f / (1.0f + exp((-45.0f - actualV) / 10.0f));
-                real beta_X_r1 = 6.0f / (1.0f + exp((30.0f + actualV) / 11.5f));
+                real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualVm) / 7.0f));
+                real alpha_X_r1 = 450.0f / (1.0f + exp((-45.0f - actualVm) / 10.0f));
+                real beta_X_r1 = 6.0f / (1.0f + exp((30.0f + actualVm) / 11.5f));
 
-                real X_r2_inf = 1.0f / (1.0f + exp((actualV + 88.0f) / 24.0f));
-                real alpha_X_r2 = 3.0f / (1.0f + exp((-60.0f - actualV) / 20.0f));
-                real beta_X_r2 = 1.12f / (1.0f + exp((actualV - 60.0f) / 20.0f));
+                real X_r2_inf = 1.0f / (1.0f + exp((actualVm + 88.0f) / 24.0f));
+                real alpha_X_r2 = 3.0f / (1.0f + exp((-60.0f - actualVm) / 20.0f));
+                real beta_X_r2 = 1.12f / (1.0f + exp((actualVm - 60.0f) / 20.0f));
 
-                real X_s_inf = 1.0f / (1.0f + exp((-5.0f - actualV) / 14.0f));
-                real alpha_X_s = 1400.0f / sqrt(1.0f + exp((5.0f - actualV) / 6.0f));
-                real beta_X_s = 1.0f / (1.0f + exp((-35.0f + actualV) / 15.0f));
+                real X_s_inf = 1.0f / (1.0f + exp((-5.0f - actualVm) / 14.0f));
+                real alpha_X_s = 1400.0f / sqrt(1.0f + exp((5.0f - actualVm) / 6.0f));
+                real beta_X_s = 1.0f / (1.0f + exp((-35.0f + actualVm) / 15.0f));
 
-                real m_inf = 1.0f / ((1.0f + exp((-56.86 - actualV) / 9.03f)) * (1.0f + exp((-56.86f - actualV) / 9.03f)));
-                real alpha_m = 1.0f / (1.0f + exp((-60.0f - actualV) / 5.0f));
-                real beta_m = 0.1f / (1.0f + exp((actualV + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualV - 50.0f) / 200.0f)));
+                real m_inf = 1.0f / ((1.0f + exp((-56.86 - actualVm) / 9.03f)) * (1.0f + exp((-56.86f - actualVm) / 9.03f)));
+                real alpha_m = 1.0f / (1.0f + exp((-60.0f - actualVm) / 5.0f));
+                real beta_m = 0.1f / (1.0f + exp((actualVm + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVm - 50.0f) / 200.0f)));
 
-                real h_inf = 1.0f / ((1.0f + exp((actualV + 71.55f) / 7.43f)) * (1.0f + exp((actualV + 71.55f) / 7.43f)));
+                real h_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
                 real alpha_h;
-                (actualV < -40.0f)
-                    ? (alpha_h = 0.057f * exp(-(actualV + 80.0f) / 6.8f))
+                (actualVm < -40.0f)
+                    ? (alpha_h = 0.057f * exp(-(actualVm + 80.0f) / 6.8f))
                     : (alpha_h = 0.0f);
                 real beta_h;
-                (actualV < -40.0f)
-                    ? (beta_h = 2.7f * exp(0.079f * actualV) + 3.1f * 1.0e5f * exp(0.3485f * actualV))
-                    : (beta_h = 0.77f / (0.13f * (1.0f + exp((actualV + 10.66f) / -11.1f))));
+                (actualVm < -40.0f)
+                    ? (beta_h = 2.7f * exp(0.079f * actualVm) + 3.1f * 1.0e5f * exp(0.3485f * actualVm))
+                    : (beta_h = 0.77f / (0.13f * (1.0f + exp((actualVm + 10.66f) / -11.1f))));
 
-                real j_inf = 1.0f / ((1.0f + exp((actualV + 71.55f) / 7.43f)) * (1.0f + exp((actualV + 71.55f) / 7.43f)));
+                real j_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
                 real alpha_j;
-                (actualV < -40.0f)
-                    ? (alpha_j = ((-25428.0f * exp(0.2444f * actualV) - (6.948e-6f * exp((-0.04391f) * actualV))) * (actualV + 37.78f)) / (1.0f + exp(0.311f * (actualV + 79.23f))))
+                (actualVm < -40.0f)
+                    ? (alpha_j = ((-25428.0f * exp(0.2444f * actualVm) - (6.948e-6f * exp((-0.04391f) * actualVm))) * (actualVm + 37.78f)) / (1.0f + exp(0.311f * (actualVm + 79.23f))))
                     : (alpha_j = 0.0f);
                 real beta_j;
-                (actualV < -40.0f)
-                    ? (beta_j = (0.02424f * exp(-0.01052f * actualV)) / (1.0f + exp(-0.1378f * (actualV + 40.14f))))
-                    : (beta_j = (0.6f * exp(0.057f * actualV)) / (1.0f + exp(-0.1f * (actualV + 32.0f))));
+                (actualVm < -40.0f)
+                    ? (beta_j = (0.02424f * exp(-0.01052f * actualVm)) / (1.0f + exp(-0.1378f * (actualVm + 40.14f))))
+                    : (beta_j = (0.6f * exp(0.057f * actualVm)) / (1.0f + exp(-0.1f * (actualVm + 32.0f))));
 
-                real inf = 1.0f / (1.0f + exp((-8.0f - actualV) / 7.5f));
-                real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualV) / 13.0f)) + 0.25f;
-                real beta_d = 1.4f / (1.0f + exp((actualV + 5.0f) / 5.0f));
-                real gamma_d = 1.0f / (1.0f + exp((50.0f - actualV) / 20.0f));
+                real inf = 1.0f / (1.0f + exp((-8.0f - actualVm) / 7.5f));
+                real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualVm) / 13.0f)) + 0.25f;
+                real beta_d = 1.4f / (1.0f + exp((actualVm + 5.0f) / 5.0f));
+                real gamma_d = 1.0f / (1.0f + exp((50.0f - actualVm) / 20.0f));
 
-                real f_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 7.0f));
-                real alpha_f = 1102.5f * exp(-(actualV + 27.0f) * (actualV + 27.0f) / 225.0f);
-                real beta_f = 200.0f / (1.0f + exp((13.0f - actualV) / 10.0f));
-                real gamma_f = 180.0f / (1.0f + exp((actualV + 30.0f) / 10.0f)) + 20.0f;
+                real f_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 7.0f));
+                real alpha_f = 1102.5f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 225.0f);
+                real beta_f = 200.0f / (1.0f + exp((13.0f - actualVm) / 10.0f));
+                real gamma_f = 180.0f / (1.0f + exp((actualVm + 30.0f) / 10.0f)) + 20.0f;
 
-                real f2_inf = 0.67f / (1.0f + exp((actualV + 35.0f) / 7.0f)) + 0.33f;
+                real f2_inf = 0.67f / (1.0f + exp((actualVm + 35.0f) / 7.0f)) + 0.33f;
                 real alpha_f2; // !!!
-                alpha_f2 = 562.0f * exp(-(actualV + 27.0f) * (actualV + 27.0f) / 240.0f);
-                real beta_f2 = 31.0f / (1.0f + exp((25.0f - actualV) / 10.0f));
+                alpha_f2 = 562.0f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 240.0f);
+                real beta_f2 = 31.0f / (1.0f + exp((25.0f - actualVm) / 10.0f));
                 real gamma_f2; // !!!
-                gamma_f2 = 80.0f / (1.0f + exp((30.0f + actualV) / 10.0f));
+                gamma_f2 = 80.0f / (1.0f + exp((30.0f + actualVm) / 10.0f));
 
                 real fCaSS_inf = 0.6f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 0.4f;
                 real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
 
 #if defined(EPI) || defined(MCELL)
 
-                real s_inf = 1.0f / (1.0f + exp((actualV + 20.0f) / 5.0f));
-                real tau_s = 85.0f * exp(-(actualV + 45.0f) * (actualV + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualV - 20.0f) / 5.0f)) + 3.0f;
+                real s_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 5.0f));
+                real tau_s = 85.0f * exp(-(actualVm + 45.0f) * (actualVm + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVm - 20.0f) / 5.0f)) + 3.0f;
 
 #endif // EPI || MCELL
 #ifdef ENDO
 
-                real s_inf = 1.0f / (1.0f + exp((actualV + 28.0f) / 5.0f));
-                real tau_s = 1000.0f * exp(-(actualV + 67.0f) * (actualV + 67.0f) / 1000.0f) + 8.0f;
+                real s_inf = 1.0f / (1.0f + exp((actualVm + 28.0f) / 5.0f));
+                real tau_s = 1000.0f * exp(-(actualVm + 67.0f) * (actualVm + 67.0f) / 1000.0f) + 8.0f;
 
 #endif // ENDO
 
-                real r_inf = 1.0f / (1.0f + exp((20.0f - actualV) / 6.0f));
-                real tau_r = 9.5f * exp(-(actualV + 40.0f) * (actualV + 40.0f) / 1800.0f) + 0.8f;
+                real r_inf = 1.0f / (1.0f + exp((20.0f - actualVm) / 6.0f));
+                real tau_r = 9.5f * exp(-(actualVm + 40.0f) * (actualVm + 40.0f) / 1800.0f) + 0.8f;
 
                 // Explicit method - auxiliary variables
                 real Ileak = V_leak * (actualCa_SR - actualCa_i);
@@ -1053,111 +1051,111 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real Na_itilde = actualNa_i + (0.5f * delta_t * RHS_Na_i_term);
                 real K_itilde = actualK_i + (0.5f * delta_t * RHS_K_i_term);
 
-                // Auxiliary variables with Vtilde
-                real VmENatilde = actualVtilde - (RTONF * log(Na_o / Na_itilde));
+                // Auxiliary variables with Vmtilde
+                real VmENatilde = actualVmtilde - (RTONF * log(Na_o / Na_itilde));
                 real E_Ktilde = (RTONF * log(K_o / K_itilde));
-                real VmEKtilde = actualVtilde - E_Ktilde;
-                real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (actualVtilde - E_Ktilde - 200.0f)));
-                real beta_K1tilde = (3.0f * exp(0.0002f * (actualVtilde - E_Ktilde + 100.0f)) + exp(0.1f * (actualVtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (actualVtilde - E_Ktilde)));
+                real VmEKtilde = actualVmtilde - E_Ktilde;
+                real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (actualVmtilde - E_Ktilde - 200.0f)));
+                real beta_K1tilde = (3.0f * exp(0.0002f * (actualVmtilde - E_Ktilde + 100.0f)) + exp(0.1f * (actualVmtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (actualVmtilde - E_Ktilde)));
                 real E_Kstilde = (RTONF * log((K_o + p_KNa * Na_o) / (K_itilde + p_KNa * Na_itilde)));
                 real E_Catilde = 0.5f * RTONF * log(Ca_o / Ca_itilde);
 
-                // Currents with Vtilde
+                // Currents with Vmtilde
                 real INatilde = G_Na * (mtilde * mtilde * mtilde) * htilde * jtilde * VmENatilde;
                 real IbNatilde = G_bNa * VmENatilde;
                 real IK1tilde = G_K1 * (alpha_K1tilde / (alpha_K1tilde + beta_K1tilde)) * VmEKtilde;
                 real Itotilde = G_to * rtilde * stilde * VmEKtilde;
                 real IKrtilde = G_Kr * sqrt(K_o / 5.4f) * X_r1tilde * X_r2tilde * VmEKtilde;
-                real IKstilde = G_Ks * X_stilde * X_stilde * (actualVtilde - E_Kstilde);
+                real IKstilde = G_Ks * X_stilde * X_stilde * (actualVmtilde - E_Kstilde);
                 real ICaLtilde; // !!!
-                (actualVtilde < 15.0f - 1.0e-5f)
-                    ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (actualVtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (actualVtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualVtilde - 15.0f) * FONRT) - 1.0f)))
+                (actualVmtilde < 15.0f - 1.0e-5f)
+                    ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (actualVmtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (actualVmtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualVmtilde - 15.0f) * FONRT) - 1.0f)))
                     : (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 2.0f * F * (0.25f * Ca_SStilde - Ca_o));
-                real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualVtilde * FONRT))) + (0.0353f * exp(((-actualVtilde) * FONRT))));
+                real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualVmtilde * FONRT))) + (0.0353f * exp(((-actualVmtilde) * FONRT))));
                 real INaCatilde; // !!!
-                INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * actualVtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualVtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualVtilde * FONRT)))));
+                INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * actualVmtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualVmtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualVmtilde * FONRT)))));
                 real IpCatilde = (G_pCa * Ca_itilde) / (K_pCa + Ca_itilde);
-                real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - actualVtilde) / 5.98f));
-                real IbCatilde = G_bCa * (actualVtilde - E_Catilde);
+                real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - actualVmtilde) / 5.98f));
+                real IbCatilde = G_bCa * (actualVmtilde - E_Catilde);
 
-                // part of RHS of the main equation with Vtilde
-                real RHS_Vtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
-                partRHS[i] = delta_t * (stim - RHS_Vtilde_term);
+                // part of RHS of the main equation with Vmtilde
+                real RHS_Vmtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
+                partRHS[i] = delta_t * (stim - RHS_Vmtilde_term);
 
                 // Update state variables
                 // RHS of the state variables with tilde approximations
                 // Rush-Larsen method - auxiliary variables
-                real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - actualVtilde) / 7.0f));
-                real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - actualVtilde) / 10.0f));
-                real beta_X_r1tilde = 6.0f / (1.0f + exp((30.0f + actualVtilde) / 11.5f));
+                real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - actualVmtilde) / 7.0f));
+                real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - actualVmtilde) / 10.0f));
+                real beta_X_r1tilde = 6.0f / (1.0f + exp((30.0f + actualVmtilde) / 11.5f));
 
-                real X_r2_inftilde = 1.0f / (1.0f + exp((actualVtilde + 88.0f) / 24.0f));
-                real alpha_X_r2tilde = 3.0f / (1.0f + exp((-60.0f - actualVtilde) / 20.0f));
-                real beta_X_r2tilde = 1.12f / (1.0f + exp((actualVtilde - 60.0f) / 20.0f));
+                real X_r2_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 88.0f) / 24.0f));
+                real alpha_X_r2tilde = 3.0f / (1.0f + exp((-60.0f - actualVmtilde) / 20.0f));
+                real beta_X_r2tilde = 1.12f / (1.0f + exp((actualVmtilde - 60.0f) / 20.0f));
 
-                real X_s_inftilde = 1.0f / (1.0f + exp((-5.0f - actualVtilde) / 14.0f));
-                real alpha_X_stilde = 1400.0f / sqrt(1.0f + exp((5.0f - actualVtilde) / 6.0f));
-                real beta_X_stilde = 1.0f / (1.0f + exp((-35.0f + actualVtilde) / 15.0f));
+                real X_s_inftilde = 1.0f / (1.0f + exp((-5.0f - actualVmtilde) / 14.0f));
+                real alpha_X_stilde = 1400.0f / sqrt(1.0f + exp((5.0f - actualVmtilde) / 6.0f));
+                real beta_X_stilde = 1.0f / (1.0f + exp((-35.0f + actualVmtilde) / 15.0f));
 
-                real m_inftilde = 1.0f / ((1.0f + exp((-56.86 - actualVtilde) / 9.03f)) * (1.0f + exp((-56.86f - actualVtilde) / 9.03f)));
-                real alpha_mtilde = 1.0f / (1.0f + exp((-60.0f - actualVtilde) / 5.0f));
-                real beta_mtilde = 0.1f / (1.0f + exp((actualVtilde + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVtilde - 50.0f) / 200.0f)));
+                real m_inftilde = 1.0f / ((1.0f + exp((-56.86 - actualVmtilde) / 9.03f)) * (1.0f + exp((-56.86f - actualVmtilde) / 9.03f)));
+                real alpha_mtilde = 1.0f / (1.0f + exp((-60.0f - actualVmtilde) / 5.0f));
+                real beta_mtilde = 0.1f / (1.0f + exp((actualVmtilde + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVmtilde - 50.0f) / 200.0f)));
 
-                real h_inftilde = 1.0f / ((1.0f + exp((actualVtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVtilde + 71.55f) / 7.43f)));
+                real h_inftilde = 1.0f / ((1.0f + exp((actualVmtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVmtilde + 71.55f) / 7.43f)));
                 real alpha_htilde;
-                (actualVtilde < -40.0f)
-                    ? (alpha_htilde = 0.057f * exp(-(actualVtilde + 80.0f) / 6.8f))
+                (actualVmtilde < -40.0f)
+                    ? (alpha_htilde = 0.057f * exp(-(actualVmtilde + 80.0f) / 6.8f))
                     : (alpha_htilde = 0.0f);
                 real beta_htilde;
-                (actualVtilde < -40.0f)
-                    ? (beta_htilde = 2.7f * exp(0.079f * actualVtilde) + 3.1f * 1.0e5f * exp(0.3485f * actualVtilde))
-                    : (beta_htilde = 0.77f / (0.13f * (1.0f + exp((actualVtilde + 10.66f) / -11.1f))));
+                (actualVmtilde < -40.0f)
+                    ? (beta_htilde = 2.7f * exp(0.079f * actualVmtilde) + 3.1f * 1.0e5f * exp(0.3485f * actualVmtilde))
+                    : (beta_htilde = 0.77f / (0.13f * (1.0f + exp((actualVmtilde + 10.66f) / -11.1f))));
 
-                real j_inftilde = 1.0f / ((1.0f + exp((actualVtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVtilde + 71.55f) / 7.43f)));
+                real j_inftilde = 1.0f / ((1.0f + exp((actualVmtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVmtilde + 71.55f) / 7.43f)));
                 real alpha_jtilde;
-                (actualVtilde < -40.0f)
-                    ? (alpha_jtilde = ((-25428.0f * exp(0.2444f * actualVtilde) - (6.948e-6f * exp((-0.04391f) * actualVtilde))) * (actualVtilde + 37.78f)) / (1.0f + exp(0.311f * (actualVtilde + 79.23f))))
+                (actualVmtilde < -40.0f)
+                    ? (alpha_jtilde = ((-25428.0f * exp(0.2444f * actualVmtilde) - (6.948e-6f * exp((-0.04391f) * actualVmtilde))) * (actualVmtilde + 37.78f)) / (1.0f + exp(0.311f * (actualVmtilde + 79.23f))))
                     : (alpha_jtilde = 0.0f);
                 real beta_jtilde;
-                (actualVtilde < -40.0f)
-                    ? (beta_jtilde = (0.02424f * exp(-0.01052f * actualVtilde)) / (1.0f + exp(-0.1378f * (actualVtilde + 40.14f))))
-                    : (beta_jtilde = (0.6f * exp(0.057f * actualVtilde)) / (1.0f + exp(-0.1f * (actualVtilde + 32.0f))));
+                (actualVmtilde < -40.0f)
+                    ? (beta_jtilde = (0.02424f * exp(-0.01052f * actualVmtilde)) / (1.0f + exp(-0.1378f * (actualVmtilde + 40.14f))))
+                    : (beta_jtilde = (0.6f * exp(0.057f * actualVmtilde)) / (1.0f + exp(-0.1f * (actualVmtilde + 32.0f))));
 
-                real d_inftilde = 1.0f / (1.0f + exp((-8.0f - actualVtilde) / 7.5f));
-                real alpha_dtilde = 1.4f / (1.0f + exp((-35.0f - actualVtilde) / 13.0f)) + 0.25f;
-                real beta_dtilde = 1.4f / (1.0f + exp((actualVtilde + 5.0f) / 5.0f));
-                real gamma_dtilde = 1.0f / (1.0f + exp((50.0f - actualVtilde) / 20.0f));
+                real d_inftilde = 1.0f / (1.0f + exp((-8.0f - actualVmtilde) / 7.5f));
+                real alpha_dtilde = 1.4f / (1.0f + exp((-35.0f - actualVmtilde) / 13.0f)) + 0.25f;
+                real beta_dtilde = 1.4f / (1.0f + exp((actualVmtilde + 5.0f) / 5.0f));
+                real gamma_dtilde = 1.0f / (1.0f + exp((50.0f - actualVmtilde) / 20.0f));
 
-                real f_inftilde = 1.0f / (1.0f + exp((actualVtilde + 20.0f) / 7.0f));
-                real alpha_ftilde = 1102.5f * exp(-(actualVtilde + 27.0f) * (actualVtilde + 27.0f) / 225.0f);
-                real beta_ftilde = 200.0f / (1.0f + exp((13.0f - actualVtilde) / 10.0f));
-                real gamma_ftilde = 180.0f / (1.0f + exp((actualVtilde + 30.0f) / 10.0f)) + 20.0f;
+                real f_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 20.0f) / 7.0f));
+                real alpha_ftilde = 1102.5f * exp(-(actualVmtilde + 27.0f) * (actualVmtilde + 27.0f) / 225.0f);
+                real beta_ftilde = 200.0f / (1.0f + exp((13.0f - actualVmtilde) / 10.0f));
+                real gamma_ftilde = 180.0f / (1.0f + exp((actualVmtilde + 30.0f) / 10.0f)) + 20.0f;
 
-                real f2_inftilde = 0.67f / (1.0f + exp((actualVtilde + 35.0f) / 7.0f)) + 0.33f;
+                real f2_inftilde = 0.67f / (1.0f + exp((actualVmtilde + 35.0f) / 7.0f)) + 0.33f;
                 real alpha_f2tilde; // !!!
-                alpha_f2tilde = 562.0f * exp(-(actualVtilde + 27.0f) * (actualVtilde + 27.0f) / 240.0f);
-                real beta_f2tilde = 31.0f / (1.0f + exp((25.0f - actualVtilde) / 10.0f));
+                alpha_f2tilde = 562.0f * exp(-(actualVmtilde + 27.0f) * (actualVmtilde + 27.0f) / 240.0f);
+                real beta_f2tilde = 31.0f / (1.0f + exp((25.0f - actualVmtilde) / 10.0f));
                 real gamma_f2tilde; // !!!
-                gamma_f2tilde = 80.0f / (1.0f + exp((30.0f + actualVtilde) / 10.0f));
+                gamma_f2tilde = 80.0f / (1.0f + exp((30.0f + actualVmtilde) / 10.0f));
 
                 real fCaSS_inftilde = 0.6f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 0.4f;
                 real tau_fCaSStilde = 80.0f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 2.0f;
 
 #if defined(EPI) || defined(MCELL)
 
-                real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 20.0f) / 5.0f));
-                real tau_stilde = 85.0f * exp(-(actualVtilde + 45.0f) * (actualVtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVtilde - 20.0f) / 5.0f)) + 3.0f;
+                real s_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 20.0f) / 5.0f));
+                real tau_stilde = 85.0f * exp(-(actualVmtilde + 45.0f) * (actualVmtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVmtilde - 20.0f) / 5.0f)) + 3.0f;
 
 #endif // EPI || MCELL
 #ifdef ENDO
 
-                real s_inftilde = 1.0f / (1.0f + exp((actualVtilde + 28.0f) / 5.0f));
-                real tau_stilde = 1000.0f * exp(-(actualVtilde + 67.0f) * (actualVtilde + 67.0f) / 1000.0f) + 8.0f;
+                real s_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 28.0f) / 5.0f));
+                real tau_stilde = 1000.0f * exp(-(actualVmtilde + 67.0f) * (actualVmtilde + 67.0f) / 1000.0f) + 8.0f;
 
 #endif // ENDO
 
-                real r_inftilde = 1.0f / (1.0f + exp((20.0f - actualVtilde) / 6.0f));
-                real tau_rtilde = 9.5f * exp(-(actualVtilde + 40.0f) * (actualVtilde + 40.0f) / 1800.0f) + 0.8f;
+                real r_inftilde = 1.0f / (1.0f + exp((20.0f - actualVmtilde) / 6.0f));
+                real tau_rtilde = 9.5f * exp(-(actualVmtilde + 40.0f) * (actualVmtilde + 40.0f) / 1800.0f) + 0.8f;
 
                 // Explicit method - auxiliary variables
                 real Ileaktilde = V_leak * (Ca_SRtilde - Ca_itilde);
@@ -1210,24 +1208,24 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             }
 
             // ================================================!
-            //  Calculate V at n + 1 -> Result goes to V       !
+            //  Calculate Vm at n + 1 -> Result goes to Vm     !
             // ================================================!
             // Calculate the RHS
             for (int i = 0; i < Nx; i++)
             {
-                real actualV = V[i];
-                diff_term = diff_coeff * phi_x * (V[lim(i - 1, Nx)] - 2.0f * actualV + V[lim(i + 1, Nx)]);
+                real actualVm = Vm[i];
+                diff_term = diff_coeff * phi_x * (Vm[lim(i - 1, Nx)] - 2.0f * actualVm + Vm[lim(i + 1, Nx)]);
 
-                LS_b_x[i] = actualV + (1.0f - THETA) * diff_term + partRHS[i];
+                LS_b_x[i] = actualVm + (1.0f - THETA) * diff_term + partRHS[i];
             }
 
             // Solve the tridiagonal system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
             
-            // Update V
+            // Update Vm
             for (int i = 0; i < Nx; i++)
             {
-                V[i] = result_x[i];
+                Vm[i] = result_x[i];
             }
 
 #ifdef SAVE_FRAMES
@@ -1239,7 +1237,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 // Save frame
                 fprintf(fpFrames, "%lf\n", actualTime);
-                saveFrame(fpFrames, V, Nx);
+                saveFrame(fpFrames, Vm, Nx);
                 SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
             }
 
@@ -1257,7 +1255,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 if (!aux_stim_velocity_flag)
                 {
-                    if (V[begin_point_index] > 10.0f)
+                    if (Vm[begin_point_index] > 10.0f)
                     {
                         begin_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -1265,7 +1263,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 }
                 else
                 {
-                    if (V[end_point_index] > 10.0f)
+                    if (Vm[end_point_index] > 10.0f)
                     {
                         end_point_time = actualTime;
                         stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
@@ -1297,11 +1295,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifndef CABLEEQ
 
-    saveFrame(fpFrames, V, Nx, Ny);
+    saveFrame(fpFrames, Vm, Nx, Ny);
 
 #else // if def CABLEEQ
 
-    saveFrame(fpFrames, V, Nx);
+    saveFrame(fpFrames, Vm, Nx);
 
 #endif // CABLEEQ
 
@@ -1319,7 +1317,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     for (int i = 0; i < Ny; i++)
         exact[i] = (real *)malloc(Nx * sizeof(real));
         
-    real norm2error = calculateNorm2Error(V, exact, Nx, Ny, totalTime, delta_x, delta_y);
+    real norm2error = calculateNorm2Error(Vm, exact, Nx, Ny, totalTime, delta_x, delta_y);
 
     char exactFilePath[MAX_STRING_SIZE];
     snprintf(exactFilePath, MAX_STRING_SIZE * sizeof(char), "%s/exact.txt", pathToSaveData);
@@ -1334,7 +1332,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         for (int j = 0; j < Nx; j++)
         {
             fprintf(fpExact, "%e ", exact[i][j]);
-            fprintf(fpErrors, "%e ", abs(V[i][j] - exact[i][j]));
+            fprintf(fpErrors, "%e ", abs(Vm[i][j] - exact[i][j]));
         }
         fprintf(fpExact, "\n");
         fprintf(fpErrors, "\n");
@@ -1440,11 +1438,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     
 #ifndef CABLEEQ
 
-    saveFrame(fpLast, V, Nx, Ny);
+    saveFrame(fpLast, Vm, Nx, Ny);
 
 #else // if def CABLEEQ
 
-    saveFrame(fpLast, V, Nx);
+    saveFrame(fpLast, Vm, Nx);
 
 #endif // CABLEEQ
 
@@ -1456,11 +1454,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #ifdef SAVE_LAST_STATE
 #ifdef AFHN
 
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
 
-    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
 
 #ifndef CABLEEQ
@@ -1469,10 +1467,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     {
         for (int j = 0; j < Nx; j++)
         {
-            fprintf(fpLastV, "%e ", V[i][j]);
+            fprintf(fpLastVm, "%e ", Vm[i][j]);
             fprintf(fpLastW, "%e ", W[i][j]);
         }
-        fprintf(fpLastV, "\n");
+        fprintf(fpLastVm, "\n");
         fprintf(fpLastW, "\n");
     }
 
@@ -1480,27 +1478,27 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     for (int i = 0; i < Nx; i++)
     {
-        fprintf(fpLastV, "%e ", V[i]);
+        fprintf(fpLastVm, "%e ", Vm[i]);
         fprintf(fpLastW, "%e ", W[i]);
     }
 
 #endif // CABLEEQ
 
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last Vm frame saved to %s\n", lastFrameFilePathVm);
     SUCCESSMSG("Last W frame saved to %s\n", lastFrameFilePathW);
-    fclose(fpLastV);
+    fclose(fpLastVm);
     fclose(fpLastW);
 
 #endif // AFHN
 
 #ifdef TT2
 
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
+    char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
          lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
          lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
          lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
          lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_s.txt", pathToSaveData);
@@ -1520,7 +1518,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeNa_i.txt", pathToSaveData);
     snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeK_i.txt", pathToSaveData);
 
-    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
     FILE *fpLastX_r2 = fopen(lastFrameFilePathX_r2, "w");
     FILE *fpLastX_s = fopen(lastFrameFilePathX_s, "w");
@@ -1546,7 +1544,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     {
         for (int j = 0; j < Nx; j++)
         {
-            fprintf(fpLastV, "%e ", V[i][j]);
+            fprintf(fpLastVm, "%e ", Vm[i][j]);
             fprintf(fpLastX_r1, "%e ", X_r1[i][j]);
             fprintf(fpLastX_r2, "%e ", X_r2[i][j]);
             fprintf(fpLastX_s, "%e ", X_s[i][j]);
@@ -1566,7 +1564,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             fprintf(fpLastNa_i, "%e ", Na_i[i][j]);
             fprintf(fpLastK_i, "%e ", K_i[i][j]);
         }
-        fprintf(fpLastV, "\n");
+        fprintf(fpLastVm, "\n");
         fprintf(fpLastX_r1, "\n");
         fprintf(fpLastX_r2, "\n");
         fprintf(fpLastX_s, "\n");
@@ -1591,7 +1589,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     for (int i = 0; i < Nx; i++)
     {
-        fprintf(fpLastV, "%e ", V[i]);
+        fprintf(fpLastVm, "%e ", Vm[i]);
         fprintf(fpLastX_r1, "%e ", X_r1[i]);
         fprintf(fpLastX_r2, "%e ", X_r2[i]);
         fprintf(fpLastX_s, "%e ", X_s[i]);
@@ -1614,7 +1612,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // CABLEEQ
 
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last Vm frame saved to %s\n", lastFrameFilePathVm);
     SUCCESSMSG("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
     SUCCESSMSG("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
     SUCCESSMSG("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
@@ -1634,7 +1632,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
     SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
 
-    fclose(fpLastV);
+    fclose(fpLastVm);
     fclose(fpLastX_r1);
     fclose(fpLastX_r2);
     fclose(fpLastX_s);
@@ -1682,7 +1680,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     for (int i = 0; i < Ny; i++)
     {
-        free(V[i]);
+        free(Vm[i]);
         free(partRHS[i]);
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -1739,7 +1737,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // not CABLEEQ
 
-    free(V);
+    free(Vm);
     free(partRHS);
     
     free(c_prime_x);

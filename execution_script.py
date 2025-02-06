@@ -9,15 +9,15 @@ def main():
     # refs
     dx = 0.0005
     dy = 0.0005
-    # dts = [0.0001]
-    # methods = ['SSI-ADI']
+    dts = [0.0001]
+    methods = ['SSI-ADI']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'AFHN' # 'AFHN', 'TT2'
-    init = 'restore_state' # 'initial_conditions', 'restore_state'
-    shift_state = True
+    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
+    shift_state = False
     frames = True
     save_last_frame = True
     save_last_state = False

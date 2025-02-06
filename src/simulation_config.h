@@ -4,7 +4,7 @@
 #include "include.h"
 
 #ifdef SAVE_FRAMES
-const int frameSaveRate = 1000;
+const int frameSaveRate = 10000;
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -16,7 +16,7 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 6.0f;        // Total time (ms)
+const real totalTime = 2.0f;        // Total time (ms)
 const __constant__ real Lx = 1.0f;  // Length in x (cm)
 const __constant__ real Ly = 0.01f; // Length in y (cm)
 
@@ -56,7 +56,7 @@ const real stimuliyMin[] = {0.0f, 0.0f};    // Stimuli y min -> cm
 
 // Initial conditions
 #ifdef AFHN
-const real V_init = 0.0f;
+const real Vm_init = 0.0f;
 const real W_init = 0.0f;
 #endif // AFHN
 
@@ -64,7 +64,7 @@ const real W_init = 0.0f;
 #ifdef EPI
 // Initial conditions for EPI cells
 // from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/
-const real V_init = -85.23f;       // Initial membrane potential -> mV
+const real Vm_init = -85.23f;       // Initial membrane potential -> mV
 const real X_r1_init = 0.00621f;   // Initial rapid time-dependent potassium current Xr1 gate -> dimensionless
 const real X_r2_init = 0.4712f;    // Initial rapid time-dependent potassium current Xr2 gate -> dimensionless
 const real X_s_init = 0.0095f;     // Initial slow time-dependent potassium current Xs gate -> dimensionless
@@ -87,7 +87,7 @@ const real K_i_init = 136.89f;     // Initial intracellular K+ concentration -> 
 #if defined(ENDO) || defined(MCELL)
 // Initial conditions for ENDO and MCELL cells
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/
-const real V_init = -86.2f;       // Initial membrane potential -> mV
+const real Vm_init = -86.2f;       // Initial membrane potential -> mV
 const real X_r1_init = 0.0f;      // Initial rapid time-dependent potassium current Xr1 gate -> dimensionless
 const real X_r2_init = 1.0f;      // Initial rapid time-dependent potassium current Xr2 gate -> dimensionless
 const real X_s_init = 0.0f;       // Initial slow time-dependent potassium current Xs gate -> dimensionless
@@ -110,10 +110,10 @@ const real K_i_init = 138.3f;     // Initial intracellular K+ concentration -> m
 #endif                            // TT2
 
 #ifdef MV
-const real U_init = 0.0f;
-const real V_init = 1.0f;
-const real W_init = 1.0f;
-const real S_init = 0.0f;
+const real u_init = 0.0f;
+const real v_init = 1.0f;
+const real w_init = 1.0f;
+const real s_init = 0.0f;
 #endif // MV
 #endif // MONODOMAIN || CABLEEQ
 

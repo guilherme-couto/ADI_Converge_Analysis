@@ -6,9 +6,9 @@ METHOD = SSI-ADI
 
 DOMAIN LENGTH IN X = 1 cm
 DOMAIN LENGTH IN Y = 0.01 cm
-TOTAL TIME = 9 ms
+TOTAL TIME = 2 ms
 
-delta_t = 0.0001 ms (90000 time steps)
+delta_t = 0.0001 ms (20000 time steps)
 delta_x = 0.0005 cm (5 um) (2001 space steps in x)
 delta_y = 0.0005 cm (5 um) (21 space steps in y)
 TOTAL POINTS IN DOMAIN = 42021
@@ -23,8 +23,8 @@ FOR THOMAS KERNEL:
 GRID SIZE FOR X = 63 blocks (32 threads per block, total 2016 threads)
 GRID SIZE FOR Y = 1 blocks (32 threads per block, total 32 threads)
 
-STIMULUS VELOCITY = 0.61427 m/s
+STIMULUS VELOCITY = 0 m/s
 
-TIME TO MEASURE VELOCITY = 0.31192 s
-TIME TO SAVE FRAMES = 0.048565 s
-SIMULATION TOTAL EXECUTION TIME = 138.21 s
+TIME TO MEASURE VELOCITY = 0.078387 s
+TIME TO SAVE FRAMES = 0.010072 s
+SIMULATION TOTAL EXECUTION TIME = 13.191 s

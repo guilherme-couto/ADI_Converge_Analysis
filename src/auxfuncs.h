@@ -26,6 +26,23 @@ void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real p
     lc[N - 1] = 0.0f;
 }
 
+// TODO: Correct this function
+void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N)
+{
+    c_prime[0] = lc[0] / lb[0];
+    denominator[0] = 1.0f / lb[0];
+
+    for (int i = 1; i < N; i++)
+    {
+        real denom = 1.0f / (lb[i] - c_prime[i - 1] * la[i]);
+        if (i < N - 1)
+        {
+            c_prime[i] = lc[i] * denom;
+        }
+        denominator[i] = denom;
+    }
+}
+
 void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSaveData)
 {
     // Build the path
@@ -271,7 +288,7 @@ void shift2DVariableToLeft(real **Var, int Nx, int Ny, real length, real delta_x
     SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
-real calculateNorm2Error(real **V, real **exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y)
+real calculateNorm2Error(real **Vm, real **exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y)
 {
     real x, y;
     real solution;
@@ -284,65 +301,10 @@ real calculateNorm2Error(real **V, real **exact, int Nx, int Ny, real totalTime,
             y = i * delta_y;
             solution = exactSolution(totalTime, x, y);
             exact[i][j] = solution;
-            sum += ((V[i][j] - solution) * (V[i][j] - solution));
+            sum += ((Vm[i][j] - solution) * (Vm[i][j] - solution));
         }
     }
     return sqrt(sum / (Nx * Ny));
-}
-
-void copyMatrices(real **in, real **out, int Nx, int Ny)
-{
-    for (int i = 0; i < Ny; i++)
-    {
-        for (int j = 0; j < Nx; j++)
-        {
-            out[i][j] = in[i][j];
-        }
-    }
-}
-
-void copyColumnToVector(real **V, real *d, int N, int column_id)
-{
-    for (int i = 0; i < N; i++)
-    {
-        d[i] = V[i][column_id];
-    }
-}
-
-void copyVectorToColumn(real **V, real *d, int N, int column_id)
-{
-    for (int i = 0; i < N; i++)
-    {
-        V[i][column_id] = d[i];
-    }
-}
-
-void thomasAlgorithm(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d)
-{
-    // la -> subdiagonal
-    // lb -> diagonal
-    // lc -> superdiagonal
-    // d -> RHS initially and, in the end, will store the result
-
-    // 1st: Forward sweep
-    c_prime[0] = lc[0] / lb[0];
-    d_prime[0] = d[0] / lb[0];
-    for (int i = 1; i < N; i++)
-    {
-        if (i < N - 1)
-            c_prime[i] = lc[i] / (lb[i] - (la[i] * c_prime[i - 1]));
-
-        d_prime[i] = (d[i] - (la[i] * d_prime[i - 1])) / (lb[i] - (la[i] * c_prime[i - 1]));
-    }
-
-    // 2nd: Back substitution
-    d[N - 1] = d_prime[N - 1];
-    for (int i = N - 2; i >= 0; i--)
-    {
-        d[i] = d_prime[i] - (c_prime[i] * d[i + 1]);
-    }
-
-    // Vector d now has the result
 }
 
 void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result)
@@ -352,11 +314,13 @@ void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, 
     {
         c_prime[i] = lc[i] / (lb[i] - c_prime[i - 1] * la[i]);
     }
+
     d_prime[0] = d[0] / lb[0];
     for (int i = 1; i < N; i++)
     {
         d_prime[i] = (d[i] - d_prime[i - 1] * la[i]) / (lb[i] - c_prime[i - 1] * la[i]);
     }
+
     result[N - 1] = d_prime[N - 1];
     for (int i = N - 2; i >= 0; i--)
     {
@@ -366,13 +330,13 @@ void tridiag(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, 
 
 #ifndef CABLEEQ
 
-void saveFrame(FILE *file, real **V, int Nx, int Ny)
+void saveFrame(FILE *file, real **Vm, int Nx, int Ny)
 {
     for (int i = 0; i < Ny; i++)
     {
         for (int j = 0; j < Nx; j++)
         {
-            fprintf(file, "%e ", V[i][j]);
+            fprintf(file, "%e ", Vm[i][j]);
         }
         fprintf(file, "\n");
     }
@@ -380,11 +344,11 @@ void saveFrame(FILE *file, real **V, int Nx, int Ny)
 
 #else // if def CABLEEQ
 
-void saveFrame(FILE *file, real *V, int N)
+void saveFrame(FILE *file, real *Vm, int N)
 {
     for (int i = 0; i < N; i++)
     {
-        fprintf(file, "%e ", V[i]);
+        fprintf(file, "%e ", Vm[i]);
     }
     fprintf(file, "\n");
 }
@@ -478,40 +442,14 @@ void shift2DVariableToLeft(real *Var, int Nx, int Ny, real length, real delta_x,
     SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
 }
 
-void thomasFactorConstantBatch(real *la, real *lb, real *lc, int n)
-{
-    int rowCurrent;
-    int rowPrevious;
-
-    rowCurrent = 0;
-
-    // First row
-    lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
-
-    for (int i = 1; i < n - 1; i++)
-    {
-        rowPrevious = rowCurrent;
-        rowCurrent += 1;
-
-        lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
-        lc[rowCurrent] = lc[rowCurrent] / lb[rowCurrent];
-    }
-
-    rowPrevious = rowCurrent;
-    rowCurrent += 1;
-
-    // Last row
-    lb[rowCurrent] = lb[rowCurrent] - la[rowCurrent] * lc[rowPrevious];
-}
-
-void saveFrame(FILE *file, real *V, int Nx, int Ny)
+void saveFrame(FILE *file, real *Vm, int Nx, int Ny)
 {
     for (int i = 0; i < Ny; i++)
     {
         for (int j = 0; j < Nx; j++)
         {
             int index = i * Nx + j;
-            fprintf(file, "%e ", V[index]);
+            fprintf(file, "%e ", Vm[index]);
         }
         fprintf(file, "\n");
     }

@@ -18,16 +18,21 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real *time = (real *)malloc(M * sizeof(real));
     initializeTimeArray(time, M, delta_t);
 
-    // Allocate arrays for variables (2D matrices will be flattened);
-    real *V = (real *)malloc(Nx * Ny * sizeof(real));
+    // Allocate arrays for variables (2D matrices will be flattened) and populate them
 
 #ifdef AFHN
 
+    real *Vm = (real *)malloc(Nx * Ny * sizeof(real));
     real *W = (real *)malloc(Nx * Ny * sizeof(real));
 
+    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
+    initialize2DVariableWithValue(W, Nx, Ny, W_init);
+
 #endif // AFHN
+
 #ifdef TT2
 
+    real *Vm = (real *)malloc(Nx * Ny * sizeof(real));
     real *X_r1 = (real *)malloc(Nx * Ny * sizeof(real));
     real *X_r2 = (real *)malloc(Nx * Ny * sizeof(real));
     real *X_s = (real *)malloc(Nx * Ny * sizeof(real));
@@ -47,18 +52,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real *Na_i = (real *)malloc(Nx * Ny * sizeof(real));
     real *K_i = (real *)malloc(Nx * Ny * sizeof(real));
 
-#endif // TT2
-
-    initialize2DVariableWithValue(V, Nx, Ny, V_init);
-
-#ifdef AFHN
-
-    initialize2DVariableWithValue(W, Nx, Ny, W_init);
-
-#endif // AFHN
-
-#ifdef TT2
-
+    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
     initialize2DVariableWithValue(X_r1, Nx, Ny, X_r1_init);
     initialize2DVariableWithValue(X_r2, Nx, Ny, X_r2_init);
     initialize2DVariableWithValue(X_s, Nx, Ny, X_s_init);
@@ -80,6 +74,20 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // TT2
 
+#ifdef MV
+
+    real *Vm = (real *)malloc(Nx * Ny * sizeof(real));
+    real *v = (real *)malloc(Nx * Ny * sizeof(real));
+    real *w = (real *)malloc(Nx * Ny * sizeof(real));
+    real *s = (real *)malloc(Nx * Ny * sizeof(real));
+
+    initialize2DVariableWithValue(Vm, Nx, Ny, u_init);
+    initialize2DVariableWithValue(v, Nx, Ny, v_init);
+    initialize2DVariableWithValue(w, Nx, Ny, w_init);
+    initialize2DVariableWithValue(s, Nx, Ny, s_init);
+
+#endif // MV
+
 #ifdef RESTORE_STATE
 
     printf("\n");
@@ -91,11 +99,10 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeV.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
-    initialize2DVariableFromFile(V, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "V", real_ref_dx, real_def_dy);
-
 #ifdef AFHN
 
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
 
@@ -103,6 +110,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef TT2
     
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
     initialize2DVariableFromFile(X_r1, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r1", real_ref_dx, real_def_dy);
     snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
@@ -141,6 +150,19 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     initialize2DVariableFromFile(K_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "K_i", real_ref_dx, real_def_dy);
 
 #endif // TT2
+
+#ifdef MV
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframev.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(v, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "v", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframew.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(w, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "w", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
+
+#endif // MV
     
         free(pathToRestoreStateFiles);
 
@@ -153,16 +175,17 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Shift variables
     real lengthToShift = 0.5f;
-    
-    shift2DVariableToLeft(V, Nx, Ny, lengthToShift, delta_x, delta_y, V_init, "V");
 
 #ifdef AFHN
 
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
     shift2DVariableToLeft(W, Nx, Ny, lengthToShift, delta_x, delta_y, W_init, "W");
 
 #endif // AFHN
+
 #ifdef TT2
 
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
     shift2DVariableToLeft(X_r1, Nx, Ny, lengthToShift, delta_x, delta_y, X_r1_init, "X_r1");
     shift2DVariableToLeft(X_r2, Nx, Ny, lengthToShift, delta_x, delta_y, X_r2_init, "X_r2");
     shift2DVariableToLeft(X_s, Nx, Ny, lengthToShift, delta_x, delta_y, X_s_init, "X_s");
@@ -183,6 +206,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     shift2DVariableToLeft(K_i, Nx, Ny, lengthToShift, delta_x, delta_y, K_i_init, "K_i");
 
 #endif // TT2
+
+#ifdef MV
+
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, u_init, "Vm");
+    shift2DVariableToLeft(v, Nx, Ny, lengthToShift, delta_x, delta_y, v_init, "v");
+    shift2DVariableToLeft(w, Nx, Ny, lengthToShift, delta_x, delta_y, w_init, "w");
+    shift2DVariableToLeft(s, Nx, Ny, lengthToShift, delta_x, delta_y, s_init, "s");
+
+#endif // MV
+
 #endif // SHIFT_STATE
 
     // Populate auxiliary arrays for Thomas algorithm
@@ -190,15 +223,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real phi_y = delta_t / (delta_y * delta_y);
     real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
 
-#ifndef TT2
+#ifdef AFHN
     
     real diff_coeff = sigma / (Cm * chi);
 
-#else // if def TT2
+#endif // AFHN
+
+#ifdef TT2
 
     real diff_coeff = sigma / chi;
 
-#endif // not TT2
+#endif // TT2
+
+#ifdef MV
+
+    real diff_coeff = Dtilde;
+
+#endif // MV
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
@@ -233,6 +274,30 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // OSADI
 
+    // Prefactorize the arrays for Thomas algorithm
+    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
+    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
+    real *denominator_x = (real *)malloc(Nx * sizeof(real));
+    real *denominator_y = (real *)malloc(Ny * sizeof(real));
+    prefactorizeThomas(la_x, lb_x, lc_x, c_prime_x, denominator_x, Nx);
+    prefactorizeThomas(la_y, lb_y, lc_y, c_prime_y, denominator_y, Ny);
+
+    real *d_c_prime_x, *d_c_prime_y, *d_denominator_x, *d_denominator_y;
+    CUDA_CALL(cudaMalloc(&d_c_prime_x, Nx * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_c_prime_y, Ny * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_denominator_x, Nx * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_denominator_y, Ny * sizeof(real)));
+
+    CUDA_CALL(cudaMemcpy(d_c_prime_x, c_prime_x, Nx * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_c_prime_y, c_prime_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_denominator_x, denominator_x, Nx * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_denominator_y, denominator_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
+
+    free(c_prime_x);
+    free(c_prime_y);
+    free(denominator_x);
+    free(denominator_y);
+
     // Malloc and copy to device
     real *d_la_x, *d_lb_x, *d_lc_x, *d_la_y, *d_lb_y, *d_lc_y;
     CUDA_CALL(cudaMalloc(&d_la_x, Nx * sizeof(real)));
@@ -259,11 +324,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // SSIADI || THETASSIADI || OSADI
 
-    // Create device variables
-    real *d_V, *d_partRHS;
-    
-    // Allocate memory on device
-    CUDA_CALL(cudaMalloc(&d_V, Nx * Ny * sizeof(real)));
+    // Create device variable and allocate memory on device
+    real *d_partRHS;
     CUDA_CALL(cudaMalloc(&d_partRHS, Nx * Ny * sizeof(real)));
 
 #if defined(SSIADI) || defined(THETASSIADI)
@@ -273,21 +335,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMalloc(&d_RHS, Nx * Ny * sizeof(real)));
 
 #endif // SSIADI || THETASSIADI
-    
-    // Copy memory from host to device
-    CUDA_CALL(cudaMemcpy(d_V, V, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
 
 #ifdef AFHN
 
-    real *d_W;
+    real *d_Vm, *d_W;
+    CUDA_CALL(cudaMalloc(&d_Vm, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_W, Nx * Ny * sizeof(real)));
+
+    // Copy data to device
+    CUDA_CALL(cudaMemcpy(d_Vm, Vm, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_W, W, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
 
 #endif // AFHN
 
 #ifdef TT2
 
-    real *d_X_r1, *d_X_r2, *d_X_s, *d_m, *d_h, *d_j, *d_d, *d_f, *d_f2, *d_fCaSS, *d_s, *d_r, *d_Ca_i, *d_Ca_SR, *d_Ca_SS, *d_R_prime, *d_Na_i, *d_K_i;
+    real *d_Vm, *d_X_r1, *d_X_r2, *d_X_s, *d_m, *d_h, *d_j, *d_d, *d_f, *d_f2, *d_fCaSS, *d_s, *d_r, *d_Ca_i, *d_Ca_SR, *d_Ca_SS, *d_R_prime, *d_Na_i, *d_K_i;
+    CUDA_CALL(cudaMalloc(&d_Vm, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_X_r1, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_X_r2, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_X_s, Nx * Ny * sizeof(real)));
@@ -306,6 +370,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMalloc(&d_R_prime, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_Na_i, Nx * Ny * sizeof(real)));
     CUDA_CALL(cudaMalloc(&d_K_i, Nx * Ny * sizeof(real)));
+
+    // Copy data to device
+    CUDA_CALL(cudaMemcpy(d_Vm, Vm, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_X_r1, X_r1, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_X_r2, X_r2, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_X_s, X_s, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
@@ -326,6 +393,22 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMemcpy(d_K_i, K_i, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
 
 #endif // TT2
+
+#ifdef MV
+
+    real *d_Vm, *d_v, *d_w, *d_s;
+    CUDA_CALL(cudaMalloc(&d_Vm, Nx * Ny * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_v, Nx * Ny * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_w, Nx * Ny * sizeof(real)));
+    CUDA_CALL(cudaMalloc(&d_s, Nx * Ny * sizeof(real)));
+
+    // Copy data to device
+    CUDA_CALL(cudaMemcpy(d_Vm, Vm, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_v, v, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_w, w, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_s, s, Nx * Ny * sizeof(real), cudaMemcpyHostToDevice));
+
+#endif // MV
 
 #ifdef MONODOMAIN
 
@@ -437,41 +520,50 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         
 #ifdef AFHN
 
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_W, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_W, d_stimuli);
 
 #endif // AFHN
+
 #ifdef TT2
 
-        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_V, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_X_r1, d_X_r2, d_X_s, d_m, d_h, d_j, d_d, d_f, d_f2, d_fCaSS, d_s, d_r, d_Ca_i, d_Ca_SR, d_Ca_SS, d_R_prime, d_Na_i, d_K_i, d_stimuli);
 
 #endif // TT2
+
+#ifdef MV
+
+        computeApprox<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, delta_t, phi_x, phi_y, diff_coeff, actualTime, d_Vm, d_partRHS, d_v, d_w, d_s, d_stimuli);
+
+#endif // MV
 
         CUDA_CALL(cudaDeviceSynchronize());
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
-        //  Calculate V at n+1/2 -> Result goes to RHS     !
+        //  Calculate Vm at n+1/2 -> Result goes to RHS    !
         //  diffusion implicit in y and explicit in x      !
         // ================================================!
         // Calculate RHS for Thomas batch algorithm
-        prepareRHSjDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_V, d_RHS, d_partRHS);
+        prepareRHSjDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_Vm, d_RHS, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
+        // parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_c_prime_y, d_denominator_y);        
         CUDA_CALL(cudaDeviceSynchronize());
 
         // ================================================!
-        //  Calculate V at n+1 -> Result goes to V         !
+        //  Calculate Vm at n+1 -> Result goes to Vm       !
         //  diffusion implicit in x and explicit in y      !
         // ================================================!
         // Calculate RHS for Thomas batch algorithm
-        prepareRHSiDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_RHS, d_V, d_partRHS);
+        prepareRHSiDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_RHS, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // Solve the linear systems
-        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
+        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
+        // parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_RHS, d_la_x, d_c_prime_x, d_denominator_x);
         CUDA_CALL(cudaDeviceSynchronize());
         
 #endif // SSIADI || THETASSIADI
@@ -479,32 +571,32 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef OSADI
 
         // ================================================!
-        //  Calculate V at n+1/2 -> Result goes to RHS     !
+        //  Calculate Vm at n+1/2 -> Result goes to RHS    !
         // ================================================!
         // Calculate RHS for Thomas batch algorithm
-        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_V, d_partRHS);
+        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // Solve the linear systems
-        parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_V, d_la_y, d_lb_y, d_lc_y);
+        parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_Vm, d_la_y, d_lb_y, d_lc_y);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // ================================================!
-        //  Calculate V at n+1 -> Result goes to V         !
+        //  Calculate Vm at n+1 -> Result goes to Vm       !
         // ================================================!
         // Calculate RHS for Thomas batch algorithm
-        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_V, d_partRHS);
+        prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // Solve the linear systems
-        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_V, d_la_x, d_lb_x, d_lc_x);
+        parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
         CUDA_CALL(cudaDeviceSynchronize());
 
 #endif // OSADI
 
 #ifdef FE
 
-        CUDA_CALL(cudaMemcpy(d_V, d_partRHS, Nx * Ny * sizeof(real), cudaMemcpyDeviceToDevice));
+        CUDA_CALL(cudaMemcpy(d_Vm, d_partRHS, Nx * Ny * sizeof(real), cudaMemcpyDeviceToDevice));
 
 #endif // FE
 
@@ -515,12 +607,12 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         // If save frames is true and time step is multiple of frame save rate
         if (timeStepCounter % frameSaveRate == 0)
         {
-            // Copy memory of d_V from device to host V
-            CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
+            // Copy memory of d_Vm from device to host Vm
+            CUDA_CALL(cudaMemcpy(Vm, d_Vm, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
 
             // Save frame
             fprintf(fpFrames, "%lf\n", actualTime);
-            saveFrame(fpFrames, V, Nx, Ny);
+            saveFrame(fpFrames, Vm, Nx, Ny);
             SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
 
@@ -539,8 +631,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             real point_potential = 0.0;
             if (!aux_stim_velocity_flag)
             {
-                // Copy memory of d_V[begin_point_index] from device to host
-                CUDA_CALL(cudaMemcpy(&point_potential, &d_V[begin_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+                // Copy memory of d_Vm[begin_point_index] from device to host
+                CUDA_CALL(cudaMemcpy(&point_potential, &d_Vm[begin_point_index], sizeof(real), cudaMemcpyDeviceToHost));
                 if (point_potential > 10.0)
                 {
                     begin_point_time = actualTime;
@@ -549,8 +641,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             }
             else
             {
-                // Copy memory of d_V[end_point_index] from device to host
-                CUDA_CALL(cudaMemcpy(&point_potential, &d_V[end_point_index], sizeof(real), cudaMemcpyDeviceToHost));
+                // Copy memory of d_Vm[end_point_index] from device to host
+                CUDA_CALL(cudaMemcpy(&point_potential, &d_Vm[end_point_index], sizeof(real), cudaMemcpyDeviceToHost));
                 if (point_potential > 10.0)
                 {
                     end_point_time = actualTime;
@@ -576,13 +668,13 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     finishExecutionTime = omp_get_wtime();
     elapsedExecutionTime += finishExecutionTime - startExecutionTime;
 
-    // Copy memory of d_V from device to host V
-    CUDA_CALL(cudaMemcpy(V, d_V, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
+    // Copy memory of d_Vm from device to host Vm
+    CUDA_CALL(cudaMemcpy(Vm, d_Vm, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
 
 #ifdef SAVE_FRAMES
 
     fprintf(fpFrames, "%lf\n", actualTime);
-    saveFrame(fpFrames, V, Nx, Ny);
+    saveFrame(fpFrames, Vm, Nx, Ny);
     SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
     fclose(fpFrames);
 
@@ -669,7 +761,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
 
-    saveFrame(fpLast, V, Nx, Ny);
+    saveFrame(fpLast, Vm, Nx, Ny);
 
     SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
     fclose(fpLast);
@@ -679,14 +771,13 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef SAVE_LAST_STATE
 #ifdef AFHN
 
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
 
     CUDA_CALL(cudaMemcpy(W, d_W, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
-    CUDA_CALL(cudaFree(d_W));
 
-    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
 
     for (int i = 0; i < Ny; i++)
@@ -694,28 +785,28 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         for (int j = 0; j < Nx; j++)
         {
             int index = i * Nx + j;
-            fprintf(fpLastV, "%e ", V[index]);
+            fprintf(fpLastVm, "%e ", Vm[index]);
             fprintf(fpLastW, "%e ", W[index]);
         }
-        fprintf(fpLastV, "\n");
+        fprintf(fpLastVm, "\n");
         fprintf(fpLastW, "\n");
     }
 
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last Vm frame saved to %s\n", lastFrameFilePathVm);
     SUCCESSMSG("Last W frame saved to %s\n", lastFrameFilePathW);
-    fclose(fpLastV);
+    fclose(fpLastVm);
     fclose(fpLastW);
 
 #endif // AFHN
 
 #ifdef TT2
 
-    char lastFrameFilePathV[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
+    char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathX_r1[MAX_STRING_SIZE], lastFrameFilePathX_r2[MAX_STRING_SIZE], lastFrameFilePathX_s[MAX_STRING_SIZE],
          lastFrameFilePathm[MAX_STRING_SIZE], lastFrameFilePathh[MAX_STRING_SIZE], lastFrameFilePathj[MAX_STRING_SIZE], lastFrameFilePathd[MAX_STRING_SIZE], lastFrameFilePathf[MAX_STRING_SIZE],
          lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
          lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
          lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathV, MAX_STRING_SIZE * sizeof(char), "%s/lastframeV.txt", pathToSaveData);
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
     snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_s.txt", pathToSaveData);
@@ -754,7 +845,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaMemcpy(Na_i, d_Na_i, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
     CUDA_CALL(cudaMemcpy(K_i, d_K_i, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
 
-    FILE *fpLastV = fopen(lastFrameFilePathV, "w");
+    FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
     FILE *fpLastX_r2 = fopen(lastFrameFilePathX_r2, "w");
     FILE *fpLastX_s = fopen(lastFrameFilePathX_s, "w");
@@ -779,7 +870,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         for (int j = 0; j < Nx; j++)
         {
             int index = i * Nx + j;
-            fprintf(fpLastV, "%e ", V[index]);
+            fprintf(fpLastVm, "%e ", Vm[index]);
             fprintf(fpLastX_r1, "%e ", X_r1[index]);
             fprintf(fpLastX_r2, "%e ", X_r2[index]);
             fprintf(fpLastX_s, "%e ", X_s[index]);
@@ -799,7 +890,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             fprintf(fpLastNa_i, "%e ", Na_i[index]);
             fprintf(fpLastK_i, "%e ", K_i[index]);
         }
-        fprintf(fpLastV, "\n");
+        fprintf(fpLastVm, "\n");
         fprintf(fpLastX_r1, "\n");
         fprintf(fpLastX_r2, "\n");
         fprintf(fpLastX_s, "\n");
@@ -820,7 +911,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         fprintf(fpLastK_i, "\n");
     }
 
-    SUCCESSMSG("Last V frame saved to %s\n", lastFrameFilePathV);
+    SUCCESSMSG("Last Vm frame saved to %s\n", lastFrameFilePathVm);
     SUCCESSMSG("Last X_r1 frame saved to %s\n", lastFrameFilePathX_r1);
     SUCCESSMSG("Last X_r2 frame saved to %s\n", lastFrameFilePathX_r2);
     SUCCESSMSG("Last X_s frame saved to %s\n", lastFrameFilePathX_s);
@@ -840,7 +931,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     SUCCESSMSG("Last Na_i frame saved to %s\n", lastFrameFilePathNa_i);
     SUCCESSMSG("Last K_i frame saved to %s\n", lastFrameFilePathK_i);
 
-    fclose(fpLastV);
+    fclose(fpLastVm);
     fclose(fpLastX_r1);
     fclose(fpLastX_r2);
     fclose(fpLastX_s);
@@ -861,17 +952,61 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fclose(fpLastK_i);
 
 #endif // TT2
+
+#ifdef MV
+
+    char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathv[MAX_STRING_SIZE], lastFrameFilePathw[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE];
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
+    snprintf(lastFrameFilePathv, MAX_STRING_SIZE * sizeof(char), "%s/lastframev.txt", pathToSaveData);
+    snprintf(lastFrameFilePathw, MAX_STRING_SIZE * sizeof(char), "%s/lastframew.txt", pathToSaveData);
+    snprintf(lastFrameFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/lastframes.txt", pathToSaveData);
+
+    CUDA_CALL(cudaMemcpy(v, d_v, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
+    CUDA_CALL(cudaMemcpy(w, d_w, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
+    CUDA_CALL(cudaMemcpy(s, d_s, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
+
+    FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
+    FILE *fpLastv = fopen(lastFrameFilePathv, "w");
+    FILE *fpLastw = fopen(lastFrameFilePathw, "w");
+    FILE *fpLasts = fopen(lastFrameFilePaths, "w");
+
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            int index = i * Nx + j;
+            fprintf(fpLastVm, "%e ", Vm[index]);
+            fprintf(fpLastv, "%e ", v[index]);
+            fprintf(fpLastw, "%e ", w[index]);
+            fprintf(fpLasts, "%e ", s[index]);
+        }
+        fprintf(fpLastVm, "\n");
+        fprintf(fpLastv, "\n");
+        fprintf(fpLastw, "\n");
+        fprintf(fpLasts, "\n");
+    }
+
+    SUCCESSMSG("Last Vm frame saved to %s\n", lastFrameFilePathVm);
+    SUCCESSMSG("Last v frame saved to %s\n", lastFrameFilePathv);
+    SUCCESSMSG("Last w frame saved to %s\n", lastFrameFilePathw);
+    SUCCESSMSG("Last s frame saved to %s\n", lastFrameFilePaths);
+
+#endif // MV
+
 #endif // SAVE_LAST_STATE
 
     // Free memory
     free(time);
     free(pathToSaveData);
 
-    free(V);
-    CUDA_CALL(cudaFree(d_V));
     CUDA_CALL(cudaFree(d_partRHS));
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
+
+    CUDA_CALL(cudaFree(d_c_prime_x));
+    CUDA_CALL(cudaFree(d_denominator_x));
+    CUDA_CALL(cudaFree(d_c_prime_y));
+    CUDA_CALL(cudaFree(d_denominator_y));
 
     CUDA_CALL(cudaFree(d_la_x));
     CUDA_CALL(cudaFree(d_lb_x));
@@ -895,6 +1030,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef AFHN
 
+    free(Vm);
+    CUDA_CALL(cudaFree(d_Vm));
     free(W);
     CUDA_CALL(cudaFree(d_W));
 
@@ -902,6 +1039,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef TT2
 
+    free(Vm);
     free(X_r1);
     free(X_r2);
     free(X_s);
@@ -920,6 +1058,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     free(Ca_SS);
     free(Na_i);
     free(K_i);
+    CUDA_CALL(cudaFree(d_Vm));
     CUDA_CALL(cudaFree(d_X_r1));
     CUDA_CALL(cudaFree(d_X_r2));
     CUDA_CALL(cudaFree(d_X_s));
@@ -940,6 +1079,19 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaFree(d_K_i));
 
 #endif // TT2
+
+#ifdef MV
+
+    free(Vm);
+    free(v);
+    free(w);
+    free(s);
+    CUDA_CALL(cudaFree(d_Vm));
+    CUDA_CALL(cudaFree(d_v));
+    CUDA_CALL(cudaFree(d_w));
+    CUDA_CALL(cudaFree(d_s));
+
+#endif // MV
 #endif // MONODOMAIN
 
     // Reset device

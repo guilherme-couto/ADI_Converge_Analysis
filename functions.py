@@ -154,9 +154,9 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
         min_value = 0.0
     
     if cell_model == 'AFHN':
-        variables = ['V', 'W']
+        variables = ['Vm', 'W']
     elif cell_model == 'TT2':
-        variables = ['V', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
+        variables = ['Vm', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
     
     for variable in variables:
         if 'theta' not in method:
@@ -195,7 +195,7 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
                 plt.plot(x, data_last)
             plt.ylim(min_value, max_value)
             plt.title(f'{title}')
-            plt.ylabel('V (mV)')
+            plt.ylabel('Vm (mV)')
             plt.xlabel('L (cm)')
         
         else:
@@ -266,7 +266,7 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.plot(x, data_last)
         plt.ylim(min_value, max_value)
         plt.title(f'{title}')
-        plt.ylabel('V (mV)')
+        plt.ylabel('Vm (mV)')
         plt.xlabel('L (cm)')
         plt.savefig(f'{save_dir}/lastframe.png')
         plt.close()
@@ -290,7 +290,7 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.plot(t, data_AP)
         plt.ylim(min_value, max_value)
         plt.title(title)
-        plt.ylabel('V (mV)')
+        plt.ylabel('Vm (mV)')
         plt.xlabel('t (ms)')
         plt.savefig(f'{save_dir}/AP.png')
         plt.close()
@@ -573,7 +573,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                     plt.ylim(-90.0, 100.0)
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 # plt.tight_layout()
-                plt.ylabel('V (mV)')
+                plt.ylabel('Vm (mV)')
                 plt.xlabel('L (cm)')
                 plt.savefig(frame_name)
                 plt.close()
@@ -584,7 +584,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                     plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
                 elif cell_model == 'TT2':
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
-                plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04, orientation='horizontal')
+                plt.colorbar(label='Vm (mV)', fraction=0.04, pad=0.04, orientation='horizontal')
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 plt.xticks([])
                 plt.yticks([])
