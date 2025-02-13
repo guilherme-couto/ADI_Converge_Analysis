@@ -742,8 +742,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // AFHN
 
 #ifdef TT2
-                // TODO
+                // TODO: Implement TT2 for MONODOMAIN in SERIAL mode
 #endif // TT2
+#ifdef MV
+                // TODO: Implement MV for MONODOMAIN in SERIAL mode
+#endif // MV
 #endif // MONODOMAIN
             }
         }

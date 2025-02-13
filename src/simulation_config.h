@@ -16,9 +16,9 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 10.0f;       // Total time (ms)
+const real totalTime = 350.0f;       // Total time (ms)
 const __constant__ real Lx = 1.0f;  // Length in x (cm)
-const __constant__ real Ly = 0.05f; // Length in y (cm)
+const __constant__ real Ly = 1.0f; // Length in y (cm)
 
 #endif // CABLEEQ
 

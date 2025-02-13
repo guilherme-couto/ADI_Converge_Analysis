@@ -6,10 +6,16 @@ def main():
     methods = ['SSI-ADI', 'OS-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
-    # refs
-    dx = 0.0005
-    dy = 0.0005
-    dts = [0.0001]
+    # refs - convergence analysis
+    # dx = 0.0005
+    # dy = 0.0005
+    # dts = [0.0001]
+    # methods = ['SSI-ADI']
+
+    # refs - error analysis
+    dx = 0.005
+    dy = 0.005
+    dts = [0.001]
     methods = ['SSI-ADI']
     
     real_type = 'double'

@@ -237,7 +237,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef MV
 
-    real diff_coeff = Dtilde / chi;
+    real diff_coeff = Dtilde;
 
 #endif // MV
 

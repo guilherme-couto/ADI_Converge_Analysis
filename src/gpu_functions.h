@@ -281,6 +281,20 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real r_inf = 1.0f / (1.0f + exp((20.0f - actualVm) / 6.0f));
         real tau_r = 9.5f * exp(-(actualVm + 40.0f) * (actualVm + 40.0f) / 1800.0f) + 0.8f;
 
+        // Rush-Larsen method - update approximations
+        real X_r1tilde = X_r1_inf - (X_r1_inf - actualX_r1) * exp(-(0.5f * delta_t) / (alpha_X_r1 * beta_X_r1));
+        real X_r2tilde = X_r2_inf - (X_r2_inf - actualX_r2) * exp(-(0.5f * delta_t) / (alpha_X_r2 * beta_X_r2));
+        real X_stilde = X_s_inf - (X_s_inf - actualX_s) * exp(-(0.5f * delta_t) / (alpha_X_s * beta_X_s + 80.0f));
+        real mtilde = m_inf - (m_inf - actualm) * exp(-(0.5f * delta_t) / (alpha_m * beta_m));
+        real htilde = h_inf - (h_inf - actualh) * exp(-(0.5f * delta_t) * (alpha_h + beta_h));
+        real jtilde = j_inf - (j_inf - actualj) * exp(-(0.5f * delta_t) * (alpha_j + beta_j));
+        real dtilde = inf - (inf - actuald) * exp(-(0.5f * delta_t) / (alpha_d * beta_d + gamma_d));
+        real ftilde = f_inf - (f_inf - actualf) * exp(-(0.5f * delta_t) / (alpha_f + beta_f + gamma_f));
+        real f2tilde = f2_inf - (f2_inf - actualf2) * exp(-(0.5f * delta_t) / (alpha_f2 + beta_f2 + gamma_f2));
+        real fCaSStilde = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-(0.5f * delta_t) / tau_fCaSS);
+        real stilde = s_inf - (s_inf - actuals) * exp(-(0.5f * delta_t) / tau_s);
+        real rtilde = r_inf - (r_inf - actualr) * exp(-(0.5f * delta_t) / tau_r);
+
         // Explicit method - auxiliary variables
         real Ileak = V_leak * (actualCa_SR - actualCa_i);
         real Iup = V_maxup / (1.0f + (K_up * K_up) / (actualCa_i * actualCa_i));
@@ -304,20 +318,6 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real RHS_Ca_SS_term = Ca_SS_bufSS * (((-ICaL * Cm / (2.0 * V_SS * F)) + (Irel * V_SR / V_SS)) - (Ixfer * V_C / V_SS));
         real RHS_Na_i_term = -((INa + IbNa + 3.0f * INaK + 3.0f * INaCa) * Cm / (V_C * F));
         real RHS_K_i_term = -((IK1 + Ito + IKr + IKs - 2.0f * INaK + IpK + stim) * Cm / (V_C * F));
-
-        // Rush-Larsen method - update approximations
-        real X_r1tilde = X_r1_inf - (X_r1_inf - actualX_r1) * exp(-(0.5f * delta_t) / (alpha_X_r1 * beta_X_r1));
-        real X_r2tilde = X_r2_inf - (X_r2_inf - actualX_r2) * exp(-(0.5f * delta_t) / (alpha_X_r2 * beta_X_r2));
-        real X_stilde = X_s_inf - (X_s_inf - actualX_s) * exp(-(0.5f * delta_t) / (alpha_X_s * beta_X_s + 80.0f));
-        real mtilde = m_inf - (m_inf - actualm) * exp(-(0.5f * delta_t) / (alpha_m * beta_m));
-        real htilde = h_inf - (h_inf - actualh) * exp(-(0.5f * delta_t) * (alpha_h + beta_h));
-        real jtilde = j_inf - (j_inf - actualj) * exp(-(0.5f * delta_t) * (alpha_j + beta_j));
-        real dtilde = inf - (inf - actuald) * exp(-(0.5f * delta_t) / (alpha_d * beta_d + gamma_d));
-        real ftilde = f_inf - (f_inf - actualf) * exp(-(0.5f * delta_t) / (alpha_f + beta_f + gamma_f));
-        real f2tilde = f2_inf - (f2_inf - actualf2) * exp(-(0.5f * delta_t) / (alpha_f2 + beta_f2 + gamma_f2));
-        real fCaSStilde = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-(0.5f * delta_t) / tau_fCaSS);
-        real stilde = s_inf - (s_inf - actuals) * exp(-(0.5f * delta_t) / tau_s);
-        real rtilde = r_inf - (r_inf - actualr) * exp(-(0.5f * delta_t) / tau_r);
 
         // Explicit method - update approximations
         real R_primetilde = actualR_prime + (0.5f * delta_t * RHS_R_prime_term);
@@ -359,7 +359,6 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_partRHS[index] = delta_t * (stim - RHS_Vmtilde_term);
 
         // Update state variables
-        // RHS of the state variables with tilde approximations
         // Rush-Larsen method - auxiliary variables
         real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - Vmtilde) / 7.0f));
         real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - Vmtilde) / 10.0f));
@@ -433,6 +432,20 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real r_inftilde = 1.0f / (1.0f + exp((20.0f - Vmtilde) / 6.0f));
         real tau_rtilde = 9.5f * exp(-(Vmtilde + 40.0f) * (Vmtilde + 40.0f) / 1800.0f) + 0.8f;
 
+        // Rush-Larsen method - update approximations
+        d_X_r1[index] = X_r1_inftilde - (X_r1_inftilde - actualX_r1) * exp(-delta_t / (alpha_X_r1tilde * beta_X_r1tilde));
+        d_X_r2[index] = X_r2_inftilde - (X_r2_inftilde - actualX_r2) * exp(-delta_t / (alpha_X_r2tilde * beta_X_r2tilde));
+        d_X_s[index] = X_s_inftilde - (X_s_inftilde - actualX_s) * exp(-delta_t / (alpha_X_stilde * beta_X_stilde + 80.0f));
+        d_m[index] = m_inftilde - (m_inftilde - actualm) * exp(-delta_t / (alpha_mtilde * beta_mtilde));
+        d_h[index] = h_inftilde - (h_inftilde - actualh) * exp(-delta_t * (alpha_htilde + beta_htilde));
+        d_j[index] = j_inftilde - (j_inftilde - actualj) * exp(-delta_t * (alpha_jtilde + beta_jtilde));
+        d_d[index] = d_inftilde - (d_inftilde - actuald) * exp(-delta_t / (alpha_dtilde * beta_dtilde + gamma_dtilde));
+        d_f[index] = f_inftilde - (f_inftilde - actualf) * exp(-delta_t / (alpha_ftilde + beta_ftilde + gamma_ftilde));
+        d_f2[index] = f2_inftilde - (f2_inftilde - actualf2) * exp(-delta_t / (alpha_f2tilde + beta_f2tilde + gamma_f2tilde));
+        d_fCaSS[index] = fCaSS_inftilde - (fCaSS_inftilde - actualfCaSS) * exp(-delta_t / tau_fCaSStilde);
+        d_s[index] = s_inftilde - (s_inftilde - actuals) * exp(-delta_t / tau_stilde);
+        d_r[index] = r_inftilde - (r_inftilde - actualr) * exp(-delta_t / tau_rtilde);
+
         // Explicit method - auxiliary variables
         real Ileaktilde = V_leak * (Ca_SRtilde - Ca_itilde);
         real Iuptilde = V_maxup / (1.0f + (K_up * K_up) / (Ca_itilde * Ca_itilde));
@@ -457,21 +470,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real RHS_Na_itilde_term = -((INatilde + IbNatilde + 3.0f * INaKtilde + 3.0f * INaCatilde) * Cm / (V_C * F));
         real RHS_K_itilde_term = -((IK1tilde + Itotilde + IKrtilde + IKstilde - 2.0f * INaKtilde + IpKtilde + stim) * Cm / (V_C * F));
 
-        // Rush-Larsen method - update approximations
-        d_X_r1[index] = X_r1_inftilde - (X_r1_inftilde - actualX_r1) * exp(-delta_t / (alpha_X_r1tilde * beta_X_r1tilde));
-        d_X_r2[index] = X_r2_inftilde - (X_r2_inftilde - actualX_r2) * exp(-delta_t / (alpha_X_r2tilde * beta_X_r2tilde));
-        d_X_s[index] = X_s_inftilde - (X_s_inftilde - actualX_s) * exp(-delta_t / (alpha_X_stilde * beta_X_stilde + 80.0f));
-        d_m[index] = m_inftilde - (m_inftilde - actualm) * exp(-delta_t / (alpha_mtilde * beta_mtilde));
-        d_h[index] = h_inftilde - (h_inftilde - actualh) * exp(-delta_t * (alpha_htilde + beta_htilde));
-        d_j[index] = j_inftilde - (j_inftilde - actualj) * exp(-delta_t * (alpha_jtilde + beta_jtilde));
-        d_d[index] = d_inftilde - (d_inftilde - actuald) * exp(-delta_t / (alpha_dtilde * beta_dtilde + gamma_dtilde));
-        d_f[index] = f_inftilde - (f_inftilde - actualf) * exp(-delta_t / (alpha_ftilde + beta_ftilde + gamma_ftilde));
-        d_f2[index] = f2_inftilde - (f2_inftilde - actualf2) * exp(-delta_t / (alpha_f2tilde + beta_f2tilde + gamma_f2tilde));
-        d_fCaSS[index] = fCaSS_inftilde - (fCaSS_inftilde - actualfCaSS) * exp(-delta_t / tau_fCaSStilde);
-        d_s[index] = s_inftilde - (s_inftilde - actuals) * exp(-delta_t / tau_stilde);
-        d_r[index] = r_inftilde - (r_inftilde - actualr) * exp(-delta_t / tau_rtilde);
 
-        // Explicit method - update approximations
+        // Explicit method - update approximations with RK2 (Heun's method)
         d_R_prime[index] = actualR_prime + (delta_t * RHS_R_primetilde_term);
         d_Ca_i[index] = actualCa_i + (delta_t * RHS_Ca_itilde_term);
         d_Ca_SR[index] = actualCa_SR + (delta_t * RHS_Ca_SRtilde_term);
@@ -537,14 +537,18 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real Htheta_v = (actualVm - theta_v > 0.0f) ? 1.0f : 0.0f;
         real Htheta_vminus = (actualVm - theta_vminus > 0.0f) ? 1.0f : 0.0f;
 
+        real tau_o = (1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2;
+        real tau_so = tau_so1 + (tau_so2 - tau_so1) * (1.0f + tanh(k_so * (actualVm - u_so))) * 0.5f;
+        real tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
         // Currents
         real J_fi = -actualv * ((actualVm - theta_v > 0.0f) ? 1.0f : 0.0f) * (actualVm - theta_v) * (u_u - actualVm) / tau_fi;
-        real J_so = ((actualVm - u_o) * (1.0f - Htheta_w) / ((1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2)) + (Htheta_w / (tau_so1 + (((tau_so2 - tau_so1) * (1.0f + tanh(k_so * (actualVm - u_so)))) * 0.5f)));
+        real J_so = ((actualVm - u_o) * (1.0f - Htheta_w) / tau_o) + (Htheta_w / tau_so);
         real J_si = -Htheta_w * actualw * actuals / tau_si;
 
         // RHS of the state variables
         real RHS_Vm_term = J_fi + J_so + J_si;
-        real RHS_v_term = (1.0f - Htheta_v) * (((actualVm < theta_vminus) ? 1.0f : 0.0f) - actualv) / ((1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus) - (Htheta_v * actualv / tau_vplus);
+        real RHS_v_term = (1.0f - Htheta_v) * (((actualVm < theta_vminus) ? 1.0f : 0.0f) - actualv) / tau_vminus - (Htheta_v * actualv / tau_vplus);
         real RHS_w_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar) - actualw) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus)))) * 0.5f)) - (Htheta_w * actualw / tau_wplus);
         real RHS_s_term = (((1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f) - actuals) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
 
@@ -553,10 +557,32 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
         real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
-        // Calculate approximation for state variables
-        real vtilde = actualv + (0.5f * delta_t * RHS_v_term);
-        real wtilde = actualw + (0.5f * delta_t * RHS_w_term);
-        real stilde = actuals + (0.5f * delta_t * RHS_s_term);
+        // Auxiliary variables for Rush-Larsen or Forward Euler
+        real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+        real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+        real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+        real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+        real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+        real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+        real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+        real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+        real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+        // Calculate approximations with Rush-Larsen or Forward Euler using half time step
+        real vtilde, wtilde, stilde;
+        (tau_v_RL > 1.0e-10)
+            ? (vtilde = v_inf_RL - (v_inf_RL - actualv) * exp(-0.5f * delta_t / tau_v_RL))
+            : (vtilde = actualv + 0.5f * delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
+        
+        (tau_w_RL > 1.0e-10)
+            ? (wtilde = w_inf_RL - (w_inf_RL - actualw) * exp(-0.5f * delta_t / tau_w_RL))
+            : (wtilde = actualw + 0.5f * delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
+        
+        (tau_s > 1.0e-10)
+            ? (stilde = s_inf_RL - (s_inf_RL - actuals) * exp(-0.5f * delta_t / tau_s))
+            : (stilde = actuals + 0.5f * delta_t * (s_inf_RL - actuals) / tau_s);
 
         // Calculate RHS of the equations with approximations
         // Auxiliary variables
@@ -565,24 +591,44 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         Htheta_v = (Vmtilde - theta_v > 0.0f) ? 1.0f : 0.0f;
         Htheta_vminus = (Vmtilde - theta_vminus > 0.0f) ? 1.0f : 0.0f;
 
+        tau_o = (1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2;
+        tau_so = tau_so1 + (tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vmtilde - u_so))) * 0.5f;
+        tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
         // Currents
         real J_fi_tilde = -vtilde * ((Vmtilde - theta_v > 0.0f) ? 1.0f : 0.0f) * (Vmtilde - theta_v) * (u_u - Vmtilde) / tau_fi;
         real J_so_tilde = ((Vmtilde - u_o) * (1.0f - Htheta_w) / ((1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2)) + (Htheta_w / (tau_so1 + (((tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vmtilde - u_so)))) * 0.5f)));
         real J_si_tilde = -Htheta_w * wtilde * stilde / tau_si;
 
-        // RHS of the state variables
-        real RHS_Vmtilde_term = J_fi + J_so + J_si;
-        real RHS_vtilde_term = (1.0f - Htheta_v) * (((Vmtilde < theta_vminus) ? 1.0f : 0.0f) - vtilde) / ((1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus) - (Htheta_v * vtilde / tau_vplus);
-        real RHS_wtilde_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (Vmtilde / tau_winf)) + Htheta_o * w_infstar) - wtilde) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (Vmtilde - u_wminus)))) * 0.5f)) - (Htheta_w * wtilde / tau_wplus);
-        real RHS_stilde_term = (((1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f) - stilde) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
-
         // Update d_partRHS
+        real RHS_Vmtilde_term = J_fi_tilde + J_so_tilde + J_si_tilde;
         d_partRHS[index] = delta_t * (stim - RHS_Vmtilde_term);
 
-        // Update state variables with RK2
-        d_v[index] = vtilde + delta_t * RHS_vtilde_term;
-        d_w[index] = wtilde + delta_t * RHS_wtilde_term;
-        d_s[index] = stilde + delta_t * RHS_stilde_term;
+        // Update auxiliary variables for Rush-Larsen or Forward Euler with approximations
+        v_inf = ((Vmtilde < theta_vminus) ? 1.0f : 0.0f);
+        tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+        v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+        w_inf = ((1.0f - Htheta_o) * (1.0f - (Vmtilde / tau_winf)) + Htheta_o * w_infstar);
+        tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (Vmtilde - u_wminus))) * 0.5f;
+        tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+        w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+        tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+        s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;       
+
+        // Update state variables with Rush-Larsen or RK2 (Heun's method) using approximations
+        (tau_v_RL > 1.0e-10)
+            ? (d_v[index] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
+            : (d_v[index] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - vtilde) / tau_vminus - Htheta_v * vtilde / tau_vplus);
+        
+        (tau_w_RL > 1.0e-10)
+            ? (d_w[index] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
+            : (d_w[index] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - wtilde) / tau_wminus - Htheta_w * wtilde / tau_wplus);
+        
+        (tau_s > 1.0e-10)
+            ? (d_s[index] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
+            : (d_s[index] = actuals + delta_t * (s_inf_RL - stilde) / tau_s);
 
 #endif // SSIADI || THETASSIADI
 
@@ -591,10 +637,31 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Update d_partRHS
         d_partRHS[index] = delta_t * (stim - RHS_Vm_term);
 
-        // Update state variables with Forward Euler
-        d_v[index] = actualv + delta_t * RHS_v_term;
-        d_w[index] = actualw + delta_t * RHS_w_term;
-        d_s[index] = actuals + delta_t * RHS_s_term;
+        // Auxiliary variables for Rush-Larsen or Forward Euler
+        real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+        real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+        real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+        real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+        real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+        real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+        real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+        real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+        real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+        // Update state variables with Rush-Larsen or Forward Euler
+        (tau_v_RL > 1.0e-10)
+            ? (d_v[index] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
+            : (d_v[index] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
+        
+        (tau_w_RL > 1.0e-10)
+            ? (d_w[index] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
+            : (d_w[index] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
+        
+        (tau_s > 1.0e-10)
+            ? (d_s[index] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
+            : (d_s[index] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
 
 #endif // OSADI
 
@@ -603,10 +670,31 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         // Update d_partRHS (auxiliary variable) with Forward Euler
         d_partRHS[index] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
 
-        // Update state variables with Forward Euler
-        d_v[index] = actualv + delta_t * RHS_v_term;
-        d_w[index] = actualw + delta_t * RHS_w_term;
-        d_s[index] = actuals + delta_t * RHS_s_term;
+        // Auxiliary variables for Rush-Larsen or Forward Euler
+        real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+        real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+        real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+        real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+        real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+        real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+        real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+        real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+        real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+        // Update state variables with Rush-Larsen or Forward Euler
+        (tau_v_RL > 1.0e-10)
+            ? (d_v[index] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
+            : (d_v[index] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
+        
+        (tau_w_RL > 1.0e-10)
+            ? (d_w[index] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
+            : (d_w[index] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
+        
+        (tau_s > 1.0e-10)
+            ? (d_s[index] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
+            : (d_s[index] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
 
 #endif // FE
     }
