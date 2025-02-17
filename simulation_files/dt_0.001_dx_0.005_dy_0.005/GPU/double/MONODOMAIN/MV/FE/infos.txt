@@ -1,0 +1,26 @@
+EXECUTION TYPE = GPU
+PRECISION = double
+PROBLEM = MONODOMAIN
+CELL MODEL = MV
+METHOD = FE
+
+DOMAIN LENGTH IN X = 5 cm
+DOMAIN LENGTH IN Y = 5 cm
+TOTAL TIME = 600 ms
+
+delta_t = 0.001 ms (600000 time steps)
+delta_x = 0.005 cm (50 um) (1001 space steps in x)
+delta_y = 0.005 cm (50 um) (1001 space steps in y)
+TOTAL POINTS IN DOMAIN = 1002001
+
+DEVICE NAME = NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
+
+FOR FULL DOMAIN KERNELS:
+BLOCK SIZE = 16 x 16 threads (256 threads per block)
+GRID SIZE = 63 x 63 blocks (total 3969 blocks, total 1016064 threads)
+
+STIMULUS VELOCITY = 0.57519 m/s
+
+TIME TO MEASURE VELOCITY = 0.69283 s
+TIME TO SAVE FRAMES = 38.719 s
+SIMULATION TOTAL EXECUTION TIME = 567.78 s

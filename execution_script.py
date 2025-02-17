@@ -15,8 +15,10 @@ def main():
     # refs - error analysis
     dx = 0.005
     dy = 0.005
-    dts = [0.001]
-    methods = ['SSI-ADI']
+    dx = 0.02 # 200 um
+    dy = 0.02 # 200 um
+    dts = [0.02]
+    methods = ['OS-ADI']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'

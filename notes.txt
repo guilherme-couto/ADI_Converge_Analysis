@@ -41,3 +41,25 @@ dt 		| dx 		| dy 		| N-2 Error 	| slope
 0.004	| 0.0005	| 0.0005	| 0.069311 	| 0.987
 0.005	| 0.0005	| 0.0005	| nan 	| nan
 
+
+#######################################################
+
+Tentativas de gerar espiral usando MV (EPI) em um domínio 2x2
+
+Tempo S2 (ms) -> resultado
+320 -> espiral não sustentável
+330 ->
+340 ->
+350 -> propagação normal
+380 ->
+400 -> 
+
+Tentativas de gerar espiral usando MV (EPI) em um domínio 5x5
+
+Tempo S2 (ms) -> resultado
+320 -> espiral não sustentável
+330 ->
+340 ->
+350 -> 
+380 ->
+400 -> 

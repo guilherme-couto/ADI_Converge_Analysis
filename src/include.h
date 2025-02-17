@@ -630,7 +630,7 @@ const __constant__ real K_bufSS = 0.00025f; // Half-saturation constant of subsp
 
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
 // const __constant__ real Dtilde = 1.171f * 1e-3; // cm^2/s
-const __constant__ real Dtilde = 0.59f * 1e-3; // cm^2/s
+const __constant__ real Dtilde = 0.62f * 1e-3; // cm^2/s    
 // const __constant__ real Dtilde = 0.8122f; // cm^2/ms (to be like TT2)
 // const __constant__ real Dtilde = 0.836429f; // cm^2/ms (equivalent to 1.171 but dividing by 1000 instead of 1400)
 

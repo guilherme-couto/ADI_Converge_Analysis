@@ -1,0 +1,30 @@
+EXECUTION TYPE = GPU
+PRECISION = double
+PROBLEM = MONODOMAIN
+CELL MODEL = MV
+METHOD = OS-ADI
+
+DOMAIN LENGTH IN X = 2 cm
+DOMAIN LENGTH IN Y = 2 cm
+TOTAL TIME = 600 ms
+
+delta_t = 0.02 ms (30000 time steps)
+delta_x = 0.02 cm (200 um) (101 space steps in x)
+delta_y = 0.02 cm (200 um) (101 space steps in y)
+TOTAL POINTS IN DOMAIN = 10201
+
+DEVICE NAME = NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
+
+FOR FULL DOMAIN KERNELS:
+BLOCK SIZE = 16 x 16 threads (256 threads per block)
+GRID SIZE = 19 x 7 blocks (total 133 blocks, total 34048 threads)
+
+FOR THOMAS KERNEL:
+GRID SIZE FOR X = 4 blocks (32 threads per block, total 128 threads)
+GRID SIZE FOR Y = 4 blocks (32 threads per block, total 128 threads)
+
+STIMULUS VELOCITY = 0.49237 m/s
+
+TIME TO MEASURE VELOCITY = 0.005244 s
+TIME TO SAVE FRAMES = 0.38431 s
+SIMULATION TOTAL EXECUTION TIME = 3.7551 s

@@ -113,12 +113,6 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
         stimuli[i].yMaxDisc = round(stimuliyMax[i] / delta_y);
         stimuli[i].yMinDisc = round(stimuliyMin[i] / delta_y);
 
-#if defined(RESTORE_STATE) || defined(SHIFT_STATE)
-
-        stimuli[i].strength = 0.0f;
-
-#endif // RESTORE_STATE || SHIFT_STATE
-
 #ifdef CABLEEQ
 
         // Only one stimulus for CABLEEQ
