@@ -3,7 +3,7 @@ import functions
 
 # Dict to map the option to the correct function
 options = {
-    "gif": functions.create_gif,
+    "GIF": functions.create_GIF,
     "lastframe": functions.plot_last_frame,
     "exact": functions.plot_exact,
     "errors": functions.plot_errors,

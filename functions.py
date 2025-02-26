@@ -43,7 +43,7 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
     if cell_model == 'AFHN':
         compile_command += '-DAFHN '
     elif cell_model == 'TT2':
-        compile_command += '-DTT2 -DENDO '
+        compile_command += '-DTT2 -DEPI '
     elif cell_model == 'MV':
         compile_command += '-DMV -DEPI '
 
@@ -302,10 +302,14 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         print(f'Action potential saved to {save_dir}/AP.png')
     
     else:
+        if len(data_last) < len(data_last[0]):
+            orientation = 'horizontal'
+        else:
+            orientation = 'vertical'
         # Plot the last
         plt.figure(figsize=(6, 6))
         plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+        plt.colorbar(label='Value', fraction=0.04, pad=0.04, orientation=orientation)
         plt.xticks([])
         plt.yticks([])
         plt.title(f'{title}')
@@ -500,8 +504,8 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
     
     print(f'Plot of difference vector saved to {save_dir}/diff.png')
 
-def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
-    # Create gif directory
+def create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
+    # Create GIF directory
     save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if problem == 'CABLEEQ':
         save_dir = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -536,6 +540,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
     line = line.split()
     frame_count = 0
     
+    print(f'Creating GIF for {title}...')
     while True:
         if not line:
             break
@@ -585,6 +590,10 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                 plt.close()
             
             else:
+                if len(frame) < len(frame[0]):
+                    orientation = 'horizontal'
+                else:
+                    orientation = 'vertical'
                 plt.figure()
                 if cell_model == 'AFHN':
                     plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
@@ -592,7 +601,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
                 elif cell_model == 'MV':
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=50.0, origin='lower')
-                plt.colorbar(label='Vm (mV)', fraction=0.04, pad=0.04, orientation='horizontal')
+                plt.colorbar(label='Vm (mV)', fraction=0.04, pad=0.04, orientation=orientation)
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 plt.xticks([])
                 plt.yticks([])
@@ -602,14 +611,14 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
             
             frame_count += 1
 
-    # Build gif
-    gif_path = f'{save_dir}/gif.gif'
+    # Build GIF
+    GIF_path = f'{save_dir}/gif.gif'
     images = []
     for frame in frames:
         image = imageio.v2.imread(frame)
         images.append(image)
     imageio.v2.mimsave(
-        gif_path, 
+        GIF_path, 
         images,
         duration=0.9,
         loop=0  # Set infinite loop
@@ -621,7 +630,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy
             os.remove(png)
     
     os.remove(frames_file)
-    print(f'Gif saved to {gif_path}')
+    print(f'Gif saved to {GIF_path}')
       
 def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
     graph_dir = f'./simulation_files/graphs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}'

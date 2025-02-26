@@ -44,22 +44,51 @@ dt 		| dx 		| dy 		| N-2 Error 	| slope
 
 #######################################################
 
-Tentativas de gerar espiral usando MV (EPI) em um domínio 2x2
+Tentativas de gerar espiral usando TT2 (ENDO) em um domínio 6x6
 
 Tempo S2 (ms) -> resultado
-320 -> espiral não sustentável
-330 ->
-340 ->
-350 -> propagação normal
-380 ->
-400 -> 
+260 -> espiral sustentável
 
-Tentativas de gerar espiral usando MV (EPI) em um domínio 5x5
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 6x6 e Dtilde = 0.63f*1e-3 (0.53248 m/s)
 
 Tempo S2 (ms) -> resultado
-320 -> espiral não sustentável
-330 ->
-340 ->
-350 -> 
-380 ->
-400 -> 
+260 -> bloqueio
+320 -> bloqueio
+330 -> espiral não sustentável
+335 -> espiral não sustentável
+340 -> espiral não sustentável (*)
+345 -> espiral não sustentável
+350 -> espiral não sustentável
+360 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando TT2 (EPI) em um domínio 7x7 (0.52014 m/s)
+
+Tempo S2 (ms) -> resultado
+340 -> bloqueio
+350 -> espiral sustentável
+
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 7x7 e Dtilde = 0.63f*1e-3 (0.53566 m/s)
+
+Tempo S2 (ms) -> resultado
+330 -> não gera espiral
+335 -> não gera espiral 
+340 -> figure-of-eight parece sustentável / morre só com 2000 ms
+345 -> espiral não sustentável
+350 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 7x7 e Dtilde = 0.6f*1e-3 (0.5199 m/s)
+
+Tempo S2 (ms) -> resultado
+340 -> espiral figure-of-eight dura até 1800
+350 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando MV (EPI) em um domínio 7x7 e Dtilde = 0.63f*1e-3 (0.52247 m/s)
+
+Tempo S2 (ms) -> resultado
+350 -> não gera espiral
+

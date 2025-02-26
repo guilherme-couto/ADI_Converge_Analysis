@@ -653,9 +653,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
-                    stim_velocity = stim_velocity * 10.0;                                            // m/s
+                    stim_velocity = stim_velocity * 1000.0;                                          // cm/s
                     stim_velocity_measured = true;
-                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.5g m/s\n", begin_point, end_point, stim_velocity);
+                    INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
                 }
             }
         }
@@ -736,7 +736,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef MEASURE_VELOCITY
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "STIMULUS VELOCITY = %.5g m/s\n", stim_velocity);
+    fprintf(fpInfos, "STIMULUS VELOCITY = %.4g cm/s\n", stim_velocity);
 
 #endif // MEASURE_VELOCITY
 

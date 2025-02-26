@@ -15,10 +15,10 @@ def main():
     # refs - error analysis
     dx = 0.005
     dy = 0.005
-    dx = 0.02 # 200 um
-    dy = 0.02 # 200 um
+    dx = 0.02 # 200 um, sugestão Berg de uso no MonoAlg
+    dy = 0.02 # 200 um, sugestão Berg de uso no MonoAlg
     dts = [0.02]
-    methods = ['OS-ADI']
+    methods = ['SSI-ADI']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'
@@ -48,7 +48,7 @@ def main():
                 if save_last_state:
                     plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
                 if frames:
-                    create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
+                    create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
                     
             else:
                 for theta in thetas:
@@ -64,7 +64,7 @@ def main():
                     if save_last_state:
                         plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
                     if frames:
-                        create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                        create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
 
 if __name__ == '__main__':
     main()

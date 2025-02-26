@@ -16,9 +16,9 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 600.0f;       // Total time (ms)
-const __constant__ real Lx = 2.0f;  // Length in x (cm)
-const __constant__ real Ly = 2.0f; // Length in y (cm)
+const real totalTime = 1000.0f;       // Total time (ms)
+const __constant__ real Lx = 5.0f;  // Length in x (cm)
+const __constant__ real Ly = 5.0f; // Length in y (cm)
 
 #endif // CABLEEQ
 
@@ -48,10 +48,10 @@ const real stimuliStrength = 1.0f; // Stimulation strength -> (amplitude)
 #endif                             // MV
 
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
-const real stimuliBegin[] = {0.0f, 340.0f}; // Stimuli begin time -> ms
-const real stimulixMax[] = {0.2f, 0.2f};    // Stimuli x max -> cm
+const real stimuliBegin[] = {0.0f, 320.0f}; // Stimuli begin time -> ms
+const real stimulixMax[] = {0.2f, 2.5f};    // Stimuli x max -> cm
 const real stimulixMin[] = {0.0f, 0.0f};    // Stimuli x min -> cm
-const real stimuliyMax[] = {2.0f, 2.0f};    // Stimuli y max -> cm
+const real stimuliyMax[] = {5.0f, 2.5f};    // Stimuli y max -> cm
 const real stimuliyMin[] = {0.0f, 0.0f};    // Stimuli y min -> cm
 
 // Initial conditions
