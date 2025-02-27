@@ -69,6 +69,11 @@ Tempo S2 (ms) -> resultado
 340 -> bloqueio
 350 -> espiral sustentável
 
+Tentativas de gerar espiral usando TT2 (EPI) em um domínio 6x6 (50.48 cm/s)
+
+Tempo S2 (ms) -> resultado
+350 -> espiral sustentável
+
 
 Tentativas de gerar espiral usando MV (TNNP) em um domínio 7x7 e Dtilde = 0.63f*1e-3 (0.53566 m/s)
 

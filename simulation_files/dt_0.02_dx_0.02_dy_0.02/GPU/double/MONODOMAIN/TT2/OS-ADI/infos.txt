@@ -4,27 +4,27 @@ PROBLEM = MONODOMAIN
 CELL MODEL = TT2
 METHOD = OS-ADI
 
-DOMAIN LENGTH IN X = 5 cm
-DOMAIN LENGTH IN Y = 5 cm
-TOTAL TIME = 600 ms
+DOMAIN LENGTH IN X = 6 cm
+DOMAIN LENGTH IN Y = 6 cm
+TOTAL TIME = 1000 ms
 
-delta_t = 0.02 ms (30000 time steps)
-delta_x = 0.02 cm (200 um) (251 space steps in x)
-delta_y = 0.02 cm (200 um) (251 space steps in y)
-TOTAL POINTS IN DOMAIN = 63001
+delta_t = 0.02 ms (50000 time steps)
+delta_x = 0.02 cm (200 um) (301 space steps in x)
+delta_y = 0.02 cm (200 um) (301 space steps in y)
+TOTAL POINTS IN DOMAIN = 90601
 
 DEVICE NAME = NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
 
 FOR FULL DOMAIN KERNELS:
 BLOCK SIZE = 16 x 16 threads (256 threads per block)
-GRID SIZE = 16 x 16 blocks (total 256 blocks, total 65536 threads)
+GRID SIZE = 19 x 19 blocks (total 361 blocks, total 92416 threads)
 
 FOR THOMAS KERNEL:
-GRID SIZE FOR X = 8 blocks (32 threads per block, total 256 threads)
-GRID SIZE FOR Y = 8 blocks (32 threads per block, total 256 threads)
+GRID SIZE FOR X = 10 blocks (32 threads per block, total 320 threads)
+GRID SIZE FOR Y = 10 blocks (32 threads per block, total 320 threads)
 
-STIMULUS VELOCITY = 0 m/s
+STIMULUS VELOCITY = 50.48 cm/s
 
-TIME TO MEASURE VELOCITY = 0.11346 s
-TIME TO SAVE FRAMES = 2.2025 s
-SIMULATION TOTAL EXECUTION TIME = 8.0094 s
+TIME TO MEASURE VELOCITY = 0.015725 s
+TIME TO SAVE FRAMES = 6.0377 s
+SIMULATION TOTAL EXECUTION TIME = 51.027 s

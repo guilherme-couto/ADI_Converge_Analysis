@@ -94,8 +94,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Restoring state variables...\n");
 
     // Initialize variables with a solution
-    real real_ref_dx = 0.005f;
-    real real_def_dy = 0.005f;
+    real real_ref_dx = 0.0005f;
+    real real_def_dy = 0.0005f;
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
@@ -550,7 +550,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
         // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
-        // parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_c_prime_y, d_denominator_y);
         CUDA_CALL(cudaDeviceSynchronize());
 
         // ================================================!
@@ -563,7 +562,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
         // Solve the linear systems
         parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
-        // parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_RHS, d_la_x, d_c_prime_x, d_denominator_x);
         CUDA_CALL(cudaDeviceSynchronize());
 
 #endif // SSIADI || THETASSIADI

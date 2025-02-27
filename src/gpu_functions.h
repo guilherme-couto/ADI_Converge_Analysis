@@ -480,6 +480,258 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         d_K_i[index] = actualK_i + (delta_t * RHS_K_itilde_term);
 
 #endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+        d_partRHS[index] = delta_t * (stim - RHS_Vm_term);
+
+        // Preparing part of the RHS of the following linear systems
+        // Rush-Larsen method - auxiliary variables
+        real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualVm) / 7.0f));
+        real alpha_X_r1 = 450.0f / (1.0f + exp((-45.0f - actualVm) / 10.0f));
+        real beta_X_r1 = 6.0f / (1.0f + exp((30.0f + actualVm) / 11.5f));
+
+        real X_r2_inf = 1.0f / (1.0f + exp((actualVm + 88.0f) / 24.0f));
+        real alpha_X_r2 = 3.0f / (1.0f + exp((-60.0f - actualVm) / 20.0f));
+        real beta_X_r2 = 1.12f / (1.0f + exp((actualVm - 60.0f) / 20.0f));
+
+        real X_s_inf = 1.0f / (1.0f + exp((-5.0f - actualVm) / 14.0f));
+        real alpha_X_s = 1400.0f / sqrt(1.0f + exp((5.0f - actualVm) / 6.0f));
+        real beta_X_s = 1.0f / (1.0f + exp((-35.0f + actualVm) / 15.0f));
+
+        real m_inf = 1.0f / ((1.0f + exp((-56.86 - actualVm) / 9.03f)) * (1.0f + exp((-56.86f - actualVm) / 9.03f)));
+        real alpha_m = 1.0f / (1.0f + exp((-60.0f - actualVm) / 5.0f));
+        real beta_m = 0.1f / (1.0f + exp((actualVm + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVm - 50.0f) / 200.0f)));
+
+        real h_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
+        real alpha_h;
+        (actualVm < -40.0f)
+            ? (alpha_h = 0.057f * exp(-(actualVm + 80.0f) / 6.8f))
+            : (alpha_h = 0.0f);
+        real beta_h;
+        (actualVm < -40.0f)
+            ? (beta_h = 2.7f * exp(0.079f * actualVm) + 3.1f * 1.0e5f * exp(0.3485f * actualVm))
+            : (beta_h = 0.77f / (0.13f * (1.0f + exp((actualVm + 10.66f) / -11.1f))));
+
+        real j_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
+        real alpha_j;
+        (actualVm < -40.0f)
+            ? (alpha_j = ((-25428.0f * exp(0.2444f * actualVm) - (6.948e-6f * exp((-0.04391f) * actualVm))) * (actualVm + 37.78f)) / (1.0f + exp(0.311f * (actualVm + 79.23f))))
+            : (alpha_j = 0.0f);
+        real beta_j;
+        (actualVm < -40.0f)
+            ? (beta_j = (0.02424f * exp(-0.01052f * actualVm)) / (1.0f + exp(-0.1378f * (actualVm + 40.14f))))
+            : (beta_j = (0.6f * exp(0.057f * actualVm)) / (1.0f + exp(-0.1f * (actualVm + 32.0f))));
+
+        real inf = 1.0f / (1.0f + exp((-8.0f - actualVm) / 7.5f));
+        real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualVm) / 13.0f)) + 0.25f;
+        real beta_d = 1.4f / (1.0f + exp((actualVm + 5.0f) / 5.0f));
+        real gamma_d = 1.0f / (1.0f + exp((50.0f - actualVm) / 20.0f));
+
+        real f_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 7.0f));
+        real alpha_f = 1102.5f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 225.0f);
+        real beta_f = 200.0f / (1.0f + exp((13.0f - actualVm) / 10.0f));
+        real gamma_f = 180.0f / (1.0f + exp((actualVm + 30.0f) / 10.0f)) + 20.0f;
+
+        real f2_inf = 0.67f / (1.0f + exp((actualVm + 35.0f) / 7.0f)) + 0.33f;
+        real alpha_f2; // !!!
+        alpha_f2 = 562.0f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 240.0f);
+        real beta_f2 = 31.0f / (1.0f + exp((25.0f - actualVm) / 10.0f));
+        real gamma_f2; // !!!
+        gamma_f2 = 80.0f / (1.0f + exp((30.0f + actualVm) / 10.0f));
+
+        real fCaSS_inf = 0.6f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 0.4f;
+        real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
+
+#if defined(EPI) || defined(MCELL)
+
+        real s_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 5.0f));
+        real tau_s = 85.0f * exp(-(actualVm + 45.0f) * (actualVm + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVm - 20.0f) / 5.0f)) + 3.0f;
+
+#endif // EPI || MCELL
+#ifdef ENDO
+
+        real s_inf = 1.0f / (1.0f + exp((actualVm + 28.0f) / 5.0f));
+        real tau_s = 1000.0f * exp(-(actualVm + 67.0f) * (actualVm + 67.0f) / 1000.0f) + 8.0f;
+
+#endif // ENDO
+
+        real r_inf = 1.0f / (1.0f + exp((20.0f - actualVm) / 6.0f));
+        real tau_r = 9.5f * exp(-(actualVm + 40.0f) * (actualVm + 40.0f) / 1800.0f) + 0.8f;
+
+        // Rush-Larsen method - update approximations
+        d_X_r1[index] = X_r1_inf - (X_r1_inf - actualX_r1) * exp(-delta_t / (alpha_X_r1 * beta_X_r1));
+        d_X_r2[index] = X_r2_inf - (X_r2_inf - actualX_r2) * exp(-delta_t / (alpha_X_r2 * beta_X_r2));
+        d_X_s[index] = X_s_inf - (X_s_inf - actualX_s) * exp(-delta_t / (alpha_X_s * beta_X_s + 80.0f));
+        d_m[index] = m_inf - (m_inf - actualm) * exp(-delta_t / (alpha_m * beta_m));
+        d_h[index] = h_inf - (h_inf - actualh) * exp(-delta_t * (alpha_h + beta_h));
+        d_j[index] = j_inf - (j_inf - actualj) * exp(-delta_t * (alpha_j + beta_j));
+        d_d[index] = inf - (inf - actuald) * exp(-delta_t / (alpha_d * beta_d + gamma_d));
+        d_f[index] = f_inf - (f_inf - actualf) * exp(-delta_t / (alpha_f + beta_f + gamma_f));
+        d_f2[index] = f2_inf - (f2_inf - actualf2) * exp(-delta_t / (alpha_f2 + beta_f2 + gamma_f2));
+        d_fCaSS[index] = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-delta_t / tau_fCaSS);
+        d_s[index] = s_inf - (s_inf - actuals) * exp(-delta_t / tau_s);
+        d_r[index] = r_inf - (r_inf - actualr) * exp(-delta_t / tau_r);
+
+        // Explicit method - auxiliary variables
+        real Ileak = V_leak * (actualCa_SR - actualCa_i);
+        real Iup = V_maxup / (1.0f + (K_up * K_up) / (actualCa_i * actualCa_i));
+        real k_CaSR = max_SR - (max_SR - min_SR) / (1.0f + (EC / actualCa_SR) * (EC / actualCa_SR));
+        real k1 = k1_prime / k_CaSR;
+        real k2 = k2_prime * k_CaSR;
+        real O = k1 * actualCa_SS * actualCa_SS * actualR_prime / (k3 + k1 * actualCa_SS * actualCa_SS);
+        real Irel = V_rel * O * (actualCa_SR - actualCa_SS);
+        real Ixfer = V_xfer * (actualCa_SS - actualCa_i);
+        real Ca_i_bufC; // !!!
+        Ca_i_bufC = 1.0f / (1.0f + bufC * K_bufC / ((K_bufC + actualCa_i) * (K_bufC + actualCa_i)));
+        real Ca_SR_bufSR; // !!!
+        Ca_SR_bufSR = 1.0f / (1.0f + bufSR * K_bufSR / ((K_bufSR + actualCa_SR) * (K_bufSR + actualCa_SR)));
+        real Ca_SS_bufSS; // !!!
+        Ca_SS_bufSS = 1.0f / (1.0f + bufSS * K_bufSS / ((K_bufSS + actualCa_SS) * (K_bufSS + actualCa_SS)));
+
+        // Explicit method - RHS of the state variables
+        real RHS_R_prime_term = (k4 * (1.0f - actualR_prime)) - k2 * actualCa_SS * actualR_prime;
+        real RHS_Ca_i_term = Ca_i_bufC * ((((Ileak - Iup) * V_SR / V_C) + Ixfer) - (((IbCa + IpCa) - 2.0f * INaCa) * Cm / (2.0f * V_C * F)));
+        real RHS_Ca_SR_term = Ca_SR_bufSR * (Iup - Ileak - Irel);
+        real RHS_Ca_SS_term = Ca_SS_bufSS * (((-ICaL * Cm / (2.0 * V_SS * F)) + (Irel * V_SR / V_SS)) - (Ixfer * V_C / V_SS));
+        real RHS_Na_i_term = -((INa + IbNa + 3.0f * INaK + 3.0f * INaCa) * Cm / (V_C * F));
+        real RHS_K_i_term = -((IK1 + Ito + IKr + IKs - 2.0f * INaK + IpK + stim) * Cm / (V_C * F));
+
+        // Explicit method - update approximations
+        d_R_prime[index] = actualR_prime + (delta_t * RHS_R_prime_term);
+        d_Ca_i[index] = actualCa_i + (delta_t * RHS_Ca_i_term);
+        d_Ca_SR[index] = actualCa_SR + (delta_t * RHS_Ca_SR_term);
+        d_Ca_SS[index] = actualCa_SS + (delta_t * RHS_Ca_SS_term);
+        d_Na_i[index] = actualNa_i + (delta_t * RHS_Na_i_term);
+        d_K_i[index] = actualK_i + (delta_t * RHS_K_i_term);
+
+#endif // OSADI
+
+#ifdef FE
+
+        d_partRHS[index] = actualVm + diff_term + (delta_t * (stim - RHS_Vm_term));
+
+        // Preparing part of the RHS of the following linear systems
+        // Rush-Larsen method - auxiliary variables
+        real X_r1_inf = 1.0f / (1.0f + exp((-26.0f - actualVm) / 7.0f));
+        real alpha_X_r1 = 450.0f / (1.0f + exp((-45.0f - actualVm) / 10.0f));
+        real beta_X_r1 = 6.0f / (1.0f + exp((30.0f + actualVm) / 11.5f));
+
+        real X_r2_inf = 1.0f / (1.0f + exp((actualVm + 88.0f) / 24.0f));
+        real alpha_X_r2 = 3.0f / (1.0f + exp((-60.0f - actualVm) / 20.0f));
+        real beta_X_r2 = 1.12f / (1.0f + exp((actualVm - 60.0f) / 20.0f));
+
+        real X_s_inf = 1.0f / (1.0f + exp((-5.0f - actualVm) / 14.0f));
+        real alpha_X_s = 1400.0f / sqrt(1.0f + exp((5.0f - actualVm) / 6.0f));
+        real beta_X_s = 1.0f / (1.0f + exp((-35.0f + actualVm) / 15.0f));
+
+        real m_inf = 1.0f / ((1.0f + exp((-56.86 - actualVm) / 9.03f)) * (1.0f + exp((-56.86f - actualVm) / 9.03f)));
+        real alpha_m = 1.0f / (1.0f + exp((-60.0f - actualVm) / 5.0f));
+        real beta_m = 0.1f / (1.0f + exp((actualVm + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVm - 50.0f) / 200.0f)));
+
+        real h_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
+        real alpha_h;
+        (actualVm < -40.0f)
+            ? (alpha_h = 0.057f * exp(-(actualVm + 80.0f) / 6.8f))
+            : (alpha_h = 0.0f);
+        real beta_h;
+        (actualVm < -40.0f)
+            ? (beta_h = 2.7f * exp(0.079f * actualVm) + 3.1f * 1.0e5f * exp(0.3485f * actualVm))
+            : (beta_h = 0.77f / (0.13f * (1.0f + exp((actualVm + 10.66f) / -11.1f))));
+
+        real j_inf = 1.0f / ((1.0f + exp((actualVm + 71.55f) / 7.43f)) * (1.0f + exp((actualVm + 71.55f) / 7.43f)));
+        real alpha_j;
+        (actualVm < -40.0f)
+            ? (alpha_j = ((-25428.0f * exp(0.2444f * actualVm) - (6.948e-6f * exp((-0.04391f) * actualVm))) * (actualVm + 37.78f)) / (1.0f + exp(0.311f * (actualVm + 79.23f))))
+            : (alpha_j = 0.0f);
+        real beta_j;
+        (actualVm < -40.0f)
+            ? (beta_j = (0.02424f * exp(-0.01052f * actualVm)) / (1.0f + exp(-0.1378f * (actualVm + 40.14f))))
+            : (beta_j = (0.6f * exp(0.057f * actualVm)) / (1.0f + exp(-0.1f * (actualVm + 32.0f))));
+
+        real inf = 1.0f / (1.0f + exp((-8.0f - actualVm) / 7.5f));
+        real alpha_d = 1.4f / (1.0f + exp((-35.0f - actualVm) / 13.0f)) + 0.25f;
+        real beta_d = 1.4f / (1.0f + exp((actualVm + 5.0f) / 5.0f));
+        real gamma_d = 1.0f / (1.0f + exp((50.0f - actualVm) / 20.0f));
+
+        real f_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 7.0f));
+        real alpha_f = 1102.5f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 225.0f);
+        real beta_f = 200.0f / (1.0f + exp((13.0f - actualVm) / 10.0f));
+        real gamma_f = 180.0f / (1.0f + exp((actualVm + 30.0f) / 10.0f)) + 20.0f;
+
+        real f2_inf = 0.67f / (1.0f + exp((actualVm + 35.0f) / 7.0f)) + 0.33f;
+        real alpha_f2; // !!!
+        alpha_f2 = 562.0f * exp(-(actualVm + 27.0f) * (actualVm + 27.0f) / 240.0f);
+        real beta_f2 = 31.0f / (1.0f + exp((25.0f - actualVm) / 10.0f));
+        real gamma_f2; // !!!
+        gamma_f2 = 80.0f / (1.0f + exp((30.0f + actualVm) / 10.0f));
+
+        real fCaSS_inf = 0.6f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 0.4f;
+        real tau_fCaSS = 80.0f / (1.0f + (actualCa_SS * actualCa_SS * 400.0f)) + 2.0f;
+
+#if defined(EPI) || defined(MCELL)
+
+        real s_inf = 1.0f / (1.0f + exp((actualVm + 20.0f) / 5.0f));
+        real tau_s = 85.0f * exp(-(actualVm + 45.0f) * (actualVm + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVm - 20.0f) / 5.0f)) + 3.0f;
+
+#endif // EPI || MCELL
+#ifdef ENDO
+
+        real s_inf = 1.0f / (1.0f + exp((actualVm + 28.0f) / 5.0f));
+        real tau_s = 1000.0f * exp(-(actualVm + 67.0f) * (actualVm + 67.0f) / 1000.0f) + 8.0f;
+
+#endif // ENDO
+
+        real r_inf = 1.0f / (1.0f + exp((20.0f - actualVm) / 6.0f));
+        real tau_r = 9.5f * exp(-(actualVm + 40.0f) * (actualVm + 40.0f) / 1800.0f) + 0.8f;
+
+        // Rush-Larsen method - update approximations
+        d_X_r1[index] = X_r1_inf - (X_r1_inf - actualX_r1) * exp(-delta_t / (alpha_X_r1 * beta_X_r1));
+        d_X_r2[index] = X_r2_inf - (X_r2_inf - actualX_r2) * exp(-delta_t / (alpha_X_r2 * beta_X_r2));
+        d_X_s[index] = X_s_inf - (X_s_inf - actualX_s) * exp(-delta_t / (alpha_X_s * beta_X_s + 80.0f));
+        d_m[index] = m_inf - (m_inf - actualm) * exp(-delta_t / (alpha_m * beta_m));
+        d_h[index] = h_inf - (h_inf - actualh) * exp(-delta_t * (alpha_h + beta_h));
+        d_j[index] = j_inf - (j_inf - actualj) * exp(-delta_t * (alpha_j + beta_j));
+        d_d[index] = inf - (inf - actuald) * exp(-delta_t / (alpha_d * beta_d + gamma_d));
+        d_f[index] = f_inf - (f_inf - actualf) * exp(-delta_t / (alpha_f + beta_f + gamma_f));
+        d_f2[index] = f2_inf - (f2_inf - actualf2) * exp(-delta_t / (alpha_f2 + beta_f2 + gamma_f2));
+        d_fCaSS[index] = fCaSS_inf - (fCaSS_inf - actualfCaSS) * exp(-delta_t / tau_fCaSS);
+        d_s[index] = s_inf - (s_inf - actuals) * exp(-delta_t / tau_s);
+        d_r[index] = r_inf - (r_inf - actualr) * exp(-delta_t / tau_r);
+
+        // Explicit method - auxiliary variables
+        real Ileak = V_leak * (actualCa_SR - actualCa_i);
+        real Iup = V_maxup / (1.0f + (K_up * K_up) / (actualCa_i * actualCa_i));
+        real k_CaSR = max_SR - (max_SR - min_SR) / (1.0f + (EC / actualCa_SR) * (EC / actualCa_SR));
+        real k1 = k1_prime / k_CaSR;
+        real k2 = k2_prime * k_CaSR;
+        real O = k1 * actualCa_SS * actualCa_SS * actualR_prime / (k3 + k1 * actualCa_SS * actualCa_SS);
+        real Irel = V_rel * O * (actualCa_SR - actualCa_SS);
+        real Ixfer = V_xfer * (actualCa_SS - actualCa_i);
+        real Ca_i_bufC; // !!!
+        Ca_i_bufC = 1.0f / (1.0f + bufC * K_bufC / ((K_bufC + actualCa_i) * (K_bufC + actualCa_i)));
+        real Ca_SR_bufSR; // !!!
+        Ca_SR_bufSR = 1.0f / (1.0f + bufSR * K_bufSR / ((K_bufSR + actualCa_SR) * (K_bufSR + actualCa_SR)));
+        real Ca_SS_bufSS; // !!!
+        Ca_SS_bufSS = 1.0f / (1.0f + bufSS * K_bufSS / ((K_bufSS + actualCa_SS) * (K_bufSS + actualCa_SS)));
+
+        // Explicit method - RHS of the state variables
+        real RHS_R_prime_term = (k4 * (1.0f - actualR_prime)) - k2 * actualCa_SS * actualR_prime;
+        real RHS_Ca_i_term = Ca_i_bufC * ((((Ileak - Iup) * V_SR / V_C) + Ixfer) - (((IbCa + IpCa) - 2.0f * INaCa) * Cm / (2.0f * V_C * F)));
+        real RHS_Ca_SR_term = Ca_SR_bufSR * (Iup - Ileak - Irel);
+        real RHS_Ca_SS_term = Ca_SS_bufSS * (((-ICaL * Cm / (2.0 * V_SS * F)) + (Irel * V_SR / V_SS)) - (Ixfer * V_C / V_SS));
+        real RHS_Na_i_term = -((INa + IbNa + 3.0f * INaK + 3.0f * INaCa) * Cm / (V_C * F));
+        real RHS_K_i_term = -((IK1 + Ito + IKr + IKs - 2.0f * INaK + IpK + stim) * Cm / (V_C * F));
+
+        // Explicit method - update approximations
+        d_R_prime[index] = actualR_prime + (delta_t * RHS_R_prime_term);
+        d_Ca_i[index] = actualCa_i + (delta_t * RHS_Ca_i_term);
+        d_Ca_SR[index] = actualCa_SR + (delta_t * RHS_Ca_SR_term);
+        d_Ca_SS[index] = actualCa_SS + (delta_t * RHS_Ca_SS_term);
+        d_Na_i[index] = actualNa_i + (delta_t * RHS_Na_i_term);
+        d_K_i[index] = actualK_i + (delta_t * RHS_K_i_term);
+
+#endif // FE
     }
 }
 
