@@ -50,11 +50,11 @@ void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSav
 
 #ifndef CABLEEQ
 
-    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
+    snprintf(path, MAX_STRING_SIZE, "./simulation_files/dt_%.5g_dx_%.5g_dy_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, delta_y, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
 
 #else // if def CABLEEQ
 
-    snprintf(path, MAX_STRING_SIZE * sizeof(char), "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
+    snprintf(path, MAX_STRING_SIZE, "./simulation_files/dt_%.5g_dx_%.5g/%s/%s/%s/%s/%s", delta_t, delta_x, EXECUTION_TYPE, REAL_TYPE, PROBLEM, CELL_MODEL, METHOD);
 
 #endif // not CABLEEQ
 
@@ -62,7 +62,7 @@ void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSav
 
     // Add theta to the path
     char thetaPath[MAX_STRING_SIZE];
-    snprintf(thetaPath, MAX_STRING_SIZE * sizeof(char), "%.2lf", THETA);
+    snprintf(thetaPath, MAX_STRING_SIZE, "%.2lf", THETA);
     strcat(path, "/");
     strcat(path, thetaPath);
 
@@ -70,6 +70,24 @@ void createDirectories(real delta_t, real delta_x, real delta_y, char *pathToSav
 
     // Update pathToSaveData
     strcpy(pathToSaveData, path);
+
+    // Create directories
+    char temp[MAX_STRING_SIZE];
+    strcpy(temp, path);
+
+    char *p = temp;
+    while (*p) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(temp, 0777) != 0 && errno != EEXIST)
+                ERRORMSG("Error creating dir %s: %s\n", temp, strerror(errno));
+
+            *p = '/';
+        }
+        p++;
+    }
+    if (mkdir(temp, 0777) != 0 && errno != EEXIST)
+        ERRORMSG("Error creating dir %s: %s\n", temp, strerror(errno));
 }
 
 void initializeTimeArray(real *timeArray, int M, real dt)

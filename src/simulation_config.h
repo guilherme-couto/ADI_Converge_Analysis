@@ -4,7 +4,9 @@
 #include "include.h"
 
 #ifdef SAVE_FRAMES
-const int frameSaveRate = 100;
+const int frameSaveRate = 20000; // dt = 0.0001 ms saving each 2 ms
+// const int frameSaveRate = 1000; // dt = 0.002 ms saving each 2 ms
+// const int frameSaveRate = 2000; // dt = 0.001 ms saving each 2 ms
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -16,7 +18,7 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 1000.0f;       // Total time (ms)
+const real totalTime = 150.0f;       // Total time (ms)
 const __constant__ real Lx = 6.0f;  // Length in x (cm)
 const __constant__ real Ly = 6.0f; // Length in y (cm)
 
@@ -48,7 +50,7 @@ const real stimuliStrength = 1.0f; // Stimulation strength -> (amplitude)
 #endif                             // MV
 
 const real stimuliDuration = 2.0f;          // Stimulation duration -> ms
-const real stimuliBegin[] = {0.0f, 350.0f}; // Stimuli begin time -> ms
+const real stimuliBegin[] = {200.0f, 340.0f}; // Stimuli begin time -> ms
 const real stimulixMax[] = {0.2f, 3.0f};    // Stimuli x max -> cm
 const real stimulixMin[] = {0.0f, 0.0f};    // Stimuli x min -> cm
 const real stimuliyMax[] = {6.0f, 3.0f};    // Stimuli y max -> cm

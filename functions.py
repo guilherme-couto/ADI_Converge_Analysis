@@ -45,7 +45,7 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
     elif cell_model == 'TT2':
         compile_command += '-DTT2 -DEPI '
     elif cell_model == 'MV':
-        compile_command += '-DMV -DEPI '
+        compile_command += '-DMV -DTNNP '
 
     if init == 'restore_state':
         compile_command += '-DRESTORE_STATE '

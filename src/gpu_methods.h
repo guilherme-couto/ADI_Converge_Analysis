@@ -94,8 +94,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Restoring state variables...\n");
 
     // Initialize variables with a solution
-    real real_ref_dx = 0.0005f;
-    real real_def_dy = 0.0005f;
+    real real_ref_dx = 0.002f;
+    real real_def_dy = 0.002f;
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 

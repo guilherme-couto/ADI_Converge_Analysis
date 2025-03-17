@@ -9,6 +9,9 @@
 #include <omp.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
 
 // ANSI color codes
 #define RESET "\033[0m"
@@ -32,7 +35,7 @@
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
-#define MAX_SYS_SIZE 2001
+#define MAX_SYS_SIZE 3005
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -630,7 +633,7 @@ const __constant__ real K_bufSS = 0.00025f; // Half-saturation constant of subsp
 
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
 // const __constant__ real Dtilde = 1.171f * 1e-3; // cm^2/s
-const __constant__ real Dtilde = 0.45f * 1e-3; // cm^2/s    
+const __constant__ real Dtilde = 0.9f * 1e-3; // cm^2/s    
 // const __constant__ real Dtilde = 0.8122f; // cm^2/ms (to be like TT2)
 // const __constant__ real Dtilde = 0.836429f; // cm^2/ms (equivalent to 1.171 when using TNNP but dividing by 1000 instead of 1400)
 

@@ -6,9 +6,9 @@ METHOD = SSI-ADI
 
 DOMAIN LENGTH IN X = 6 cm
 DOMAIN LENGTH IN Y = 6 cm
-TOTAL TIME = 2000 ms
+TOTAL TIME = 1000 ms
 
-delta_t = 0.02 ms (100000 time steps)
+delta_t = 0.02 ms (50000 time steps)
 delta_x = 0.02 cm (200 um) (301 space steps in x)
 delta_y = 0.02 cm (200 um) (301 space steps in y)
 TOTAL POINTS IN DOMAIN = 90601
@@ -25,6 +25,6 @@ GRID SIZE FOR Y = 10 blocks (32 threads per block, total 320 threads)
 
 STIMULUS VELOCITY = 51.79 cm/s
 
-TIME TO MEASURE VELOCITY = 0.016311 s
-TIME TO SAVE FRAMES = 12.138 s
-SIMULATION TOTAL EXECUTION TIME = 168.15 s
+TIME TO MEASURE VELOCITY = 0.016114 s
+TIME TO SAVE FRAMES = 6.124 s
+SIMULATION TOTAL EXECUTION TIME = 121.27 s
