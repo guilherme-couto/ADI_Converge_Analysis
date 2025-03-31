@@ -121,7 +121,7 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 {
     for (int i = 0; i < numberOfStimuli; i++)
     {
-        stimuli[i].strength = stimuliStrength;
+        stimuli[i].amplitude = stimuliAmplitude;
         stimuli[i].begin = stimuliBegin[i];
         stimuli[i].duration = stimuliDuration;
 
@@ -135,7 +135,7 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 
         // Only one stimulus for CABLEEQ
         if (i > 0)
-            stimuli[i].strength = 0.0f;
+            stimuli[i].amplitude = 0.0f;
 
 #endif // CABLEEQ
     }

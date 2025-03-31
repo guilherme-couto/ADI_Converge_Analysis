@@ -7,4 +7,3 @@ dt (ms)	| dx (cm)	| dy (cm)	| N-2 Error	| slope
 0.005 	| 0.0005 	| 0.0005 	| 0.002252 	| 1.960
 
 Slope of the fitted line (least squares in log-log): 1.976767
-

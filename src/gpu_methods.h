@@ -222,22 +222,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     real phi_x = delta_t / (delta_x * delta_x);
     real phi_y = delta_t / (delta_y * delta_y);
     real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
+    real diff_coeff;
 
 #ifdef AFHN
 
-    real diff_coeff = sigma / (Cm * chi);
+    diff_coeff = sigma / (Cm * chi);
 
 #endif // AFHN
 
 #ifdef TT2
 
-    real diff_coeff = sigma / chi;
+    diff_coeff = sigma / chi;
 
 #endif // TT2
 
 #ifdef MV
 
-    real diff_coeff = Dtilde;
+    diff_coeff = Dtilde;
 
 #endif // MV
 
@@ -273,30 +274,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
 
 #endif // OSADI
-
-    // Prefactorize the arrays for Thomas algorithm
-    real *c_prime_x = (real *)malloc(Nx * sizeof(real));
-    real *c_prime_y = (real *)malloc(Ny * sizeof(real));
-    real *denominator_x = (real *)malloc(Nx * sizeof(real));
-    real *denominator_y = (real *)malloc(Ny * sizeof(real));
-    prefactorizeThomas(la_x, lb_x, lc_x, c_prime_x, denominator_x, Nx);
-    prefactorizeThomas(la_y, lb_y, lc_y, c_prime_y, denominator_y, Ny);
-
-    real *d_c_prime_x, *d_c_prime_y, *d_denominator_x, *d_denominator_y;
-    CUDA_CALL(cudaMalloc(&d_c_prime_x, Nx * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_c_prime_y, Ny * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_denominator_x, Nx * sizeof(real)));
-    CUDA_CALL(cudaMalloc(&d_denominator_y, Ny * sizeof(real)));
-
-    CUDA_CALL(cudaMemcpy(d_c_prime_x, c_prime_x, Nx * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_c_prime_y, c_prime_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_denominator_x, denominator_x, Nx * sizeof(real), cudaMemcpyHostToDevice));
-    CUDA_CALL(cudaMemcpy(d_denominator_y, denominator_y, Ny * sizeof(real), cudaMemcpyHostToDevice));
-
-    free(c_prime_x);
-    free(c_prime_y);
-    free(denominator_x);
-    free(denominator_y);
 
     // Malloc and copy to device
     real *d_la_x, *d_lb_x, *d_lc_x, *d_la_y, *d_lb_y, *d_lc_y;
@@ -410,8 +387,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // MV
 
-#ifdef MONODOMAIN
-
     // Allocate array for the stimuli
     Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
     populateStimuli(stimuli, delta_x, delta_y);
@@ -420,8 +395,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     Stimulus *d_stimuli;
     CUDA_CALL(cudaMalloc(&d_stimuli, numberOfStimuli * sizeof(Stimulus)));
     CUDA_CALL(cudaMemcpy(d_stimuli, stimuli, numberOfStimuli * sizeof(Stimulus), cudaMemcpyHostToDevice));
-
-#endif // MONODOMAIN
 
     // CUDA grid and block allocation
     // Device properties
@@ -506,8 +479,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("\n");
     printf("Starting simulation...\n");
     startExecutionTime = omp_get_wtime();
-
-#if defined(MONODOMAIN)
 
     while (timeStepCounter < M)
     {
@@ -667,8 +638,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         timeStepCounter++;
     }
 
-#endif // MONODOMAIN
-
     finishExecutionTime = omp_get_wtime();
     elapsedExecutionTime += finishExecutionTime - startExecutionTime;
 
@@ -715,6 +684,17 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
 
     fprintf(fpInfos, "\n");
+    #ifdef RESTORE_STATE
+    fprintf(fpInfos, "STATE RESTORED\n");
+    #endif
+    fprintf(fpInfos, "DIFFUSION COEFFICIENT = %.8g\n", diff_coeff);
+    fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin);
+    }
+
+    fprintf(fpInfos, "\n");
     fprintf(fpInfos, "DEVICE NAME = %s (%d SMs)\n", prop.name, numSMs);
 
     fprintf(fpInfos, "\n");
@@ -734,7 +714,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef MEASURE_VELOCITY
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "STIMULUS VELOCITY = %.4g cm/s\n", stim_velocity);
+    fprintf(fpInfos, "STIMULUS S1 VELOCITY = %.4g cm/s\n", stim_velocity);
 
 #endif // MEASURE_VELOCITY
 
@@ -753,6 +733,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // SAVE_FRAMES
 
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
+
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
     fclose(fpInfos);
 
     INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);
@@ -1008,11 +991,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
-    CUDA_CALL(cudaFree(d_c_prime_x));
-    CUDA_CALL(cudaFree(d_denominator_x));
-    CUDA_CALL(cudaFree(d_c_prime_y));
-    CUDA_CALL(cudaFree(d_denominator_y));
-
     CUDA_CALL(cudaFree(d_la_x));
     CUDA_CALL(cudaFree(d_lb_x));
     CUDA_CALL(cudaFree(d_lc_x));
@@ -1027,8 +1005,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // OSADI
 
 #endif // SSIADI || THETASSIADI || OSADI
-
-#ifdef MONODOMAIN
 
     free(stimuli);
     CUDA_CALL(cudaFree(d_stimuli));
@@ -1097,7 +1073,6 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     CUDA_CALL(cudaFree(d_s));
 
 #endif // MV
-#endif // MONODOMAIN
 
     // Reset device
     CUDA_CALL(cudaDeviceReset());

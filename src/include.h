@@ -35,7 +35,7 @@
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
-#define MAX_SYS_SIZE 3005
+#define MAX_SYS_SIZE 1024*3
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -133,7 +133,7 @@ typedef float real;
 
 typedef struct
 {
-    real strength;
+    real amplitude;
     real begin;
     real duration;
     int xMaxDisc;

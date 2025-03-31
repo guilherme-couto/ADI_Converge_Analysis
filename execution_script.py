@@ -17,7 +17,7 @@ def main():
     dx = 0.002 # Ref solution
     dy = 0.002 # Ref solution
     dts = [0.0001] # Ref solution
-    methods = ['SSI-ADI'] # Ref solution
+    methods = ['OS-ADI', 'FE'] # Ref solution
 
     # Berg suggestion for normal simulations
     # dx = 0.02 # 200 um, sugestão Berg de uso no MonoAlg
@@ -27,21 +27,23 @@ def main():
 
     # Simulations
     # dxs = [0.005, 0.01, 0.02, 0.04, 0.05]
+    # dxs = [0.04, 0.05]
     # dys = dxs
-    dx = 0.002
-    dy = 0.002
-    dts = [0.001, 0.002, 0.003, 0.004, 0.005]
-    methods = ['SSI-ADI', 'OS-ADI', 'FE']
+    dts = [0.02]
+    dx = 0.02
+    dy = dx
+    # dt = 0.01
+    methods = ['OS-ADI']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'MV' # 'AFHN', 'TT2', 'MV' (only in GPU by now)
-    init = 'restore_state' # 'initial_conditions', 'restore_state'
+    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
     shift_state = False
     frames = True
     save_last_frame = True
-    save_last_state = True
+    save_last_state = False
     measure_velocity = False
 
     for method in methods:
@@ -111,10 +113,10 @@ def main():
     #                 if frames:
     #                     create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
     
-    # # Run fixing dt and varying dx and dy
+    # Run fixing dt and varying dx and dy
     # for method in methods:
     #     for i in range(len(dxs)):
-    #         dt = 0.005
+    #         # dt = 0.005
     #         dx = dxs[i]
     #         dy = dys[i]
 

@@ -697,7 +697,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 {
                     if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
-                        stim = stimuli[si].strength;
+                        stim = stimuli[si].amplitude;
                         break;
                     }
                 }
@@ -952,7 +952,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 {
                     if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && i >= stimuli[si].xMinDisc && i <= stimuli[si].xMaxDisc)
                     {
-                        stim = stimuli[si].strength;
+                        stim = stimuli[si].amplitude;
                         break;
                     }
                 }
@@ -1034,7 +1034,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 {
                     if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && i >= stimuli[si].xMinDisc && i <= stimuli[si].xMaxDisc)
                     {
-                        stim = stimuli[si].strength;
+                        stim = stimuli[si].amplitude;
                         break;
                     }
                 }

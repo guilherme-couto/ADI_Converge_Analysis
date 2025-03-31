@@ -30,7 +30,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
                 j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
                 i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
             {
-                stim = stimulus.strength;
+                stim = stimulus.amplitude;
                 break;
             }
         }
@@ -135,7 +135,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
                 j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
                 i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
             {
-                stim = stimulus.strength;
+                stim = stimulus.amplitude;
                 break;
             }
         }
@@ -761,7 +761,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
                 j >= stimulus.xMinDisc && j <= stimulus.xMaxDisc &&
                 i >= stimulus.yMinDisc && i <= stimulus.yMaxDisc)
             {
-                stim = stimulus.strength;
+                stim = stimulus.amplitude;
                 break;
             }
         }
@@ -774,6 +774,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real actualw = d_w[index];
         real actuals = d_s[index];
 
+#if defined(SSIADI) || defined(THETASSIADI) || defined(FE)
+
         // Boundary conditions
         real im1Vm = (i - 1 == -1) ? d_Vm[index + Nx] : d_Vm[index - Nx];
         real ip1Vm = (i + 1 == Ny) ? d_Vm[index - Nx] : d_Vm[index + Nx];
@@ -781,6 +783,8 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real jp1Vm = (j + 1 == Nx) ? d_Vm[index - 1] : d_Vm[index + 1];
 
         real diff_term = diff_coeff * (phi_x * (jm1Vm - 2.0f * actualVm + jp1Vm) + phi_y * (im1Vm - 2.0f * actualVm + ip1Vm));
+
+#endif // SSIADI || THETASSIADI || FE
 
         // Calculate RHS of the equations
         // Auxiliary variables
@@ -954,7 +958,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
 
 #endif // MV
 
-#if defined(SSIADI) || defined(THETASSIADI)
+#if defined(SSIADI) || defined(THETASSIADI) || defined(OSADI)
 
 __global__ void prepareRHSiDiff(int Nx, int Ny, real phi_y, real diff_coeff, real tau, real *d_Vm, real *d_RHS, real *d_partRHS)
 {
