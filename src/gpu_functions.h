@@ -1043,29 +1043,29 @@ __global__ void parallelThomasVertical(int numSys, int sysSize, real *d, real *l
         real d_prime[MAX_SYS_SIZE];
 
         // Declare and load shared memory
-        __shared__ real shared_la[MAX_SYS_SIZE];
-        __shared__ real shared_lb[MAX_SYS_SIZE];
-        __shared__ real shared_lc[MAX_SYS_SIZE];
+        // __shared__ real shared_la[MAX_SYS_SIZE];
+        // __shared__ real shared_lb[MAX_SYS_SIZE];
+        // __shared__ real shared_lc[MAX_SYS_SIZE];
 
-        for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
-        {
-            shared_la[i] = la[i];
-            shared_lb[i] = lb[i];
-            shared_lc[i] = lc[i];
-        }
-        __syncthreads();
+        // for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
+        // {
+        //     shared_la[i] = la[i];
+        //     shared_lb[i] = lb[i];
+        //     shared_lc[i] = lc[i];
+        // }
+        // __syncthreads();
 
-        c_prime[0] = shared_lc[0] / shared_lb[0];
-        d_prime[0] = d[systemIdx] / shared_lb[0];
+        c_prime[0] = lc[0] / lb[0];
+        d_prime[0] = d[systemIdx] / lb[0];
 
         for (int i = 1; i < sysSize; i++)
         {
-            real denom = 1.0f / (shared_lb[i] - c_prime[i - 1] * shared_la[i]);
+            real denom = 1.0f / (lb[i] - c_prime[i - 1] * la[i]);
             if (i < sysSize - 1)
             {
-                c_prime[i] = shared_lc[i] * denom;
+                c_prime[i] = lc[i] * denom;
             }
-            d_prime[i] = (d[systemIdx + i * numSys] - d_prime[i - 1] * shared_la[i]) * denom;
+            d_prime[i] = (d[systemIdx + i * numSys] - d_prime[i - 1] * la[i]) * denom;
         }
 
         d[systemIdx + (sysSize - 1) * numSys] = d_prime[sysSize - 1];
@@ -1091,29 +1091,29 @@ __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real 
         real d_prime[MAX_SYS_SIZE];
 
         // Declare and load shared memory
-        __shared__ real shared_la[MAX_SYS_SIZE];
-        __shared__ real shared_lb[MAX_SYS_SIZE];
-        __shared__ real shared_lc[MAX_SYS_SIZE];
+        // __shared__ real shared_la[MAX_SYS_SIZE];
+        // __shared__ real shared_lb[MAX_SYS_SIZE];
+        // __shared__ real shared_lc[MAX_SYS_SIZE];
 
-        for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
-        {
-            shared_la[i] = la[i];
-            shared_lb[i] = lb[i];
-            shared_lc[i] = lc[i];
-        }
-        __syncthreads();
+        // for (int i = 0; i < sysSize && threadIdx.x == 0; i++)
+        // {
+        //     shared_la[i] = la[i];
+        //     shared_lb[i] = lb[i];
+        //     shared_lc[i] = lc[i];
+        // }
+        // __syncthreads();
 
-        c_prime[0] = shared_lc[0] / shared_lb[0];
-        d_prime[0] = d[offset] / shared_lb[0];
+        c_prime[0] = lc[0] / lb[0];
+        d_prime[0] = d[offset] / lb[0];
 
         for (int i = 1; i < sysSize; i++)
         {
-            real denom = 1.0f / (shared_lb[i] - c_prime[i - 1] * shared_la[i]);
+            real denom = 1.0f / (lb[i] - c_prime[i - 1] * la[i]);
             if (i < sysSize - 1)
             {
-                c_prime[i] = shared_lc[i] * denom;
+                c_prime[i] = lc[i] * denom;
             }
-            d_prime[i] = (d[offset + i] - d_prime[i - 1] * shared_la[i]) * denom;
+            d_prime[i] = (d[offset + i] - d_prime[i - 1] * la[i]) * denom;
         }
 
         d[offset + sysSize - 1] = d_prime[sysSize - 1];

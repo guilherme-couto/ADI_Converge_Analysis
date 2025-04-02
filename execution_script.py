@@ -33,7 +33,7 @@ def main():
     dx = 0.02
     dy = dx
     # dt = 0.01
-    methods = ['OS-ADI']
+    methods = ['FE']
     
     real_type = 'double'
     serial_or_gpu = 'GPU'
@@ -44,7 +44,7 @@ def main():
     frames = True
     save_last_frame = True
     save_last_state = False
-    measure_velocity = False
+    measure_velocity = True
 
     for method in methods:
         for i in range(len(dts)):
