@@ -4,10 +4,9 @@
 #include "include.h"
 
 #ifdef SAVE_FRAMES
-const int frameSaveRate = 20000; // dt = 0.0001 ms saving each 2 ms
-// const int frameSaveRate = 4000; // dt = 0.002 ms saving each 2 ms
+// const int frameSaveRate = 20000; // dt = 0.0001 ms saving each 2 ms
 // const int frameSaveRate = 500; // dt = 0.001 ms saving each 2 ms
-// const int frameSaveRate = 100; // dt = 0.01 ms saving each 2 ms
+const int frameSaveRate = 200; // dt = 0.01 ms saving each 2 ms
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
@@ -19,7 +18,7 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 70.0f;       // Total time (ms)
+const real totalTime = 100.0f;       // Total time (ms)
 const __constant__ real Lx = 6.0f;  // Length in x (cm)
 const __constant__ real Ly = 6.0f; // Length in y (cm)
 

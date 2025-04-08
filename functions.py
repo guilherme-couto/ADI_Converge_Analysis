@@ -22,8 +22,11 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, method, theta=None):
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
+def compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, theta=None, convergence_analysis=False):
+    if convergence_analysis:
+        compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o convergence -O3 -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS_FORCING_TERM -w '
+    else:    
+        compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
     
     if real_type == 'double':
         compile_command += '-DUSE_DOUBLE '
@@ -85,20 +88,10 @@ def compile(real_type, serial_or_gpu, problem, cell_model, init, shift_state, fr
 
 def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
     
-    if real_type == 'float':
-        double_or_float = 'USE_FLOAT'
-    elif real_type == 'double':
-        double_or_float = 'USE_DOUBLE'
-    else:
-        raise ValueError('Invalid real type')
     
-    # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS_FORCING_TERM -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
-    print(f'Compiling {compile_command}...')
-    os.system(compile_command)
-
     for i in range(len(dts)):
         dx = dxs[i]
+        dy = dx
         dt = dts[i]
         tts = []
         
@@ -107,7 +100,13 @@ def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, probl
         else:
             tts = thetas 
         for theta in tts:
-            simulation_line = f'./convergence {method} {dt} {dx} {theta}'
+            execution_args = f'{dt} {dx} {dy}'
+            if problem == 'CABLEEQ':
+                execution_args = f'{dt} {dx}'
+            
+            compile(real_type, serial_or_gpu, problem, cell_model, method, init='initial_conditions', shift_state=False, save_frames=False, save_last_frame=True, save_last_state=False, measure_velocity=False, theta=theta, convergence_analysis=True)
+
+            simulation_line = f'./convergence {execution_args}'
             print(f'Executing {simulation_line}...')
             os.system(simulation_line)
 
@@ -116,6 +115,8 @@ def read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs,
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
+        dy = dx
+        print(f'Getting errors for dt={dt} dx={dx} dy={dy}')
         
         infos_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/infos/infos.txt'
         if 'theta' in method:

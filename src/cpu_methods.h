@@ -235,12 +235,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef MV
 
-    initialize2DVariableWithValue(Vm, Nx, Ny, Vm_init);
+    initialize2DVariableWithValue(Vm, Nx, Ny, u_init);
     initialize2DVariableWithValue(v, Nx, Ny, v_init);
     initialize2DVariableWithValue(w, Nx, Ny, w_init);
     initialize2DVariableWithValue(s, Nx, Ny, s_init);
 
 #endif // MV
+
 #endif // MONODOMAIN
 
 #ifdef CABLEEQ
@@ -278,12 +279,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #ifdef MV
 
-    initialize1DVariableWithValue(Vm, Nx, Vm_init);
+    initialize1DVariableWithValue(Vm, Nx, u_init);
     initialize1DVariableWithValue(v, Nx, v_init);
     initialize1DVariableWithValue(w, Nx, w_init);
     initialize1DVariableWithValue(s, Nx, s_init);
 
 #endif // MV
+
 #endif // CABLEEQ
 
 #ifdef RESTORE_STATE
@@ -292,11 +294,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     printf("Restoring state variables...\n");
 
     // Initialize variables with a solution
-    real real_ref_dx = 0.0005;
+    real real_ref_dx = 0.002f;
 
 #ifndef CABLEEQ
 
-    real real_def_dy = 0.0005;
+    real real_def_dy = 0.002f;
 
 #endif // not CABLEEQ
 
@@ -368,6 +370,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize1DVariableFromFile(s, Nx, pathToRestoreStateFiles, delta_x, "s", real_ref_dx);
 
 #endif // MV
+
 #endif // CABLEEQ
 
 #ifdef MONODOMAIN
@@ -423,6 +426,20 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     initialize2DVariableFromFile(K_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "K_i", real_ref_dx, real_def_dy);
 
 #endif // TT2
+
+#ifdef MV
+
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframev.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(v, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "v", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframew.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(w, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "w", real_ref_dx, real_def_dy);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
+
+#endif // MV
+
 #endif // MONODOMAIN
 
     free(pathToRestoreStateFiles);
@@ -446,6 +463,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     shift1DVariableToLeft(W, Nx, lengthToShift, delta_x, W_init, "W");
 
 #endif // AFHN
+
 #ifdef TT2
 
     shift1DVariableToLeft(X_r1, Nx, lengthToShift, delta_x, X_r1_init, "X_r1");
@@ -468,26 +486,95 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     shift1DVariableToLeft(K_i, Nx, lengthToShift, delta_x, K_i_init, "K_i");
 
 #endif // TT2
-#endif // CABLEEQ
-#ifdef MONODOMAIN
 
-    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
+#ifdef MV
+
+    shift1DVariableToLeft(Vm, Nx, lengthToShift, delta_x, u_init, "Vm");
+    shift1DVariableToLeft(v, Nx, lengthToShift, delta_x, v_init, "v");
+    shift1DVariableToLeft(w, Nx, lengthToShift, delta_x, w_init, "w");
+    shift1DVariableToLeft(s, Nx, lengthToShift, delta_x, s_init, "s");
+
+#endif // MV
+
+#endif // CABLEEQ
+
+#ifdef MONODOMAIN
 
 #ifdef AFHN
 
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
     shift2DVariableToLeft(W, Nx, Ny, lengthToShift, delta_x, delta_y, W_init, "W");
 
 #endif // AFHN
+
 #ifdef TT2
-// TODO
+
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, Vm_init, "Vm");
+    shift2DVariableToLeft(X_r1, Nx, Ny, lengthToShift, delta_x, delta_y, X_r1_init, "X_r1");
+    shift2DVariableToLeft(X_r2, Nx, Ny, lengthToShift, delta_x, delta_y, X_r2_init, "X_r2");
+    shift2DVariableToLeft(X_s, Nx, Ny, lengthToShift, delta_x, delta_y, X_s_init, "X_s");
+    shift2DVariableToLeft(m, Nx, Ny, lengthToShift, delta_x, delta_y, m_init, "m");
+    shift2DVariableToLeft(h, Nx, Ny, lengthToShift, delta_x, delta_y, h_init, "h");
+    shift2DVariableToLeft(_j, Nx, Ny, lengthToShift, delta_x, delta_y, j_init, "j");
+    shift2DVariableToLeft(d, Nx, Ny, lengthToShift, delta_x, delta_y, d_init, "d");
+    shift2DVariableToLeft(f, Nx, Ny, lengthToShift, delta_x, delta_y, f_init, "f");
+    shift2DVariableToLeft(f2, Nx, Ny, lengthToShift, delta_x, delta_y, f2_init, "f2");
+    shift2DVariableToLeft(fCaSS, Nx, Ny, lengthToShift, delta_x, delta_y, fCaSS_init, "fCaSS");
+    shift2DVariableToLeft(s, Nx, Ny, lengthToShift, delta_x, delta_y, s_init, "s");
+    shift2DVariableToLeft(r, Nx, Ny, lengthToShift, delta_x, delta_y, r_init, "r");
+    shift2DVariableToLeft(Ca_i, Nx, Ny, lengthToShift, delta_x, delta_y, Ca_i_init, "Ca_i");
+    shift2DVariableToLeft(Ca_SR, Nx, Ny, lengthToShift, delta_x, delta_y, Ca_SR_init, "Ca_SR");
+    shift2DVariableToLeft(Ca_SS, Nx, Ny, lengthToShift, delta_x, delta_y, Ca_SS_init, "Ca_SS");
+    shift2DVariableToLeft(R_prime, Nx, Ny, lengthToShift, delta_x, delta_y, R_prime_init, "R_prime");
+    shift2DVariableToLeft(Na_i, Nx, Ny, lengthToShift, delta_x, delta_y, Na_i_init, "Na_i");
+    shift2DVariableToLeft(K_i, Nx, Ny, lengthToShift, delta_x, delta_y, K_i_init, "K_i");
+
 #endif // TT2
+
+#ifdef MV
+
+    shift2DVariableToLeft(Vm, Nx, Ny, lengthToShift, delta_x, delta_y, u_init, "Vm");
+    shift2DVariableToLeft(v, Nx, Ny, lengthToShift, delta_x, delta_y, v_init, "v");
+    shift2DVariableToLeft(w, Nx, Ny, lengthToShift, delta_x, delta_y, w_init, "w");
+    shift2DVariableToLeft(s, Nx, Ny, lengthToShift, delta_x, delta_y, s_init, "s");
+
+#endif // MV
+
 #endif // MONODOMAIN
+
 #endif // SHIFT_STATE
+
+    // Populate auxiliary arrays for Thomas algorithm
+    real phi_x = delta_t / (delta_x * delta_x);
+    real phi_y = delta_t / (delta_y * delta_y);
+    real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
+    real diff_coeff;
+
+#ifdef AFHN
+
+    diff_coeff = sigma / (Cm * chi);
+
+#endif // AFHN
+
+#ifdef TT2
+
+    diff_coeff = sigma / chi;
+
+#endif // TT2
+
+#ifdef MV
+
+    diff_coeff = Dtilde;
+
+#endif // MV
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
 
     // Auxiliary arrays for Thomas algorithm
     real *la_x = (real *)malloc(Nx * sizeof(real)); // subdiagonal
     real *lb_x = (real *)malloc(Nx * sizeof(real)); // diagonal
     real *lc_x = (real *)malloc(Nx * sizeof(real)); // superdiagonal
+
     real *c_prime_x = (real *)malloc(Nx * sizeof(real));
     real *d_prime_x = (real *)malloc(Nx * sizeof(real));
     real *LS_b_x = (real *)malloc(Nx * sizeof(real));
@@ -498,27 +585,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     real *la_y = (real *)malloc(Ny * sizeof(real)); // subdiagonal
     real *lb_y = (real *)malloc(Ny * sizeof(real)); // diagonal
     real *lc_y = (real *)malloc(Ny * sizeof(real)); // superdiagonal
+
     real *c_prime_y = (real *)malloc(Ny * sizeof(real));
     real *d_prime_y = (real *)malloc(Ny * sizeof(real));
     real *LS_b_y = (real *)malloc(Ny * sizeof(real));
     real *result_y = (real *)malloc(Ny * sizeof(real));
 
 #endif // not CABLEEQ
-
-    // Populate auxiliary arrays for Thomas algorithm
-    real phi_x = delta_t / (delta_x * delta_x);
-    real phi_y = delta_t / (delta_y * delta_y);
-    real tau = 0.5f; // Used for calculating the explicit diffusion term on the right-hand side of the ADI method
-
-#ifndef TT2
-
-    real diff_coeff = sigma / (Cm * chi);
-
-#else // if def TT2
-
-    real diff_coeff = sigma / chi;
-
-#endif // not TT2
 
 #if defined(SSIADI)
 
@@ -529,6 +602,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
 
 #endif // not CABLEEQ
+
 #endif // SSIADI
 
 #if defined(THETASSIADI) || defined(THETASSIRK2)
@@ -554,9 +628,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
 
 #endif // not CABLEEQ
+
 #endif // OSADI
 
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI
+
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 
     // Allocate array for the stimuli
@@ -564,6 +642,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     populateStimuli(stimuli, delta_x, delta_y);
 
 #endif // MONODOMAIN || CABLEEQ
+
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
 #ifdef CABLEEQ
@@ -606,6 +685,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     // Variables for measuring the execution time
     real startExecutionTime, finishExecutionTime, elapsedExecutionTime = 0.0f;
+    real startTime, finishTime, elapsedTime1stPart, elapsedTime2ndPart = 0.0f;
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
+
+    real startLSTime, finishLSTime, elapsedTime1stLS, elapsedTime2ndLS = 0.0f;
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI
 
     // Auxiliary variables for the time loop
     int timeStepCounter = 0;
@@ -622,6 +708,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     {
         // Get time step
         actualTime = time[timeStepCounter];
+
+        // Start measuring time of 1st part
+        startTime = omp_get_wtime();
 
         // ================================================!
         //  Calculate Approxs. and Update ODEs             !
@@ -648,6 +737,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // LINMONO
 
 #ifdef MONODOMAIN
+
 #ifdef AFHN
 
                 // Calculate the explicit part of the RHS, including the diffusion term in both directions
@@ -739,17 +829,220 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // FE
 
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #endif // AFHN
 
 #ifdef TT2
                 // TODO: Implement TT2 for MONODOMAIN in SERIAL mode
 #endif // TT2
+
 #ifdef MV
-                // TODO: Implement MV for MONODOMAIN in SERIAL mode
+
+                // Calculate the explicit part of the RHS, including the diffusion term in both directions
+                real actualVm = Vm[i][j];
+                real actualv = v[i][j];
+                real actualw = w[i][j];
+                real actuals = s[i][j];
+                
+                real stim = 0.0f;
+
+#pragma unroll
+                for (int si = 0; si < numberOfStimuli; si++)
+                {
+                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    {
+                        stim = stimuli[si].amplitude;
+                        break;
+                    }
+                }
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2)
+
+                diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || FE
+
+                // Calculate RHS of the equations
+                // Auxiliary variables
+                real Htheta_w = (actualVm - theta_w > 0.0f) ? 1.0f : 0.0f;
+                real Htheta_o = (actualVm - theta_o > 0.0f) ? 1.0f : 0.0f;
+                real Htheta_v = (actualVm - theta_v > 0.0f) ? 1.0f : 0.0f;
+                real Htheta_vminus = (actualVm - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+
+                real tau_o = (1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2;
+                real tau_so = tau_so1 + (tau_so2 - tau_so1) * (1.0f + tanh(k_so * (actualVm - u_so))) * 0.5f;
+                real tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
+                // Currents
+                real J_fi = -actualv * Htheta_v * (actualVm - theta_v) * (u_u - actualVm) / tau_fi;
+                real J_so = ((actualVm - u_o) * (1.0f - Htheta_w) / tau_o) + (Htheta_w / tau_so);
+                real J_si = -Htheta_w * actualw * actuals / tau_si;
+
+                // RHS of the state variables
+                real RHS_Vm_term = J_fi + J_so + J_si;
+                real RHS_v_term = (1.0f - Htheta_v) * (((actualVm < theta_vminus) ? 1.0f : 0.0f) - actualv) / tau_vminus - (Htheta_v * actualv / tau_vplus);
+                real RHS_w_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar) - actualw) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus)))) * 0.5f)) - (Htheta_w * actualw / tau_wplus);
+                real RHS_s_term = (((1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f) - actuals) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
+
+#if defined(SSIADI) || defined(THETASSIADI)
+
+                // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
+                real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
+
+                // Auxiliary variables for Rush-Larsen or Forward Euler
+                real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+                real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+                real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+                real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+                real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+                real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+                real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+                real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+                real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+                // Calculate approximations with Rush-Larsen or Forward Euler using half time step
+                real vtilde, wtilde, stilde;
+                (tau_v_RL > 1.0e-10)
+                    ? (vtilde = v_inf_RL - (v_inf_RL - actualv) * exp(-0.5f * delta_t / tau_v_RL))
+                    : (vtilde = actualv + 0.5f * delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
+                
+                (tau_w_RL > 1.0e-10)
+                    ? (wtilde = w_inf_RL - (w_inf_RL - actualw) * exp(-0.5f * delta_t / tau_w_RL))
+                    : (wtilde = actualw + 0.5f * delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
+                
+                (tau_s > 1.0e-10)
+                    ? (stilde = s_inf_RL - (s_inf_RL - actuals) * exp(-0.5f * delta_t / tau_s))
+                    : (stilde = actuals + 0.5f * delta_t * (s_inf_RL - actuals) / tau_s);
+
+                // Calculate RHS of the equations with approximations
+                // Auxiliary variables
+                Htheta_w = (Vmtilde - theta_w > 0.0f) ? 1.0f : 0.0f;
+                Htheta_o = (Vmtilde - theta_o > 0.0f) ? 1.0f : 0.0f;
+                Htheta_v = (Vmtilde - theta_v > 0.0f) ? 1.0f : 0.0f;
+                Htheta_vminus = (Vmtilde - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+
+                tau_o = (1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2;
+                tau_so = tau_so1 + (tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vmtilde - u_so))) * 0.5f;
+                tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
+                // Currents
+                real J_fi_tilde = -actualv * Htheta_v * (Vmtilde - theta_v) * (u_u - Vmtilde) / tau_fi;
+                real J_so_tilde = ((Vmtilde - u_o) * (1.0f - Htheta_w) / ((1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2)) + (Htheta_w / (tau_so1 + (((tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vmtilde - u_so)))) * 0.5f)));
+                real J_si_tilde = -Htheta_w * wtilde * stilde / tau_si;
+
+                // Update partRHS
+                real RHS_Vmtilde_term = J_fi_tilde + J_so_tilde + J_si_tilde;
+                partRHS[i][j] = delta_t * (stim - RHS_Vmtilde_term);
+
+                // Update auxiliary variables for Rush-Larsen or Forward Euler with approximations
+                v_inf = ((Vmtilde < theta_vminus) ? 1.0f : 0.0f);
+                tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+                v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+                w_inf = ((1.0f - Htheta_o) * (1.0f - (Vmtilde / tau_winf)) + Htheta_o * w_infstar);
+                tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (Vmtilde - u_wminus))) * 0.5f;
+                tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+                w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+                tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+                s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;       
+
+                // Update state variables with Rush-Larsen or RK2 (Heun's method) using approximations
+                (tau_v_RL > 1.0e-10)
+                    ? (v[i][j] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
+                    : (v[i][j] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - vtilde) / tau_vminus - Htheta_v * vtilde / tau_vplus);
+                
+                (tau_w_RL > 1.0e-10)
+                    ? (w[i][j] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
+                    : (w[i][j] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - wtilde) / tau_wminus - Htheta_w * wtilde / tau_wplus);
+                
+                (tau_s > 1.0e-10)
+                    ? (s[i][j] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
+                    : (s[i][j] = actuals + delta_t * (s_inf_RL - stilde) / tau_s);
+
+#endif // SSIADI || THETASSIADI
+
+#ifdef OSADI
+
+                // Update partRHS
+                partRHS[i][j] = delta_t * (stim - RHS_Vm_term);
+
+                // Auxiliary variables for Rush-Larsen or Forward Euler
+                real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+                real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+                real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+                real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+                real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+                real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+                real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+                real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+                real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+                // Update state variables with Rush-Larsen or Forward Euler
+                (tau_v_RL > 1.0e-10)
+                    ? (v[i][j] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
+                    : (v[i][j] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
+                
+                (tau_w_RL > 1.0e-10)
+                    ? (w[i][j] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
+                    : (w[i][j] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
+                
+                (tau_s > 1.0e-10)
+                    ? (s[i][j] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
+                    : (s[i][j] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
+
+#endif // OSADI
+
+#ifdef FE
+
+                // Update partRHS (auxiliary variable) with Forward Euler
+                diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
+                partRHS[i][j] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
+
+                // Auxiliary variables for Rush-Larsen or Forward Euler
+                real v_inf = ((actualVm < theta_vminus) ? 1.0f : 0.0f);
+                real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+                real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+                real w_inf = ((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar);
+                real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus))) * 0.5f;
+                real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+                real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+                real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+                real s_inf_RL = (1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f;
+
+                // Update state variables with Rush-Larsen or Forward Euler
+                (tau_v_RL > 1.0e-10)
+                    ? (v[i][j] = v_inf_RL + (actualv - v_inf_RL) * exp(-delta_t / tau_v_RL))
+                    : (v[i][j] = actualv + delta_t * ((1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus));
+                
+                (tau_w_RL > 1.0e-10)
+                    ? (w[i][j] = w_inf_RL + (actualw - w_inf_RL) * exp(-delta_t / tau_w_RL))
+                    : (w[i][j] = actualw + delta_t * ((1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus));
+                
+                (tau_s > 1.0e-10)
+                    ? (s[i][j] = s_inf_RL + (actuals - s_inf_RL) * exp(-delta_t / tau_s))
+                    : (s[i][j] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
+
+#endif // FE
+
 #endif // MV
+
 #endif // MONODOMAIN
             }
         }
+
+        // End of the 1st part of the time step
+        finishTime = omp_get_wtime();
+        elapsedTime1stPart += finishTime - startTime;
+
+        // Start measuring time of 2nd part
+        startTime = omp_get_wtime();
 
 #if defined(SSIADI) || defined(THETASSIADI)
 
@@ -767,6 +1060,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 LS_b_y[i] = actualVm + diff_term + 0.5f * partRHS[i][j];
             }
 
+            // Start measuring time of 1st LS
+            startLSTime = omp_get_wtime();
+
             // Solve the linear system
             tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
 
@@ -775,6 +1071,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 RHS[i][j] = result_y[i];
             }
+
+            // End measuring time of 1st LS
+            finishLSTime = omp_get_wtime();
+            elapsedTime1stLS += finishLSTime - startLSTime;
         }
 
         // ================================================!
@@ -791,6 +1091,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 LS_b_x[j] = actualVm + diff_term + 0.5f * partRHS[i][j];
             }
 
+            // Start measuring time of 2nd LS
+            startLSTime = omp_get_wtime();
+
             // Solve the linear system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
 
@@ -799,6 +1102,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 Vm[i][j] = result_x[j];
             }
+
+            // End measuring time of 2nd LS
+            finishLSTime = omp_get_wtime();
+            elapsedTime2ndLS += finishLSTime - startLSTime;
         }
 
 #endif // SSIADI || THETASSIADI
@@ -816,6 +1123,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 LS_b_y[i] = Vm[i][j] + 0.5f * partRHS[i][j];
             }
 
+            // Start measuring time of 1st LS
+            startLSTime = omp_get_wtime();
+
             // Solve the linear system
             tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
 
@@ -824,6 +1134,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 Vm[i][j] = result_y[i];
             }
+
+            // End measuring time of 1st LS
+            finishLSTime = omp_get_wtime();
+            elapsedTime1stLS += finishLSTime - startLSTime;
         }
 
         // ================================================!
@@ -837,6 +1151,9 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 LS_b_x[j] = Vm[i][j] + 0.5f * partRHS[i][j];
             }
 
+            // Start measuring time of 2nd LS
+            startLSTime = omp_get_wtime();
+
             // Solve the linear system
             tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
 
@@ -845,6 +1162,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             {
                 Vm[i][j] = result_x[j];
             }
+
+            // End measuring time of 2nd LS
+            finishLSTime = omp_get_wtime();
+            elapsedTime2ndLS += finishLSTime - startLSTime;
         }
 
 #endif // OSADI
@@ -859,6 +1180,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 Vm[i][j] = partRHS[i][j];
 
 #endif // FE
+
+        // End of the 2nd part of the time step
+        finishTime = omp_get_wtime();
+        elapsedTime2ndPart += finishTime - startTime;
 
 #ifdef SAVE_FRAMES
 
@@ -879,16 +1204,22 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // SAVE_FRAMES
 
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
+
 #ifdef MEASURE_VELOCITY
 
         startMeasureVelocityTime = omp_get_wtime();
 
         // Calculate stim velocity
         if (!stim_velocity_measured)
-        {
+        {   
+            real point_potential = 0.0f;
             if (!aux_stim_velocity_flag)
             {
-                if (Vm[0][begin_point_index] > 10.0f)
+                point_potential = Vm[0][begin_point_index];
+#ifdef MV
+                point_potential = rescaleVm(point_potential);
+#endif // MV
+                if (point_potential > 10.0f)
                 {
                     begin_point_time = actualTime;
                     aux_stim_velocity_flag = true;
@@ -896,7 +1227,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             }
             else
             {
-                if (Vm[0][end_point_index] > 10.0f)
+                point_potential = Vm[0][end_point_index];
+#ifdef MV
+                point_potential = rescaleVm(point_potential);
+#endif // MV
+                if (point_potential > 10.0f)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
@@ -911,6 +1246,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
 
 #endif // MEASURE_VELOCITY
+
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
         // Update time step counter
@@ -1506,10 +1842,21 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // CABLEEQ
 
+#if defined(MONODOMAIN) || defined(CABLEEQ)
+
+    fprintf(fpInfos, "DIFFUSION COEFFICIENT = %.8g\n", diff_coeff);
+    fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin);
+    }
+
+#endif // MONODOMAIN || CABLEEQ
+
 #ifdef MEASURE_VELOCITY
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "STIMULUS VELOCITY = %.4g cm/s\n", stim_velocity);
+    fprintf(fpInfos, "STIMULUS S1 VELOCITY = %.4g cm/s\n", stim_velocity);
 
 #endif // MEASURE_VELOCITY
 
@@ -1521,6 +1868,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM
 
     fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "TIME OF THE FIRST PART = %.5g s\n", elapsedTime1stPart);
+    fprintf(fpInfos, "TIME OF THE SECOND PART = %.5g s\n", elapsedTime2ndPart);
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
+
+    fprintf(fpInfos, "TIME TO SOLVE THE 1st LINEAR SYSTEM = %.5g s\n", elapsedTime1stLS);
+    fprintf(fpInfos, "TIME TO SOLVE THE 2nd LINEAR SYSTEM = %.5g s\n", elapsedTime2ndLS);
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI
 
 #ifdef MEASURE_VELOCITY
 
@@ -1534,7 +1890,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #endif // SAVE_FRAMES
 
+    fprintf(fpInfos, "\n");
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
+    
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
     fclose(fpInfos);
 
     INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);
@@ -1563,6 +1923,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // SAVE_LAST_FRAME
 
 #ifdef SAVE_LAST_STATE
+
 #ifdef AFHN
 
     char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
@@ -1661,7 +2022,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
             fprintf(fpLastX_s, "%e ", X_s[i][j]);
             fprintf(fpLastm, "%e ", m[i][j]);
             fprintf(fpLasth, "%e ", h[i][j]);
-            fprintf(fpLastj, "%e ", j[i][j]);
+            fprintf(fpLastj, "%e ", _j[i][j]);
             fprintf(fpLastd, "%e ", d[i][j]);
             fprintf(fpLastf, "%e ", f[i][j]);
             fprintf(fpLastf2, "%e ", f2[i][j]);
@@ -1764,6 +2125,63 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     fclose(fpLastK_i);
 
 #endif // TT2
+
+#ifdef MV
+
+    // Save last state
+    char lastStateFilePathVm[MAX_STRING_SIZE], lastStateFilePathv[MAX_STRING_SIZE],
+        lastStateFilePathw[MAX_STRING_SIZE], lastStateFilePaths[MAX_STRING_SIZE];
+    snprintf(lastStateFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/laststateVm.txt", pathToSaveData);
+    snprintf(lastStateFilePathv, MAX_STRING_SIZE * sizeof(char), "%s/laststatev.txt", pathToSaveData);
+    snprintf(lastStateFilePathw, MAX_STRING_SIZE * sizeof(char), "%s/laststatew.txt", pathToSaveData);
+    snprintf(lastStateFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/laststates.txt", pathToSaveData);
+
+    FILE *fpLastStateVm = fopen(lastStateFilePathVm, "w");
+    FILE *fpLastStatev = fopen(lastStateFilePathv, "w");
+    FILE *fpLastStatew = fopen(lastStateFilePathw, "w");
+    FILE *fpLastStates = fopen(lastStateFilePaths, "w");
+
+#ifndef CABLEEQ
+
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            fprintf(fpLastStateVm, "%e ", Vm[i][j]);
+            fprintf(fpLastStatev, "%e ", v[i][j]);
+            fprintf(fpLastStatew, "%e ", w[i][j]);
+            fprintf(fpLastStates, "%e ", s[i][j]);
+        }
+        fprintf(fpLastStateVm, "\n");
+        fprintf(fpLastStatev, "\n");
+        fprintf(fpLastStatew, "\n");
+        fprintf(fpLastStates, "\n");
+    }
+
+#else // if def CABLEEQ
+
+    for (int i = 0; i < Nx; i++)
+    {
+        fprintf(fpLastStateVm, "%e ", Vm[i]);
+        fprintf(fpLastStatev, "%e ", v[i]);
+        fprintf(fpLastStatew, "%e ", w[i]);
+        fprintf(fpLastStates, "%e ", s[i]);
+    }
+
+#endif // CABLEEQ
+
+    SUCCESSMSG("Last Vm state saved to %s\n", lastStateFilePathVm);
+    SUCCESSMSG("Last v state saved to %s\n", lastStateFilePathv);
+    SUCCESSMSG("Last w state saved to %s\n", lastStateFilePathw);
+    SUCCESSMSG("Last s state saved to %s\n", lastStateFilePaths);
+
+    fclose(fpLastStateVm);
+    fclose(fpLastStatev);
+    fclose(fpLastStatew);
+    fclose(fpLastStates);
+
+#endif // MV
+
 #endif // SAVE_LAST_STATE
 
 #ifdef CABLEEQ
@@ -1801,11 +2219,13 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // SSIADI || THETASSIADI
 
 #ifdef MONODOMAIN
+
 #ifdef AFHN
 
         free(W[i]);
 
 #endif // AFHN
+
 #ifdef TT2
 
         free(X_r1[i]);
@@ -1828,37 +2248,53 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
         free(K_i[i]);
 
 #endif // TT2
+
+#ifdef MV
+
+        free(v[i]);
+        free(w[i]);
+        free(s[i]);
+
+#endif // MV
+
 #endif // MONODOMAIN
     }
 
-#if defined(SSIADI) || defined(THETASSIADI)
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
 
     free(RHS);
-
-#endif // SSIADI || THETASSIADI
 
     free(c_prime_y);
     free(d_prime_y);
     free(LS_b_y);
     free(result_y);
+
     free(la_y);
     free(lb_y);
     free(lc_y);
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI   
 
 #endif // not CABLEEQ
 
     free(Vm);
     free(partRHS);
 
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
+
     free(c_prime_x);
     free(d_prime_x);
     free(LS_b_x);
     free(result_x);
+    
     free(la_x);
     free(lb_x);
     free(lc_x);
 
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI  
+
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
 #ifndef CONVERGENCE_ANALYSIS_FORCING_TERM
 
     free(stimuli);
@@ -1870,6 +2306,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     free(AP);
 
 #endif // CABLEEQ
+
 #ifdef AFHN
 
     free(W);
@@ -1898,6 +2335,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
     free(K_i);
 
 #endif // TT2
+
+#ifdef MV
+
+    free(v);
+    free(w);
+    free(s);
+
+#endif // MV
+
 #endif // MONODOMAIN || CABLEEQ
 
     return;

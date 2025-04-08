@@ -5,14 +5,14 @@ from functions import *
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = [0.005, 0.01, 0.02] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-    dts = [0.001, 0.002, 0.004, 0.005]
+    dts = [0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.04, 0.05]
     methods = ['SSI-ADI', 'OS-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
-    cell_model = 'AFHN' # 'AFHN', 'TT2'
+    cell_model = 'MV' # 'AFHN', 'TT2', 'MV'
     
     # Find the largest dx to use as base for the read rate
     # base_dx = 0
@@ -22,8 +22,8 @@ def main():
     # base_dx = 0.01
     
     # Read reference solution
-    reference_dx = 0.0005
-    reference_dy = 0.0005
+    reference_dx = 0.002
+    reference_dy = 0.002
     reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/lastframe.txt'
     
     if not os.path.exists(reference_solution_path):

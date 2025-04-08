@@ -470,6 +470,13 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Variables for measuring the execution time
     real startExecutionTime, finishExecutionTime, elapsedExecutionTime = 0.0f;
+    real startTime, finishTime, elapsedTime1stPart, elapsedTime2ndPart = 0.0f;
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
+
+    real startLSTime, finishLSTime, elapsedTime1stLS, elapsedTime2ndLS = 0.0f;
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI
 
     // Auxiliary variables for the time loop
     int timeStepCounter = 0;
@@ -484,6 +491,9 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     {
         // Get time step
         actualTime = time[timeStepCounter];
+
+        // Start measuring time of 1st part
+        startTime = omp_get_wtime();
 
         // ================================================!
         //  Calculate Approx. and ODEs                     !
@@ -509,6 +519,13 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // End measuring time of 1st part
+        finishTime = omp_get_wtime();
+        elapsedTime1stPart += finishTime - startTime;
+
+        // Start measuring time of 2nd part
+        startTime = omp_get_wtime();
+
 #if defined(SSIADI) || defined(THETASSIADI)
 
         // ================================================!
@@ -519,9 +536,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         prepareRHSjDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_x, diff_coeff, tau, d_Vm, d_RHS, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Start measuring time of 1st LS
+        startLSTime = omp_get_wtime();
+
         // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_RHS, d_la_y, d_lb_y, d_lc_y);
         CUDA_CALL(cudaDeviceSynchronize());
+
+        // End measuring time of 1st LS
+        finishLSTime = omp_get_wtime();
+        elapsedTime1stLS += finishLSTime - startLSTime;
 
         // ================================================!
         //  Calculate Vm at n+1 -> Result goes to Vm       !
@@ -531,9 +555,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         prepareRHSiDiff<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, phi_y, diff_coeff, tau, d_RHS, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Start measuring time of 2nd LS
+        startLSTime = omp_get_wtime();
+
         // Solve the linear systems
         parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
         CUDA_CALL(cudaDeviceSynchronize());
+
+        // End measuring time of 2nd LS
+        finishLSTime = omp_get_wtime();
+        elapsedTime2ndLS += finishLSTime - startLSTime;
 
 #endif // SSIADI || THETASSIADI
 
@@ -546,9 +577,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Start measuring time of 1st LS
+        startLSTime = omp_get_wtime();
+
         // Solve the linear systems
         parallelThomasVertical<<<gridSize_x, THOMAS_KERNEL_BLOCK_SIZE>>>(Nx, Ny, d_Vm, d_la_y, d_lb_y, d_lc_y);
         CUDA_CALL(cudaDeviceSynchronize());
+
+        // End measuring time of 1st LS
+        finishLSTime = omp_get_wtime();
+        elapsedTime1stLS += finishLSTime - startLSTime;
 
         // ================================================!
         //  Calculate Vm at n+1 -> Result goes to Vm       !
@@ -557,9 +595,16 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         prepareRHS<<<fullDomainGridSize, fullDomainBlockSize>>>(Nx, Ny, d_Vm, d_partRHS);
         CUDA_CALL(cudaDeviceSynchronize());
 
+        // Start measuring time of 2nd LS
+        startLSTime = omp_get_wtime();
+
         // Solve the linear systems
         parallelThomasHorizontal<<<gridSize_y, THOMAS_KERNEL_BLOCK_SIZE>>>(Ny, Nx, d_Vm, d_la_x, d_lb_x, d_lc_x);
         CUDA_CALL(cudaDeviceSynchronize());
+
+        // End measuring time of 2nd LS
+        finishLSTime = omp_get_wtime();
+        elapsedTime2ndLS += finishLSTime - startLSTime;
 
 #endif // OSADI
 
@@ -568,6 +613,10 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         CUDA_CALL(cudaMemcpy(d_Vm, d_partRHS, Nx * Ny * sizeof(real), cudaMemcpyDeviceToDevice));
 
 #endif // FE
+
+        // End measuring time of 2nd part
+        finishTime = omp_get_wtime();
+        elapsedTime2ndPart += finishTime - startTime;
 
 #ifdef SAVE_FRAMES
 
@@ -597,7 +646,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
         // Calculate stim velocity
         if (!stim_velocity_measured)
         {
-            real point_potential = 0.0;
+            real point_potential = 0.0f;
             if (!aux_stim_velocity_flag)
             {
                 // Copy memory of d_Vm[begin_point_index] from device to host
@@ -605,7 +654,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef MV
                 point_potential = rescaleVm(point_potential);
 #endif // MV
-                if (point_potential > 10.0)
+                if (point_potential > 10.0f)
                 {
                     begin_point_time = actualTime;
                     aux_stim_velocity_flag = true;
@@ -618,11 +667,11 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #ifdef MV
                 point_potential = rescaleVm(point_potential);
 #endif // MV
-                if (point_potential > 10.0)
+                if (point_potential > 10.0f)
                 {
                     end_point_time = actualTime;
                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
-                    stim_velocity = stim_velocity * 1000.0;                                          // cm/s
+                    stim_velocity = stim_velocity * 1000.0f;                                          // cm/s
                     stim_velocity_measured = true;
                     INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
                 }
@@ -684,9 +733,13 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", Nx * Ny);
 
     fprintf(fpInfos, "\n");
-    #ifdef RESTORE_STATE
+
+#ifdef RESTORE_STATE
+
     fprintf(fpInfos, "STATE RESTORED\n");
-    #endif
+
+#endif // RESTORE_STATE
+
     fprintf(fpInfos, "DIFFUSION COEFFICIENT = %.8g\n", diff_coeff);
     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
     for (int i = 0; i < numberOfStimuli; i++)
@@ -719,6 +772,15 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 #endif // MEASURE_VELOCITY
 
     fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "TIME OF THE FIRST PART = %.5g s\n", elapsedTime1stPart);
+    fprintf(fpInfos, "TIME OF THE SECOND PART = %.5g s\n", elapsedTime2ndPart);
+
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
+
+    fprintf(fpInfos, "TIME TO SOLVE THE 1st LINEAR SYSTEM = %.5g s\n", elapsedTime1stLS);
+    fprintf(fpInfos, "TIME TO SOLVE THE 2nd LINEAR SYSTEM = %.5g s\n", elapsedTime2ndLS);
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2 || OSADI
 
 #ifdef MEASURE_VELOCITY
 
@@ -732,6 +794,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #endif // SAVE_FRAMES
 
+    fprintf(fpInfos, "\n");
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
 
     fprintf(fpInfos, "\n");

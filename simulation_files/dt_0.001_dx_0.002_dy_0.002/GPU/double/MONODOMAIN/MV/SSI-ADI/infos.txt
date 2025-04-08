@@ -6,14 +6,18 @@ METHOD = SSI-ADI
 
 DOMAIN LENGTH IN X = 6 cm
 DOMAIN LENGTH IN Y = 6 cm
-TOTAL TIME = 150 ms
+TOTAL TIME = 250 ms
 
-delta_t = 0.001 ms (150000 time steps)
+delta_t = 0.001 ms (250000 time steps)
 delta_x = 0.002 cm (20 um) (3001 space steps in x)
 delta_y = 0.002 cm (20 um) (3001 space steps in y)
 TOTAL POINTS IN DOMAIN = 9006001
 
-DEVICE NAME = NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
+STATE RESTORED
+DIFFUSION COEFFICIENT = 0.00060000002
+NUMBER OF STIMULI = 0
+
+DEVICE NAME = NVIDIA A100 80GB PCIe (108 SMs)
 
 FOR FULL DOMAIN KERNELS:
 BLOCK SIZE = 16 x 16 threads (256 threads per block)
@@ -23,5 +27,6 @@ FOR THOMAS KERNEL:
 GRID SIZE FOR X = 94 blocks (32 threads per block, total 3008 threads)
 GRID SIZE FOR Y = 94 blocks (32 threads per block, total 3008 threads)
 
-TIME TO SAVE FRAMES = 87.554 s
-SIMULATION TOTAL EXECUTION TIME = 2950.5 s
+SIMULATION TOTAL EXECUTION TIME = 1604.1 s
+
+PATH TO SAVE DATA = ./simulation_files/dt_0.001_dx_0.002_dy_0.002/GPU/double/MONODOMAIN/MV/SSI-ADI
