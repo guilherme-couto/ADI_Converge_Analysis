@@ -728,10 +728,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real y = i * delta_y;
                 real for_term = forcingTerm(x, y, actualTime + (0.5f * delta_t)) / (chi * Cm);
                 real reac_term = G * Vm[i][j] / Cm;
-                real actualVmtilde = Vm[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
+                real Vmtilde = Vm[i][j] + diff_term + (0.5f * delta_t * (for_term - reac_term));
 
                 // Preparing part of the RHS of the following linear systems
-                real reac_tilde_term = G * actualVmtilde / Cm;
+                real reac_tilde_term = G * Vmtilde / Cm;
                 partRHS[i][j] = delta_t * (for_term - reac_tilde_term);
 
 #endif // LINMONO
@@ -755,15 +755,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #if defined(SSIADI) || defined(THETASSIADI)
 
                 diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
-                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_Vm_term));
+                real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (for_term - RHS_Vm_term));
 
                 // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
                 real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualVm, actualW));
-                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                real RHS_Vmtilde_term = RHS_Vm(Vmtilde, Wtilde) / (Cm * chi);
                 partRHS[i][j] = delta_t * (for_term - RHS_Vmtilde_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
+                W[i][j] = actualW + delta_t * RHS_W(Vmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
 
 #endif // SSIADI || THETASSIADI
 
@@ -796,15 +796,15 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
                 // Calculate aproximation with RK2 -> Vmn+1/2 = Vmn + 0.5*diffusion + 0.5*dt*R(Vmn, Wn)
                 diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
-                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
+                real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
                 real Wtilde = actualW + (0.5f * delta_t * RHS_W(actualVm, actualW));
-                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                real RHS_Vmtilde_term = RHS_Vm(Vmtilde, Wtilde) / (Cm * chi);
                 partRHS[i][j] = delta_t * (stim - RHS_Vmtilde_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
+                W[i][j] = actualW + delta_t * RHS_W(Vmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
 
 #endif // SSIADI || THETASSIADI
 
@@ -880,10 +880,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
                 // RHS of the state variables
                 real RHS_Vm_term = J_fi + J_so + J_si;
-                real RHS_v_term = (1.0f - Htheta_v) * (((actualVm < theta_vminus) ? 1.0f : 0.0f) - actualv) / tau_vminus - (Htheta_v * actualv / tau_vplus);
-                real RHS_w_term = (1.0f - Htheta_w) * (((1.0f - Htheta_o) * (1.0f - (actualVm / tau_winf)) + Htheta_o * w_infstar) - actualw) / (tau_w1minus + (((tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (actualVm - u_wminus)))) * 0.5f)) - (Htheta_w * actualw / tau_wplus);
-                real RHS_s_term = (((1.0f + tanh(k_s * (actualVm - u_s))) * 0.5f) - actuals) / ((1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2);
-
+                
 #if defined(SSIADI) || defined(THETASSIADI)
 
                 // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
@@ -1294,18 +1291,18 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 }
 
                 // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
+                real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Calculate W approximation
                 real RHS_W_term = RHS_W(actualVm, actualW);
                 real Wtilde = actualW + (0.5f * delta_t * RHS_W_term);
 
                 // Preparing part of the RHS of the following linear systems
-                real RHS_Vmtilde_term = RHS_Vm(actualVmtilde, Wtilde) / (Cm * chi);
+                real RHS_Vmtilde_term = RHS_Vm(Vmtilde, Wtilde) / (Cm * chi);
                 partRHS[i] = delta_t * (stim - RHS_Vmtilde_term);
 
                 // Update Wn+1 with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
-                W[i] = actualW + delta_t * RHS_W(actualVmtilde, Wtilde);
+                W[i] = actualW + delta_t * RHS_W(Vmtilde, Wtilde);
 
 #endif // AFHN
 
@@ -1376,7 +1373,7 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 }
 
                 // Calculate Vmtilde -> utilde = u^n + 0.5 * dt * (A*u^n + R(u^n))
-                real actualVmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
+                real Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Preparing part of the RHS of the following linear systems
                 // Calculate approximation for state variables
@@ -1500,11 +1497,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real K_itilde = actualK_i + (0.5f * delta_t * RHS_K_i_term);
 
                 // Auxiliary variables with Vmtilde
-                real VmENatilde = actualVmtilde - (RTONF * log(Na_o / Na_itilde));
+                real VmENatilde = Vmtilde - (RTONF * log(Na_o / Na_itilde));
                 real E_Ktilde = (RTONF * log(K_o / K_itilde));
-                real VmEKtilde = actualVmtilde - E_Ktilde;
-                real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (actualVmtilde - E_Ktilde - 200.0f)));
-                real beta_K1tilde = (3.0f * exp(0.0002f * (actualVmtilde - E_Ktilde + 100.0f)) + exp(0.1f * (actualVmtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (actualVmtilde - E_Ktilde)));
+                real VmEKtilde = Vmtilde - E_Ktilde;
+                real alpha_K1tilde = 0.1f / (1.0f + exp(0.06f * (Vmtilde - E_Ktilde - 200.0f)));
+                real beta_K1tilde = (3.0f * exp(0.0002f * (Vmtilde - E_Ktilde + 100.0f)) + exp(0.1f * (Vmtilde - E_Ktilde - 10.0f))) / (1.0f + exp(-0.5f * (Vmtilde - E_Ktilde)));
                 real E_Kstilde = (RTONF * log((K_o + p_KNa * Na_o) / (K_itilde + p_KNa * Na_itilde)));
                 real E_Catilde = 0.5f * RTONF * log(Ca_o / Ca_itilde);
 
@@ -1514,17 +1511,17 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 real IK1tilde = G_K1 * (alpha_K1tilde / (alpha_K1tilde + beta_K1tilde)) * VmEKtilde;
                 real Itotilde = G_to * rtilde * stilde * VmEKtilde;
                 real IKrtilde = G_Kr * sqrt(K_o / 5.4f) * X_r1tilde * X_r2tilde * VmEKtilde;
-                real IKstilde = G_Ks * X_stilde * X_stilde * (actualVmtilde - E_Kstilde);
+                real IKstilde = G_Ks * X_stilde * X_stilde * (Vmtilde - E_Kstilde);
                 real ICaLtilde; // !!!
-                (actualVmtilde < 15.0f - 1.0e-5f)
-                    ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (actualVmtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (actualVmtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (actualVmtilde - 15.0f) * FONRT) - 1.0f)))
+                (Vmtilde < 15.0f - 1.0e-5f)
+                    ? (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 4.0f * (Vmtilde - 15.0f) * (F * F) * (0.25f * Ca_SStilde * exp(2.0f * (Vmtilde - 15.0f) * FONRT) - Ca_o) / (R * T * (exp(2.0f * (Vmtilde - 15.0f) * FONRT) - 1.0f)))
                     : (ICaLtilde = G_CaL * dtilde * ftilde * f2tilde * fCaSStilde * 2.0f * F * (0.25f * Ca_SStilde - Ca_o));
-                real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * actualVmtilde * FONRT))) + (0.0353f * exp(((-actualVmtilde) * FONRT))));
+                real INaKtilde = ((((p_KNa * K_o) / (K_o + K_mK)) * Na_itilde) / (Na_itilde + K_mNa)) / (1.0f + (0.1245f * exp(((-0.1f) * Vmtilde * FONRT))) + (0.0353f * exp(((-Vmtilde) * FONRT))));
                 real INaCatilde; // !!!
-                INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * actualVmtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * actualVmtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*actualVmtilde * FONRT)))));
+                INaCatilde = (k_NaCa * ((exp((gamma_I_NaCa * Vmtilde * FONRT)) * (Na_itilde * Na_itilde * Na_itilde) * Ca_o) - (exp(((gamma_I_NaCa - 1.0f) * Vmtilde * FONRT)) * (Na_o * Na_o * Na_o) * Ca_itilde * alpha))) / (((K_mNa_i * K_mNa_i * K_mNa_i) + (Na_o * Na_o * Na_o)) * (K_mCa + Ca_o) * (1.0f + (k_sat * exp(((gamma_I_NaCa)*Vmtilde * FONRT)))));
                 real IpCatilde = (G_pCa * Ca_itilde) / (K_pCa + Ca_itilde);
-                real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - actualVmtilde) / 5.98f));
-                real IbCatilde = G_bCa * (actualVmtilde - E_Catilde);
+                real IpKtilde = (G_pK * VmEKtilde) / (1.0f + exp((25.0f - Vmtilde) / 5.98f));
+                real IbCatilde = G_bCa * (Vmtilde - E_Catilde);
 
                 // part of RHS of the main equation with Vmtilde
                 real RHS_Vmtilde_term = INatilde + IbNatilde + IK1tilde + Itotilde + IKrtilde + IKstilde + ICaLtilde + INaKtilde + INaCatilde + IpCatilde + IpKtilde + IbCatilde;
@@ -1533,77 +1530,77 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
                 // Update state variables
                 // RHS of the state variables with tilde approximations
                 // Rush-Larsen method - auxiliary variables
-                real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - actualVmtilde) / 7.0f));
-                real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - actualVmtilde) / 10.0f));
-                real beta_X_r1tilde = 6.0f / (1.0f + exp((30.0f + actualVmtilde) / 11.5f));
+                real X_r1_inftilde = 1.0f / (1.0f + exp((-26.0f - Vmtilde) / 7.0f));
+                real alpha_X_r1tilde = 450.0f / (1.0f + exp((-45.0f - Vmtilde) / 10.0f));
+                real beta_X_r1tilde = 6.0f / (1.0f + exp((30.0f + Vmtilde) / 11.5f));
 
-                real X_r2_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 88.0f) / 24.0f));
-                real alpha_X_r2tilde = 3.0f / (1.0f + exp((-60.0f - actualVmtilde) / 20.0f));
-                real beta_X_r2tilde = 1.12f / (1.0f + exp((actualVmtilde - 60.0f) / 20.0f));
+                real X_r2_inftilde = 1.0f / (1.0f + exp((Vmtilde + 88.0f) / 24.0f));
+                real alpha_X_r2tilde = 3.0f / (1.0f + exp((-60.0f - Vmtilde) / 20.0f));
+                real beta_X_r2tilde = 1.12f / (1.0f + exp((Vmtilde - 60.0f) / 20.0f));
 
-                real X_s_inftilde = 1.0f / (1.0f + exp((-5.0f - actualVmtilde) / 14.0f));
-                real alpha_X_stilde = 1400.0f / sqrt(1.0f + exp((5.0f - actualVmtilde) / 6.0f));
-                real beta_X_stilde = 1.0f / (1.0f + exp((-35.0f + actualVmtilde) / 15.0f));
+                real X_s_inftilde = 1.0f / (1.0f + exp((-5.0f - Vmtilde) / 14.0f));
+                real alpha_X_stilde = 1400.0f / sqrt(1.0f + exp((5.0f - Vmtilde) / 6.0f));
+                real beta_X_stilde = 1.0f / (1.0f + exp((-35.0f + Vmtilde) / 15.0f));
 
-                real m_inftilde = 1.0f / ((1.0f + exp((-56.86 - actualVmtilde) / 9.03f)) * (1.0f + exp((-56.86f - actualVmtilde) / 9.03f)));
-                real alpha_mtilde = 1.0f / (1.0f + exp((-60.0f - actualVmtilde) / 5.0f));
-                real beta_mtilde = 0.1f / (1.0f + exp((actualVmtilde + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((actualVmtilde - 50.0f) / 200.0f)));
+                real m_inftilde = 1.0f / ((1.0f + exp((-56.86 - Vmtilde) / 9.03f)) * (1.0f + exp((-56.86f - Vmtilde) / 9.03f)));
+                real alpha_mtilde = 1.0f / (1.0f + exp((-60.0f - Vmtilde) / 5.0f));
+                real beta_mtilde = 0.1f / (1.0f + exp((Vmtilde + 35.0f) / 5.0f)) + (0.1f / (1.0f + exp((Vmtilde - 50.0f) / 200.0f)));
 
-                real h_inftilde = 1.0f / ((1.0f + exp((actualVmtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVmtilde + 71.55f) / 7.43f)));
+                real h_inftilde = 1.0f / ((1.0f + exp((Vmtilde + 71.55f) / 7.43f)) * (1.0f + exp((Vmtilde + 71.55f) / 7.43f)));
                 real alpha_htilde;
-                (actualVmtilde < -40.0f)
-                    ? (alpha_htilde = 0.057f * exp(-(actualVmtilde + 80.0f) / 6.8f))
+                (Vmtilde < -40.0f)
+                    ? (alpha_htilde = 0.057f * exp(-(Vmtilde + 80.0f) / 6.8f))
                     : (alpha_htilde = 0.0f);
                 real beta_htilde;
-                (actualVmtilde < -40.0f)
-                    ? (beta_htilde = 2.7f * exp(0.079f * actualVmtilde) + 3.1f * 1.0e5f * exp(0.3485f * actualVmtilde))
-                    : (beta_htilde = 0.77f / (0.13f * (1.0f + exp((actualVmtilde + 10.66f) / -11.1f))));
+                (Vmtilde < -40.0f)
+                    ? (beta_htilde = 2.7f * exp(0.079f * Vmtilde) + 3.1f * 1.0e5f * exp(0.3485f * Vmtilde))
+                    : (beta_htilde = 0.77f / (0.13f * (1.0f + exp((Vmtilde + 10.66f) / -11.1f))));
 
-                real j_inftilde = 1.0f / ((1.0f + exp((actualVmtilde + 71.55f) / 7.43f)) * (1.0f + exp((actualVmtilde + 71.55f) / 7.43f)));
+                real j_inftilde = 1.0f / ((1.0f + exp((Vmtilde + 71.55f) / 7.43f)) * (1.0f + exp((Vmtilde + 71.55f) / 7.43f)));
                 real alpha_jtilde;
-                (actualVmtilde < -40.0f)
-                    ? (alpha_jtilde = ((-25428.0f * exp(0.2444f * actualVmtilde) - (6.948e-6f * exp((-0.04391f) * actualVmtilde))) * (actualVmtilde + 37.78f)) / (1.0f + exp(0.311f * (actualVmtilde + 79.23f))))
+                (Vmtilde < -40.0f)
+                    ? (alpha_jtilde = ((-25428.0f * exp(0.2444f * Vmtilde) - (6.948e-6f * exp((-0.04391f) * Vmtilde))) * (Vmtilde + 37.78f)) / (1.0f + exp(0.311f * (Vmtilde + 79.23f))))
                     : (alpha_jtilde = 0.0f);
                 real beta_jtilde;
-                (actualVmtilde < -40.0f)
-                    ? (beta_jtilde = (0.02424f * exp(-0.01052f * actualVmtilde)) / (1.0f + exp(-0.1378f * (actualVmtilde + 40.14f))))
-                    : (beta_jtilde = (0.6f * exp(0.057f * actualVmtilde)) / (1.0f + exp(-0.1f * (actualVmtilde + 32.0f))));
+                (Vmtilde < -40.0f)
+                    ? (beta_jtilde = (0.02424f * exp(-0.01052f * Vmtilde)) / (1.0f + exp(-0.1378f * (Vmtilde + 40.14f))))
+                    : (beta_jtilde = (0.6f * exp(0.057f * Vmtilde)) / (1.0f + exp(-0.1f * (Vmtilde + 32.0f))));
 
-                real d_inftilde = 1.0f / (1.0f + exp((-8.0f - actualVmtilde) / 7.5f));
-                real alpha_dtilde = 1.4f / (1.0f + exp((-35.0f - actualVmtilde) / 13.0f)) + 0.25f;
-                real beta_dtilde = 1.4f / (1.0f + exp((actualVmtilde + 5.0f) / 5.0f));
-                real gamma_dtilde = 1.0f / (1.0f + exp((50.0f - actualVmtilde) / 20.0f));
+                real d_inftilde = 1.0f / (1.0f + exp((-8.0f - Vmtilde) / 7.5f));
+                real alpha_dtilde = 1.4f / (1.0f + exp((-35.0f - Vmtilde) / 13.0f)) + 0.25f;
+                real beta_dtilde = 1.4f / (1.0f + exp((Vmtilde + 5.0f) / 5.0f));
+                real gamma_dtilde = 1.0f / (1.0f + exp((50.0f - Vmtilde) / 20.0f));
 
-                real f_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 20.0f) / 7.0f));
-                real alpha_ftilde = 1102.5f * exp(-(actualVmtilde + 27.0f) * (actualVmtilde + 27.0f) / 225.0f);
-                real beta_ftilde = 200.0f / (1.0f + exp((13.0f - actualVmtilde) / 10.0f));
-                real gamma_ftilde = 180.0f / (1.0f + exp((actualVmtilde + 30.0f) / 10.0f)) + 20.0f;
+                real f_inftilde = 1.0f / (1.0f + exp((Vmtilde + 20.0f) / 7.0f));
+                real alpha_ftilde = 1102.5f * exp(-(Vmtilde + 27.0f) * (Vmtilde + 27.0f) / 225.0f);
+                real beta_ftilde = 200.0f / (1.0f + exp((13.0f - Vmtilde) / 10.0f));
+                real gamma_ftilde = 180.0f / (1.0f + exp((Vmtilde + 30.0f) / 10.0f)) + 20.0f;
 
-                real f2_inftilde = 0.67f / (1.0f + exp((actualVmtilde + 35.0f) / 7.0f)) + 0.33f;
+                real f2_inftilde = 0.67f / (1.0f + exp((Vmtilde + 35.0f) / 7.0f)) + 0.33f;
                 real alpha_f2tilde; // !!!
-                alpha_f2tilde = 562.0f * exp(-(actualVmtilde + 27.0f) * (actualVmtilde + 27.0f) / 240.0f);
-                real beta_f2tilde = 31.0f / (1.0f + exp((25.0f - actualVmtilde) / 10.0f));
+                alpha_f2tilde = 562.0f * exp(-(Vmtilde + 27.0f) * (Vmtilde + 27.0f) / 240.0f);
+                real beta_f2tilde = 31.0f / (1.0f + exp((25.0f - Vmtilde) / 10.0f));
                 real gamma_f2tilde; // !!!
-                gamma_f2tilde = 80.0f / (1.0f + exp((30.0f + actualVmtilde) / 10.0f));
+                gamma_f2tilde = 80.0f / (1.0f + exp((30.0f + Vmtilde) / 10.0f));
 
                 real fCaSS_inftilde = 0.6f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 0.4f;
                 real tau_fCaSStilde = 80.0f / (1.0f + (Ca_SStilde * Ca_SStilde * 400.0f)) + 2.0f;
 
 #if defined(EPI) || defined(MCELL)
 
-                real s_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 20.0f) / 5.0f));
-                real tau_stilde = 85.0f * exp(-(actualVmtilde + 45.0f) * (actualVmtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((actualVmtilde - 20.0f) / 5.0f)) + 3.0f;
+                real s_inftilde = 1.0f / (1.0f + exp((Vmtilde + 20.0f) / 5.0f));
+                real tau_stilde = 85.0f * exp(-(Vmtilde + 45.0f) * (Vmtilde + 45.0f) / 320.0f) + 5.0f / (1.0f + exp((Vmtilde - 20.0f) / 5.0f)) + 3.0f;
 
 #endif // EPI || MCELL
 #ifdef ENDO
 
-                real s_inftilde = 1.0f / (1.0f + exp((actualVmtilde + 28.0f) / 5.0f));
-                real tau_stilde = 1000.0f * exp(-(actualVmtilde + 67.0f) * (actualVmtilde + 67.0f) / 1000.0f) + 8.0f;
+                real s_inftilde = 1.0f / (1.0f + exp((Vmtilde + 28.0f) / 5.0f));
+                real tau_stilde = 1000.0f * exp(-(Vmtilde + 67.0f) * (Vmtilde + 67.0f) / 1000.0f) + 8.0f;
 
 #endif // ENDO
 
-                real r_inftilde = 1.0f / (1.0f + exp((20.0f - actualVmtilde) / 6.0f));
-                real tau_rtilde = 9.5f * exp(-(actualVmtilde + 40.0f) * (actualVmtilde + 40.0f) / 1800.0f) + 0.8f;
+                real r_inftilde = 1.0f / (1.0f + exp((20.0f - Vmtilde) / 6.0f));
+                real tau_rtilde = 9.5f * exp(-(Vmtilde + 40.0f) * (Vmtilde + 40.0f) / 1800.0f) + 0.8f;
 
                 // Explicit method - auxiliary variables
                 real Ileaktilde = V_leak * (Ca_SRtilde - Ca_itilde);
@@ -1797,8 +1794,10 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 #endif // CONVERGENCE_ANALYSIS_FORCING_TERM && !CABLEEQ
 
     // Write infos to file
+    srand((unsigned int)::time(NULL));
+    int random_number = (rand() % 500) + 1;
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos.txt", pathToSaveData);
+    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos%d.txt", pathToSaveData, random_number);
     FILE *fpInfos = fopen(infosFilePath, "w");
     fprintf(fpInfos, "EXECUTION TYPE = %s\n", EXECUTION_TYPE);
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
@@ -2262,7 +2261,11 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
 #if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2) || defined(OSADI)
 
+#if defined(SSIADI) || defined(THETASSIADI) || defined(THETASSIRK2)
+
     free(RHS);
+
+#endif // SSIADI || THETASSIADI || THETASSIRK2
 
     free(c_prime_y);
     free(d_prime_y);

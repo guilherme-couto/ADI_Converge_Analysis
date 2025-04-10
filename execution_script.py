@@ -27,24 +27,24 @@ def main():
 
     # Simulations
     # dxs = [0.005, 0.01, 0.02, 0.04, 0.05]
-    # dxs = [0.04, 0.05]
+    # dxs = [0.08, 0.16]
     # dys = dxs
-    dts = [0.01]
-    dx = 0.01
+    dts = [0.08, 0.16]
+    dx = 0.002
     dy = dx
     # dt = 0.01
-    methods = ['FE', 'OS-ADI']
+    methods = ['FE', 'OS-ADI', 'SSI-ADI']
     
     real_type = 'double'
-    serial_or_gpu = 'SERIAL'
+    serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'MV' # 'AFHN', 'TT2', 'MV' (only in GPU by now)
-    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
+    init = 'restore_state' # 'initial_conditions', 'restore_state'
     shift_state = False
-    save_frames = True
+    save_frames = False
     save_last_frame = True
     save_last_state = False
-    measure_velocity = True
+    measure_velocity = False
 
     for method in methods:
         for i in range(len(dts)):

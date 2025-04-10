@@ -5,7 +5,7 @@ from functions import *
 def main():
     # dts = ['0.00500', '0.01000', '0.02000', '0.04000', '0.08000', '0.10000']
     dts = [0.005, 0.01, 0.02] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-    dts = [0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.04, 0.05]
+    dts = [0.002, 0.003, 0.005, 0.01, 0.02, 0.04, 0.05, 0.08, 0.16]
     methods = ['SSI-ADI', 'OS-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
@@ -53,8 +53,8 @@ def main():
         ea_file.write(f'For method {method}\n')
         
         if 'theta' not in method:
-            ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\n')
-            ea_file.write('-----------------------------------------------------------------------\n')
+            ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\t| RMSE\t| REP (%)\n')
+            ea_file.write('---------------------------------------------------------------------------------\n')
             
             # Comparative plot
             plt.figure()
@@ -98,9 +98,20 @@ def main():
                     slope = f'{(convergence_rate):.3f}'
                 print(f'Convergence rate: {slope}')
                 print()
+
+                # Calculate the RMSE
+                rmse = np.sqrt(np.mean(difference**2))
+                print(f'RMSE: {rmse}')
+
+                # Calculate the relative error percentage
+                sum_abs_diff = np.sum(np.abs(difference))
+                sum_abs_ref = np.sum(np.abs(reference_data))
+                relative_error = sum_abs_diff / sum_abs_ref
+                relative_error_percentage = np.mean(relative_error) * 100
+                print(f'Relative error percentage: {relative_error_percentage:.2f}%')
                 
                 # Write to error analysis file
-                ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.6f} \t| {slope}\n')
+                ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.3e} \t| {slope} \t| {rmse:.3e} \t| {relative_error_percentage:.2f}\n')
                 
                 prev_error = n2_error
 
@@ -152,8 +163,8 @@ def main():
             thetas_linear_fits = []
             for theta in thetas:
                 ea_file.write(f'with theta={theta}\n')
-                ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\n')
-                ea_file.write('------------------------------------------------------------------------\n')
+                ea_file.write(f'dt (ms)\t| dx (cm)\t| dy (cm)\t| N-2 Error\t| slope\t| RMSE\t| REP (%)\n')
+                ea_file.write('-----------------------------------------------------------------------------------\n')
                 
                 # Comparative plot
                 if problem != 'MONODOMAIN':
@@ -197,9 +208,20 @@ def main():
                         slope = f'{(convergence_rate):.3f}'
                     print(f'Convergence rate: {slope}')
                     print()
+
+                    # Calculate the RMSE
+                    rmse = np.sqrt(np.mean(difference**2))
+                    print(f'RMSE: {rmse}')
+
+                    # Calculate the relative error percentage
+                    sum_abs_diff = np.sum(np.abs(difference))
+                    sum_abs_ref = np.sum(np.abs(reference_data))
+                    relative_error = sum_abs_diff / sum_abs_ref
+                    relative_error_percentage = np.mean(relative_error) * 100
+                    print(f'Relative error percentage: {relative_error_percentage:.2f}%')
                     
                     # Write to error analysis file
-                    ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.6f} \t| {slope}\n')
+                    ea_file.write(f'{dt} \t| {dx} \t| {dy} \t| {(n2_error):.3e} \t| {slope} \t| {rmse:.3e} \t| {relative_error_percentage:.2f}\n')
                     
                     prev_error = n2_error
 

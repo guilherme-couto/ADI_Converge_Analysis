@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <time.h>
 
 // ANSI color codes
 #define RESET "\033[0m"
@@ -35,7 +36,7 @@
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
-#define MAX_SYS_SIZE 1024*3
+#define MAX_SYS_SIZE 3002
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -57,6 +58,10 @@ typedef float real;
 #define EXECUTION_TYPE "SERIAL"
 #define RUNSIMULATION runSimulationSerial
 #endif // SERIAL
+#ifdef OPENMP
+#define EXECUTION_TYPE "OPENMP"
+#define RUNSIMULATION runSimulationOpenMP
+#endif // OPENMP
 #ifdef GPU
 #define EXECUTION_TYPE "GPU"
 #define RUNSIMULATION runSimulationGPU

@@ -706,8 +706,10 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("\n");
 
     // Write infos to file
+    srand((unsigned int)::time(NULL));
+    int random_number = (rand() % 500) + 1;
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos.txt", pathToSaveData);
+    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos%d.txt", pathToSaveData, random_number);
     FILE *fpInfos = fopen(infosFilePath, "w");
     fprintf(fpInfos, "EXECUTION TYPE = %s\n", EXECUTION_TYPE);
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
