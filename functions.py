@@ -37,6 +37,8 @@ def compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_s
         compile_command += '-DGPU '
     elif serial_or_gpu == 'SERIAL':
         compile_command += '-DSERIAL '
+    elif serial_or_gpu == 'OPENMP':
+        compile_command += '-DOPENMP '
 
     if problem == 'MONODOMAIN':
         compile_command += '-DMONODOMAIN '

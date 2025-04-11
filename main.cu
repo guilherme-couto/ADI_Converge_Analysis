@@ -1,7 +1,9 @@
 #ifdef GPU
 #include "./src/gpu_methods.h"
-#else
+#elif defined(SERIAL)
 #include "./src/cpu_methods.h"
+#elif defined(OPENMP)
+#include "./src/omp_methods.h"
 #endif
 
 int main(int argc, char *argv[])

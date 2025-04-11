@@ -37,6 +37,7 @@
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
 #define MAX_SYS_SIZE 3002
+#define NUMTHREADS 6
 
 // Convert CM to UM
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
@@ -177,7 +178,7 @@ typedef struct
 #endif // FE
 
 // If defined SERIAL, constants are defined only as const for CPU
-#ifdef SERIAL
+#if defined(SERIAL) || defined(OPENMP)
 
 const real _pi = 3.14159265358979323846f;
 
@@ -502,7 +503,7 @@ const real w_infstar = 0.94f;
 #endif // TNNP
 #endif // MV
 #endif // MONODOMAIN || CABLEEQ
-#endif // SERIAL
+#endif // SERIAL || OPENMP
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU
 #ifdef GPU

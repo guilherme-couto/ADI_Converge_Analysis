@@ -5,7 +5,7 @@
 
 #ifdef SAVE_FRAMES
 // const int frameSaveRate = 20000; // dt = 0.0001 ms saving each 2 ms
-// const int frameSaveRate = 500; // dt = 0.001 ms saving each 2 ms
+// const int frameSaveRate = 2000; // dt = 0.001 ms saving each 2 ms
 const int frameSaveRate = 200; // dt = 0.01 ms saving each 2 ms
 #endif // SAVE_FRAMES
 
@@ -18,7 +18,7 @@ const __constant__ real Lx = 5.0f; // Length in x (cm)
 
 #else // if not CABLEEQ
 
-const real totalTime = 250.0f;       // Total time (ms)
+const real totalTime = 100.0f;       // Total time (ms)
 const __constant__ real Lx = 6.0f;  // Length in x (cm)
 const __constant__ real Ly = 6.0f; // Length in y (cm)
 
@@ -35,7 +35,7 @@ const __constant__ real Ly = 1.0f; // Length in y (cm)
 #if defined(MONODOMAIN) || defined(CABLEEQ)
 
 // Stimulation parameters
-const __constant__ int numberOfStimuli = 0; // Number of stimuli
+const __constant__ int numberOfStimuli = 1; // Number of stimuli
 
 #ifdef AFHN
 const real stimuliAmplitude = 100.0f; // Stimulation amplitude -> (amplitude)

@@ -1,7 +1,11 @@
 For method FE
 dt (ms)	| dx (cm)	| dy (cm)	| N-2 Error	| slope	| RMSE	| REP (%)
 ---------------------------------------------------------------------------------
-0.01 	| 0.002 	| 0.002 	| nan 	| ----- 	| nan 	| nan
+0.002 	| 0.002 	| 0.002 	| nan 	| ----- 	| nan 	| nan
+0.003 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
+0.004 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
+0.005 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
+0.01 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
 0.02 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
 0.04 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan
 0.05 	| 0.002 	| 0.002 	| nan 	| nan 	| nan 	| nan

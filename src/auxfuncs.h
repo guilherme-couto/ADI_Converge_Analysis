@@ -144,7 +144,7 @@ void populateStimuli(Stimulus *stimuli, real delta_x, real delta_y)
 #endif // MONODOMAIN || CABLEEQ
 #endif // not CONVERGENCE_ANALYSIS_FORCING_TERM
 
-#ifdef SERIAL
+#if defined(SERIAL) || defined(OPENMP)
 
 void initialize2DVariableWithExactSolution(real **Var, int Nx, int Ny, real delta_x, real delta_y)
 {
@@ -381,7 +381,7 @@ void saveFrame(FILE *file, real *Vm, int N)
 }
 
 #endif // not CABLEEQ
-#endif // SERIAL
+#endif // SERIAL || OPENMP
 
 #ifdef GPU
 
