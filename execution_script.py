@@ -4,15 +4,15 @@ def main():
     
     # Parameters
     real_type = 'double'
-    serial_or_gpu = 'OPENMP'
+    serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
     cell_model = 'MV' # 'AFHN', 'TT2', 'MV' (only in GPU by now)
-    init = 'initial_conditions' # 'initial_conditions', 'restore_state'
-    shift_state = False
+    init = 'restore_state' # 'initial_conditions', 'restore_state'
+    shift_state = True
     save_frames = False
     save_last_frame = True
     save_last_state = False
-    measure_velocity = False
+    measure_velocity = True
 
     # option 0 - vary dt | option 1 - vary dx and dy
     option = 0
@@ -20,7 +20,7 @@ def main():
     if option == 0:
 
         # dts = [0.005, 0.01, 0.02, 0.04] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-        # thetas = ['0.50', '0.66', '1.00']
+        thetas = ['0.50', '0.66', '1.00']
 
         # refs - convergence analysis
         # dx = 0.0005
@@ -35,10 +35,10 @@ def main():
         # dts = [0.0001] # Ref solution
         # methods = ['SSI-ADI'] # Ref solution
 
-        dts = [0.01]
-        dx = 0.01
+        dts = [0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512]
+        dx = 0.0001
         dy = dx
-        methods = ['OS-ADI', 'SSI-ADI', 'FE']
+        methods = ['SSI-ADI', 'OS-ADI', 'FE']
 
         for method in methods:
             for i in range(len(dts)):
@@ -59,18 +59,18 @@ def main():
                     if save_frames:
                         create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
                         
-                else:
-                    for theta in thetas:
-                        compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, save_frames, save_last_frame, save_last_state, measure_velocity, theta)
+                # else:
+                #     for theta in thetas:
+                #         compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, save_frames, save_last_frame, save_last_state, measure_velocity, theta)
                         
-                        # os.system(f'valgrind --leak-check=full --track-origins=yes ./convergence {execution_args}')
-                        os.system(f'./{method} {execution_args}')
+                #         # os.system(f'valgrind --leak-check=full --track-origins=yes ./convergence {execution_args}')
+                #         os.system(f'./{method} {execution_args}')
                         
-                        plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
-                        if save_last_state:
-                            plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
-                        if save_frames:
-                            create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #         plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #         if save_last_state:
+                #             plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #         if save_frames:
+                #             create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
     
     # Run fixing dt and varying dx and dy
     elif option == 1:
@@ -100,17 +100,17 @@ def main():
                     if save_frames:
                         create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy)
                         
-                else:
-                    for theta in thetas:
-                        compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, save_frames, save_last_frame, save_last_state, measure_velocity, theta)
-                        
-                        os.system(f'./{method} {execution_args}')
-                        
-                        plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
-                        if save_last_state:
-                            plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
-                        if save_frames:
-                            create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #else:
+                #    for theta in thetas:
+                #        compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, save_frames, save_last_frame, save_last_state, measure_velocity, theta)
+                #        
+                #        os.system(f'./{method} {execution_args}')
+                #        
+                #        plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #        if save_last_state:
+                #            plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
+                #        if save_frames:
+                #            create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta)
 
 if __name__ == '__main__':
     main()

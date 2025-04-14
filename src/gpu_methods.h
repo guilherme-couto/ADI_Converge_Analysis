@@ -94,8 +94,8 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Restoring state variables...\n");
 
     // Initialize variables with a solution
-    real real_ref_dx = 0.002f;
-    real real_def_dy = 0.002f;
+    real real_ref_dx = 0.0001f;
+    real real_def_dy = 0.0001f;
 
     char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
 
@@ -174,7 +174,7 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
     printf("Shifting state variables...\n");
 
     // Shift variables
-    real lengthToShift = 0.5f;
+    real lengthToShift = 0.7f; // Length to shift in cm
 
 #ifdef AFHN
 

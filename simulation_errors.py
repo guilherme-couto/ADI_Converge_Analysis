@@ -4,9 +4,10 @@ from functions import *
 
 def main():
 
-    methods = ['FE', 'OS-ADI', 'SSI-ADI'] #'SSI-ADI', 'theta-SSI-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
+    methods = ['OS-ADI', 'SSI-ADI', 'FE'] #'SSI-ADI', 'theta-SSI-ADI', 'SSI-CN' (CABLEEQ), 'theta-RK2' (CABLEEQ), 'FE', 'OS-ADI'
     thetas = ['0.50', '0.66', '1.00']
 
+    # Reference solution
     real_type = 'double'
     serial_or_gpu = 'GPU'
     problem = 'MONODOMAIN'
@@ -20,19 +21,16 @@ def main():
     # base_dx = 0.01
 
     # 0 for varying dt, 1 for varying dx and dy
-    option = 1
+    option = 0
 
     if option == 0:
 
         # dts = [0.005, 0.01, 0.02] # Dont work for MONODOMAIN  with dx=0.0005, but work for CABLEEQ
-        dts = [0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.04, 0.05, 0.08, 0.16, 0.2, 0.32, 0.5, 0.64, 0.8]
-
-        dx = reference_dx
-        dy = reference_dy
+        dts = [0.016, 0.032, 0.064, 0.128, 0.256]
         
         # Read reference solution
-        reference_dx = 0.002
-        reference_dy = 0.002
+        reference_dx = 0.0001
+        reference_dy = reference_dx
         reference_solution_path = f'./reference_solutions/{real_type}/{problem}/{cell_model}/lastframe.txt'
         
         if not os.path.exists(reference_solution_path):
@@ -42,6 +40,9 @@ def main():
         reference_data, Nx, Ny = read_values_with_rate(reference_solution_path, 1, 1)
         print(f'Reference solution read successfully. Total size: {len(reference_data)}')
         print()
+        
+        dx = reference_dx
+        dy = reference_dy
 
         for method in methods:
             # Create error analysis file
