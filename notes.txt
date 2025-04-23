@@ -1,0 +1,99 @@
+Rodarei simulações com o domínio retangular Lx=1cm e Ly=0.01cm, usando dt=0.0001ms e dx=dy=0.0005cm
+Antes do restore, colocarei 12ms de tempo de simulação
+Farei o restore state e um shift de 0.5cm para rodar por 6ms
+
+Os resultados que estão no analysis tiveram que ser feitos na mão um por um, por conta de algum vazamento de memória que ainda não identifiquei.
+depois de rodar uma execução, a seguinte costuma dar problema. OBS: descobri que isso é algum problema com a escrita de arquivos do próprio lab.
+Se a pasta já existir, ele roda normalmente.
+
+os resultados do analysis foram feitos com shift de 0.5cm por 6ms
+referência foi 
+delta_t = 0.0001 ms (60000 time steps)
+delta_x = 0.0005 cm (2001 space steps in x)
+delta_y = 0.0005 cm (21 space steps in y)
+
+For method theta-ADI (SERIAL)
+with theta=0.50
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.000094 	| -----
+0.002	| 0.0005	| 0.0005	| 0.000369 	| 1.980
+0.004	| 0.0005	| 0.0005	| 0.001454 	| 1.977
+0.005	| 0.0005	| 0.0005	| 0.002252 	| 1.960
+
+Slope of the fitted line (least squares in log-log): 1.976767
+
+with theta=0.66
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.005699 	| -----
+0.002	| 0.0005	| 0.0005	| 0.011501 	| 1.013
+0.004	| 0.0005	| 0.0005	| 0.023409 	| 1.025
+0.005	| 0.0005	| 0.0005	| 0.029517 	| 1.039
+
+Slope of the fitted line (least squares in log-log): 1.021685
+
+with theta=1.00
+dt 		| dx 		| dy 		| N-2 Error 	| slope
+------------------------------------------------------------------------
+0.001	| 0.0005	| 0.0005	| 0.017568 	| -----
+0.002	| 0.0005	| 0.0005	| 0.034974 	| 0.993
+0.004	| 0.0005	| 0.0005	| 0.069311 	| 0.987
+0.005	| 0.0005	| 0.0005	| nan 	| nan
+
+
+#######################################################
+
+Tentativas de gerar espiral usando TT2 (ENDO) em um domínio 6x6
+
+Tempo S2 (ms) -> resultado
+260 -> espiral sustentável
+
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 6x6 e Dtilde = 0.63f*1e-3 (0.53248 m/s)
+
+Tempo S2 (ms) -> resultado
+260 -> bloqueio
+320 -> bloqueio
+330 -> espiral não sustentável
+335 -> espiral não sustentável
+340 -> espiral não sustentável (*)
+345 -> espiral não sustentável
+350 -> espiral não sustentável
+360 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando TT2 (EPI) em um domínio 7x7 (0.52014 m/s)
+
+Tempo S2 (ms) -> resultado
+340 -> bloqueio
+350 -> espiral sustentável
+
+Tentativas de gerar espiral usando TT2 (EPI) em um domínio 6x6 (50.48 cm/s)
+
+Tempo S2 (ms) -> resultado
+350 -> espiral sustentável
+
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 7x7 e Dtilde = 0.63f*1e-3 (0.53566 m/s)
+
+Tempo S2 (ms) -> resultado
+330 -> não gera espiral
+335 -> não gera espiral 
+340 -> figure-of-eight parece sustentável / morre só com 2000 ms
+345 -> espiral não sustentável
+350 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando MV (TNNP) em um domínio 7x7 e Dtilde = 0.6f*1e-3 (0.5199 m/s)
+
+Tempo S2 (ms) -> resultado
+340 -> espiral figure-of-eight dura até 1800
+350 -> espiral não sustentável
+
+
+Tentativas de gerar espiral usando MV (EPI) em um domínio 7x7 e Dtilde = 0.63f*1e-3 (0.52247 m/s)
+
+Tempo S2 (ms) -> resultado
+350 -> não gera espiral
+

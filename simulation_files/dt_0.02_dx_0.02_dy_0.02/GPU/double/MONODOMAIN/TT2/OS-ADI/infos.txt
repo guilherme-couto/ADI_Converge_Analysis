@@ -1,0 +1,34 @@
+EXECUTION TYPE = GPU
+PRECISION = double
+PROBLEM = MONODOMAIN
+CELL MODEL = TT2
+METHOD = OS-ADI
+
+DOMAIN LENGTH IN X = 6 cm
+DOMAIN LENGTH IN Y = 6 cm
+TOTAL TIME = 750 ms
+
+delta_t = 0.02 ms (37500 time steps)
+delta_x = 0.02 cm (200 um) (301 space steps in x)
+delta_y = 0.02 cm (200 um) (301 space steps in y)
+TOTAL POINTS IN DOMAIN = 90601
+
+DIFFUSION COEFFICIENT = 0.00083643
+NUMBER OF STIMULI = 2
+STIMULUS 1: START TIME = 0 ms, DURATION = 2 ms, AMPLITUDE = 38 uA/cm^2
+STIMULUS 2: START TIME = 340 ms, DURATION = 2 ms, AMPLITUDE = 38 uA/cm^2
+
+DEVICE NAME = NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
+
+FOR FULL DOMAIN KERNELS:
+BLOCK SIZE = 16 x 16 threads (256 threads per block)
+GRID SIZE = 19 x 19 blocks (total 361 blocks, total 92416 threads)
+
+FOR THOMAS KERNEL:
+GRID SIZE FOR X = 10 blocks (32 threads per block, total 320 threads)
+GRID SIZE FOR Y = 10 blocks (32 threads per block, total 320 threads)
+
+TIME TO SAVE FRAMES = 4.1573 s
+SIMULATION TOTAL EXECUTION TIME = 30.089 s
+
+PATH TO SAVE DATA = ./simulation_files/dt_0.02_dx_0.02_dy_0.02/GPU/double/MONODOMAIN/TT2/OS-ADI

@@ -1,0 +1,10 @@
+For method FE
+dt (ms)	| dx (cm)	| dy (cm)	| N-2 Error	| slope
+-----------------------------------------------------------------------
+0.001 	| 0.0005 	| 0.0005 	| nan 	| -----
+0.002 	| 0.0005 	| 0.0005 	| nan 	| nan
+0.004 	| 0.0005 	| 0.0005 	| nan 	| nan
+0.005 	| 0.0005 	| 0.0005 	| nan 	| nan
+
+Slope of the fitted line (least squares in log-log): NaN
+

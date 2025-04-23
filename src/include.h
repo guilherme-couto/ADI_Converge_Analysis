@@ -9,31 +9,63 @@
 #include <omp.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <time.h>
 
+// ANSI color codes
+#define RESET "\033[0m"
+#define BLUE "\033[34m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define RED "\033[31m"
+
+// Macros for printing messages
+#define INFOMSG(msg, ...) printf(BLUE "[i] " RESET msg, ##__VA_ARGS__)
+#define SUCCESSMSG(msg, ...) printf(GREEN "[+] " RESET msg, ##__VA_ARGS__)
+#define WARNINGMSG(msg, ...) printf(YELLOW "[!] " RESET msg, ##__VA_ARGS__)
+#define ERRORMSG(msg, ...) printf(RED "\n[x] " RESET msg "\n", ##__VA_ARGS__)
+#define DEBUGMSG(msg, ...) printf(YELLOW "[.] " RESET msg, ##__VA_ARGS__)
+#define LINEMSG() printf(YELLOW "[.] " RESET "Line number %d in file %s\n", __LINE__, __FILE__)
+
+// Define maximum string size
 #define MAX_STRING_SIZE 200
 
-#define BDIMX 16
-#define BDIMY 16
-#define BLOCK_SIZE 32
+// Define block size for GPU
+#define FULL_DOMAIN_BLOCK_SIZE_X 16
+#define FULL_DOMAIN_BLOCK_SIZE_Y 16
+#define THOMAS_KERNEL_BLOCK_SIZE 32
+#define MAX_SYS_SIZE 10002
+#define NUMTHREADS 6
 
-// #define SERIAL
-// #define MONODOMAIN
-// #define TT2
+// Convert CM to UM
+#define CM_TO_UM(x) ((int)(x * 1.0e4))
 
 // Define real type via compile command line (-D{OPTION}, USE_const real or USE_FLOAT)
 #ifdef USE_DOUBLE
 typedef double real;
 #define REAL_TYPE "double"
+#define STRTOREAL strtod
+#define FSCANF_REAL "%le"
 #else
 typedef float real;
 #define REAL_TYPE "float"
+#define STRTOREAL strtof
+#define FSCANF_REAL "%e"
 #endif
 
 #ifdef SERIAL
 #define EXECUTION_TYPE "SERIAL"
+#define RUNSIMULATION runSimulationSerial
 #endif // SERIAL
+#ifdef OPENMP
+#define EXECUTION_TYPE "OPENMP"
+#define RUNSIMULATION runSimulationOpenMP
+#endif // OPENMP
 #ifdef GPU
 #define EXECUTION_TYPE "GPU"
+#define RUNSIMULATION runSimulationGPU
 #endif // GPU
 
 // Define cell model via compile command line (-D{OPTION}, AFHN, TT2 or MV)
@@ -42,7 +74,7 @@ typedef float real;
 #define CELL_MODEL "AFHN"
 #endif // AFHN
 
-#ifdef TT2 
+#ifdef TT2
 #define CELL_MODEL "TT2"
 // Options: ENDO, MCELL, EPI
 #if !defined(MCELL) && !defined(EPI)
@@ -56,52 +88,45 @@ typedef float real;
 #if !defined(MCELL) && !defined(EPI) && !defined(PB) && !defined(TNNP)
 #define ENDO
 #endif // not MCELL && not EPI && not PB && not TNNP
-#endif  // MV
+#endif // MV
 
 // Define CUDA error checking
 #ifdef GPU
-#define CUDA_CALL(call)                                                                                   \
-    do                                                                                                    \
-    {                                                                                                     \
-        cudaError_t error = call;                                                                         \
-        if (error != cudaSuccess)                                                                         \
-        {                                                                                                 \
-            fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
-            exit(EXIT_FAILURE);                                                                           \
-        }                                                                                                 \
+#define CUDA_CALL(call)                                                                                                        \
+    do                                                                                                                         \
+    {                                                                                                                          \
+        cudaError_t error = call;                                                                                              \
+        if (error != cudaSuccess)                                                                                              \
+        {                                                                                                                      \
+            fprintf(stderr, RED "\n[x] " RESET "CUDA error at %s:%d - %s\n\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
+            exit(EXIT_FAILURE);                                                                                                \
+        }                                                                                                                      \
     } while (0)
 #endif // GPU
 
 // Define problem via compile command line (-D{OPTION}):
-// forcing only for CONVERGENCE_ANALYSIS
+// forcing only for CONVERGENCE_ANALYSIS_FORCING_TERM
 // LINMONO -> Adapted monodomain with linear reaction (2D)
 //            chi*Cm*dv/dt = sigma*Lap(v) - chi*G*v + forcing
 //            Boundaries: Neumann
 //
-// DIFFREAC -> Diffusion with linear reaction (2D)
-//             dv/dt + v = sigma*Lap(v) + forcing
-//             Boundaries: Neumann
-//
-// DIFF -> Linear diffusion (2D)
-//         dv/dt = sigma*Lap(v) + forcing
-//         Boundaries: Neumann
-//
 // MONODOMAIN with AFHN -> Monodomain with adapted FitzHugh-Nagumo (2D)
-//                         { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm + forcing/(chi*Cm)
+//                         { dv/dt = (sigma/(chi*Cm))*Lap(v) - RHS_v/Cm [+ forcing/(chi*Cm)]
 //                         { dw/dt = RHS_w
 //                         RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
 //                         RHS_w = eta2 * ((v/vp)-(eta3*w))
 //                         Boundaries: Neumann
+//
+// CABLEEQ -> Cable equation with adapted FitzHugh-Nagumo (1D)
+//            { dv/dt = (sigma/(chi*Cm))*d²v/dx² - RHS_v/Cm
+//            { dw/dt = RHS_w
+//            RHS_v = (G*v*(1.0-(v/vth)) * (1.0-(v/vp))) + (eta1*v*w)
+//            RHS_w = eta2 * ((v/vp)-(eta3*w))
+//            Boundaries: Neumann
 
 #ifdef LINMONO
 #define PROBLEM "LINMONO"
 #endif // LINMONO
-#ifdef DIFFREAC
-#define PROBLEM "DIFFREAC"
-#endif // DIFFREAC
-#ifdef DIFF
-#define PROBLEM "DIFF"
-#endif // DIFF
 #ifdef MONODOMAIN
 #define PROBLEM "MONODOMAIN"
 #endif // MONODOMAIN
@@ -111,9 +136,10 @@ typedef float real;
 
 // Define aux structures for MONODOMAIN
 #if defined(MONODOMAIN) || defined(CABLEEQ)
+
 typedef struct
 {
-    real strength;
+    real amplitude;
     real begin;
     real duration;
     int xMaxDisc;
@@ -121,26 +147,66 @@ typedef struct
     int yMaxDisc;
     int yMinDisc;
 } Stimulus;
+
 #endif // MONODOMAIN || CABLEEQ
 
+// Define method via compile command line (-D{OPTION}):
+// ADI -> Alternating Direction Implicit
+// OS-ADI -> Operator Splitting ADI
+// SSI-ADI -> Second Order Semi Implicit ADI
+// theta-ADI -> theta method with ADI
+// theta-RK2 -> theta method with RK2 (only for CABLEEQ)
+// FE -> Forward Euler
+
+#ifdef ADI
+#define METHOD "ADI"
+#endif // ADI
+#ifdef OSADI
+#define METHOD "OS-ADI"
+#endif // OSADI
+#ifdef SSIADI
+#define METHOD "SSI-ADI"
+#endif // SSIADI
+#ifdef THETASSIADI
+#define METHOD "theta-SSI-ADI"
+#endif // THETASSIADI
+#ifdef THETASSIRK2
+#define METHOD "theta-SSI-RK2"
+#endif // THETARK2
+#ifdef FE
+#define METHOD "FE"
+#endif // FE
+
 // If defined SERIAL, constants are defined only as const for CPU
-#ifdef SERIAL
+#if defined(SERIAL) || defined(OPENMP)
+
 const real _pi = 3.14159265358979323846f;
 
 #ifdef LINMONO
+
 const real G = 1.0f;     // omega^-1 * cm^-2
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
 const real Cm = 1.0f;    // mF * cm^-2
-#endif                   // LINMONO
+
+#endif // LINMONO
+
 #ifdef DIFFREAC
+
 const real sigma = 1.0f;
+
 #endif // DIFFREAC
+
 #ifdef DIFF
+
 const real sigma = 1.0f;
+
 #endif // DIFF
+
 #if defined(MONODOMAIN) || defined(CABLEEQ)
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
+
+#if defined(CONVERGENCE_ANALYSIS_FORCING_TERM) && defined(AFHN)
+
 const real sigma = 1.0f; // omega^-1 * cm^-1
 const real chi = 1.0f;   // cm^-1
 const real Cm = 1.0f;    // mF * cm^-2
@@ -151,13 +217,13 @@ const real eta2 = 1.0f; // dimensionless
 const real eta3 = 1.0f; // dimensionless
 const real vth = 1.0f;  // mV
 const real vp = 1.0f;   // mV
+
 #elif defined(AFHN)
+
 // Model parameters - Based on Gerardo_Giorda 2007
 const real sigma = 1.2e-3f; // omega^-1 * cm^-1
-// const real chi = 1.0e3f;    // cm^-1
-// const real Cm = 1.0e-3f;    // mF * cm^-2
-const real chi = 1.0f;    // cm^-1
-const real Cm = 1.0f;    // mF * cm^-2
+const real chi = 1.0e3f;    // cm^-1
+const real Cm = 1.0e-3f;    // mF * cm^-2
 
 const real G = 1.5f;      // omega^-1 * cm^-2
 const real eta1 = 4.4f;   // omega^-1 * cm^-1
@@ -165,9 +231,11 @@ const real eta2 = 0.012f; // dimensionless
 const real eta3 = 1.0f;   // dimensionless
 const real vth = 13.0f;   // mV
 const real vp = 100.0f;   // mV
-#endif                    // AFHN
+
+#endif // AFHN
 
 #ifdef TT2
+
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/Source/Main.cc - ten Tusscher code
 // https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/ - Benchmark
@@ -196,19 +264,33 @@ const real Ca_o = 2.0f;   // Extracellular calcium (Ca++) concentration -> mM
 // Parameters for currents
 const real G_Na = 14.838f; // Maximal I_Na (sodium current) conductance -> nS/pF
 const real G_K1 = 5.405f;  // Maximal I_K1 (late rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(MCELL)
+
 const real G_to = 0.294f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (epi and M cells)
-#endif                    // EPI || MCELL
+
+#endif // EPI || MCELL
+
 #ifdef ENDO
+
 const real G_to = 0.073f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (endo cells)
-#endif                    // ENDO
+
+#endif // ENDO
+
 const real G_Kr = 0.153f; // Maximal I_Kr (rapidly activating delayed rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(ENDO)
+
 const real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (epi and endo cells)
-#endif                    // EPI || ENDO
+
+#endif // EPI || ENDO
+
 #ifdef MCELL
-const real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
-#endif                           // MCELL
+
+const real G_Ks = 0.098f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
+
+#endif // MCELL
+
 const real p_KNa = 0.03f;        // Relative I_Ks permeability to Na+ over K+ -> dimensionless
 const real G_CaL = 3.98e-5f;     // Maximal I_CaL (L-type calcium current) conductance -> cm/ms/uF
 const real k_NaCa = 1000.0f;     // Maximal I_NaCa (Na+/Ca++ exchanger current) -> pA/pF
@@ -250,11 +332,13 @@ const real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer ->
 #endif                         // TT2
 
 #ifdef MV
+
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
-const real Dtilde = 1.171f;
-const real chi = 1400.0f;
+// const __constant__ real Dtilde = 1.171f * 1e-3; // cm^2/s
+const __constant__ real Dtilde = 0.65f * 1e-3; // cm^2/s
 
 #ifdef EPI
+
 const real u_o = 0.0f;
 const real u_u = 1.55f;
 const real theta_v = 0.3f;
@@ -283,8 +367,11 @@ const real u_s = 0.9087f;
 const real tau_si = 1.8875f;
 const real tau_winf = 0.07f;
 const real w_infstar = 0.94f;
+
 #endif // EPI
+
 #ifdef ENDO
+
 const real u_o = 0.0f;
 const real u_u = 1.56f;
 const real theta_v = 0.3f;
@@ -313,8 +400,11 @@ const real u_s = 0.9087f;
 const real tau_si = 2.9013f;
 const real tau_winf = 0.0273f;
 const real w_infstar = 0.78f;
+
 #endif // ENDO
+
 #ifdef MCELL
+
 const real u_o = 0.0f;
 const real u_u = 1.61f;
 const real theta_v = 0.3f;
@@ -343,8 +433,11 @@ const real u_s = 0.9087f;
 const real tau_si = 3.3849f;
 const real tau_winf = 0.01f;
 const real w_infstar = 0.5f;
+
 #endif // MCELL
+
 #ifdef PB
+
 const real u_o = 0.0f;
 const real u_u = 1.45f;
 const real theta_v = 0.35f;
@@ -373,8 +466,11 @@ const real u_s = 0.9087f;
 const real tau_si = 1.8875f;
 const real tau_winf = 0.175f;
 const real w_infstar = 0.9f;
+
 #endif // PB
+
 #ifdef TNNP
+
 const real u_o = 0.0f;
 const real u_u = 1.58f;
 const real theta_v = 0.3f;
@@ -403,40 +499,30 @@ const real u_s = 0.9087f;
 const real tau_si = 2.8723f;
 const real tau_winf = 0.07f;
 const real w_infstar = 0.94f;
+
 #endif // TNNP
 #endif // MV
-#endif                         // MONODOMAIN || CABLEEQ
-#endif                         // SERIAL
+#endif // MONODOMAIN || CABLEEQ
+#endif // SERIAL || OPENMP
 
 // If defined GPU, constants are defined as const for CPU and __constant__ for GPU
 #ifdef GPU
+
 const __constant__ real _pi = 3.14159265358979323846f;
 
 #ifdef LINMONO
+
 const __constant__ real G = 1.0f;     // omega^-1 * cm^-2
 const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0f;   // cm^-1
 const __constant__ real Cm = 1.0f;    // mF * cm^-2
-#endif                               // LINMONO
-#ifdef DIFFREAC
-const __constant__ real sigma = 1.0f;
-#endif // DIFFREAC
-#ifdef DIFF
-const __constant__ real sigma = 1.0f;
-#endif // DIFF
-#ifdef MONODOMAIN
-#if defined(CONVERGENCE_ANALYSIS) && defined(AFHN)
-const __constant__ real sigma = 1.0f; // omega^-1 * cm^-1
-const __constant__ real chi = 1.0f;   // cm^-1
-const __constant__ real Cm = 1.0f;    // mF * cm^-2
 
-const __constant__ real G = 1.0f;    // omega^-1 * cm^-2
-const __constant__ real eta1 = 1.0f; // omega^-1 * cm^-1
-const __constant__ real eta2 = 1.0f; // dimensionless
-const __constant__ real eta3 = 1.0f; // dimensionless
-const __constant__ real vth = 1.0f;  // mV
-const __constant__ real vp = 1.0f;   // mV
-#elif defined(AFHN)
+#endif // LINMONO
+
+#ifdef MONODOMAIN
+
+#ifdef AFHN
+
 // Model parameters - Based on Gerardo_Giorda 2007
 const __constant__ real sigma = 1.2e-3f; // omega^-1 * cm^-1
 const __constant__ real chi = 1.0e3f;    // cm^-1
@@ -448,9 +534,11 @@ const __constant__ real eta2 = 0.012f; // dimensionless
 const __constant__ real eta3 = 1.0f;   // dimensionless
 const __constant__ real vth = 13.0f;   // mV
 const __constant__ real vp = 100.0f;   // mV
-#endif                                // AFHN
+
+#endif // AFHN
 
 #ifdef TT2
+
 // Model parameters - Based on Ten Tusscher 2006 (https://journals.physiology.org/doi/full/10.1152/ajpheart.00109.2006)
 // from https://tbb.bio.uu.nl/khwjtuss/SourceCodes/HVM2/Source/Main.cc - ten Tusscher code
 // https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3263775/ - Benchmark
@@ -479,19 +567,33 @@ const __constant__ real Ca_o = 2.0f;   // Extracellular calcium (Ca++) concentra
 // Parameters for currents
 const __constant__ real G_Na = 14.838f; // Maximal I_Na (sodium current) conductance -> nS/pF
 const __constant__ real G_K1 = 5.405f;  // Maximal I_K1 (late rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(MCELL)
+
 const __constant__ real G_to = 0.294f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (epi and M cells)
-#endif                                 // EPI || MCELL
+
+#endif // EPI || MCELL
+
 #ifdef ENDO
+
 const __constant__ real G_to = 0.073f; // Maximal I_to (transient outward potassium current) conductance -> nS/pF (endo cells)
-#endif                                 // ENDO
+
+#endif // ENDO
+
 const __constant__ real G_Kr = 0.153f; // Maximal I_Kr (rapidly activating delayed rectifier potassium current) conductance -> nS/pF
+
 #if defined(EPI) || defined(ENDO)
+
 const __constant__ real G_Ks = 0.392f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (epi and endo cells)
-#endif                                 // EPI || ENDO
+
+#endif // EPI || ENDO
+
 #ifdef MCELL
-const __constant__ real G_Ks = 0.098f;        // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
-#endif                                        // MCELL
+
+const __constant__ real G_Ks = 0.098f; // Maximal I_Ks (slowly activating delayed rectifier potassium current) conductance -> nS/pF (M cells)
+
+#endif // MCELL
+
 const __constant__ real p_KNa = 0.03f;        // Relative I_Ks permeability to Na+ over K+ -> dimensionless
 const __constant__ real G_CaL = 3.98e-5f;     // Maximal I_CaL (L-type calcium current) conductance -> cm/ms/uF
 const __constant__ real k_NaCa = 1000.0f;     // Maximal I_NaCa (Na+/Ca++ exchanger current) -> pA/pF
@@ -530,14 +632,17 @@ const __constant__ real bufSR = 10.0f;      // Total sarcoplasmic reticulum buff
 const __constant__ real K_bufSR = 0.3f;     // Half-saturation constant of sarcoplasmic reticulum buffers -> mM
 const __constant__ real bufSS = 0.4f;       // Total subspace buffer concentration -> mM
 const __constant__ real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer -> mM
-#endif                                      // TT2
+
+#endif // TT2
 
 #ifdef MV
+
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
-const __constant__ real Dtilde = 1.171f;
-const __constant__ real chi = 1400.0f;
+// const __constant__ real Dtilde = 1.171f * 1e-3; // cm^2/s
+const __constant__ real Dtilde = 0.65f * 1e-3; // cm^2/s
 
 #ifdef EPI
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.55f;
 const __constant__ real theta_v = 0.3f;
@@ -566,8 +671,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 1.8875f;
 const __constant__ real tau_winf = 0.07f;
 const __constant__ real w_infstar = 0.94f;
+
 #endif // EPI
+
 #ifdef ENDO
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.56f;
 const __constant__ real theta_v = 0.3f;
@@ -596,8 +704,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 2.9013f;
 const __constant__ real tau_winf = 0.0273f;
 const __constant__ real w_infstar = 0.78f;
+
 #endif // ENDO
+
 #ifdef MCELL
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.61f;
 const __constant__ real theta_v = 0.3f;
@@ -626,8 +737,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 3.3849f;
 const __constant__ real tau_winf = 0.01f;
 const __constant__ real w_infstar = 0.5f;
+
 #endif // MCELL
+
 #ifdef PB
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.45f;
 const __constant__ real theta_v = 0.35f;
@@ -656,8 +770,11 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 1.8875f;
 const __constant__ real tau_winf = 0.175f;
 const __constant__ real w_infstar = 0.9f;
+
 #endif // PB
+
 #ifdef TNNP
+
 const __constant__ real u_o = 0.0f;
 const __constant__ real u_u = 1.58f;
 const __constant__ real theta_v = 0.3f;
@@ -686,9 +803,10 @@ const __constant__ real u_s = 0.9087f;
 const __constant__ real tau_si = 2.8723f;
 const __constant__ real tau_winf = 0.07f;
 const __constant__ real w_infstar = 0.94f;
+
 #endif // TNNP
 #endif // MV
-#endif                                      // MONODOMAIN
-#endif                                      // GPU
+#endif // MONODOMAIN
+#endif // GPU
 
 #endif // INCLUDE_H

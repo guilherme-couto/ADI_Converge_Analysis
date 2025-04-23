@@ -22,22 +22,78 @@ def get_gpu_architecture():
         print(f"Failed to determine GPU architecture: {e}")
         return None
 
-def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
+def compile(real_type, serial_or_gpu, problem, cell_model, method, init, shift_state, frames, save_last_frame, save_last_state, measure_velocity, theta=None, convergence_analysis=False):
+    if convergence_analysis:
+        compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o convergence -O3 -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS_FORCING_TERM -w '
+    else:    
+        compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse main.cu -o {method} -O3 -arch={get_gpu_architecture()} -w '
     
-    if real_type == 'float':
-        double_or_float = 'USE_FLOAT'
-    elif real_type == 'double':
-        double_or_float = 'USE_DOUBLE'
-    else:
-        raise ValueError('Invalid real type')
+    if real_type == 'double':
+        compile_command += '-DUSE_DOUBLE '
+    elif real_type == 'float':
+        compile_command += '-DUSE_FLOAT '
+
+    if serial_or_gpu == 'GPU':
+        compile_command += '-DGPU '
+    elif serial_or_gpu == 'SERIAL':
+        compile_command += '-DSERIAL '
+    elif serial_or_gpu == 'OPENMP':
+        compile_command += '-DOPENMP '
+
+    if problem == 'MONODOMAIN':
+        compile_command += '-DMONODOMAIN '
+    elif problem == 'CABLEEQ':
+        compile_command += '-DCABLEEQ '
+
+    if cell_model == 'AFHN':
+        compile_command += '-DAFHN '
+    elif cell_model == 'TT2':
+        compile_command += '-DTT2 -DEPI '
+    elif cell_model == 'MV':
+        compile_command += '-DMV -DTNNP '
+
+    if init == 'restore_state':
+        compile_command += '-DRESTORE_STATE '
+
+    if shift_state:
+        compile_command += '-DSHIFT_STATE '
+
+    if frames:
+        compile_command += '-DSAVE_FRAMES '
+
+    if save_last_frame:
+        compile_command += '-DSAVE_LAST_FRAME '
+
+    if save_last_state:
+        compile_command += '-DSAVE_LAST_STATE '
+        
+    if measure_velocity:
+        compile_command += '-DMEASURE_VELOCITY '
+
+    if method == 'ADI':
+        compile_command += '-DADI '
+    elif method == 'OS-ADI':
+        compile_command += '-DOSADI '
+    elif method == 'SSI-ADI':
+        compile_command += '-DSSIADI '
+    elif method == 'theta-SSI-ADI':
+        compile_command += '-DTHETASSIADI '
+        compile_command += f'-DTHETA={theta} '
+    elif method == 'theta-SSI-RK2':
+        compile_command += '-DTHETASSIRK2 '
+        compile_command += f'-DTHETA={theta} '
+    elif method == 'FE':
+        compile_command += '-DFE '
     
-    # Compile (sm_80 for A100-Ampere; sm_86 for RTX3050-Ampere; sm_89 for RTX 4070-Ada)
-    compile_command = f'nvcc -Xcompiler -fopenmp -lpthread -lcusparse convergence.cu -o convergence -O3 -w -arch={get_gpu_architecture()} -DCONVERGENCE_ANALYSIS -D{problem} -D{serial_or_gpu} -D{double_or_float} -D{cell_model}'
-    print(f'Compiling {compile_command}...')
+    print(f'Compiling {compile_command}...\n')
     os.system(compile_command)
 
+def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs, thetas):
+    
+    
     for i in range(len(dts)):
         dx = dxs[i]
+        dy = dx
         dt = dts[i]
         tts = []
         
@@ -46,7 +102,13 @@ def run_all_simulations_for_convergence_analysis(serial_or_gpu, real_type, probl
         else:
             tts = thetas 
         for theta in tts:
-            simulation_line = f'./convergence {method} {dt} {dx} {theta}'
+            execution_args = f'{dt} {dx} {dy}'
+            if problem == 'CABLEEQ':
+                execution_args = f'{dt} {dx}'
+            
+            compile(real_type, serial_or_gpu, problem, cell_model, method, init='initial_conditions', shift_state=False, save_frames=False, save_last_frame=True, save_last_state=False, measure_velocity=False, theta=theta, convergence_analysis=True)
+
+            simulation_line = f'./convergence {execution_args}'
             print(f'Executing {simulation_line}...')
             os.system(simulation_line)
 
@@ -55,10 +117,12 @@ def read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs,
     for i in range(len(dts)):
         dt = dts[i]
         dx = dxs[i]
+        dy = dx
+        print(f'Getting errors for dt={dt} dx={dx} dy={dy}')
         
-        infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/infos/infos_{dt}_{dx}.txt'
+        infos_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/infos/infos.txt'
         if 'theta' in method:
-            infos_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/infos/infos_{dt}_{dx}.txt'
+            infos_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/infos/infos.txt'
         
         if not os.path.exists(infos_path):
             raise FileNotFoundError(f'File {infos_path} not found')                                             
@@ -78,8 +142,10 @@ def calculate_slopes(errors, dts):
         slopes.append(f'{(slope):.3f}')
     return slopes
 
-def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
+    save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if problem == 'CABLEEQ':
+        save_dir = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
@@ -93,17 +159,25 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
         min_value = 0.0
     
     if cell_model == 'AFHN':
-        variables = ['V', 'W']
+        variables = ['Vm', 'W']
     elif cell_model == 'TT2':
-        variables = ['V', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
+        variables = ['Vm', 'X_r1', 'X_r2', 'X_s', 'm', 'h', 'j', 'd', 'f', 'f2', 'fCaSS', 's', 'r', 'Ca_i', 'Ca_SR', 'Ca_SS', 'R_prime', 'Na_i', 'K_i']
+    elif cell_model == 'MV':
+        variables = ['Vm', 'v', 'w', 's']
     
     for variable in variables:
         if 'theta' not in method:
-            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last{variable}_{dt}_{dx}.txt'
-            title = f'Last frame {variable} dt={dt} dx={dx}'
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe{variable}.txt'
+            title = f'Last frame {variable} {method} dt={dt} dx={dx} dy={dy}'
+            if problem == 'CABLEEQ':
+                file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe{variable}.txt'
+                title = f'Last frame {variable} {method} dt={dt} dx={dx}'
         else:
-            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last{variable}_{dt}_{dx}.txt'
-            title = f'Last frame {variable} ({theta}) dt={dt} dx={dx}'
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe{variable}.txt'
+            title = f'Last frame {variable} {method} theta={theta} dt={dt} dx={dx} dy={dy}'
+            if problem == 'CABLEEQ':
+                file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe{variable}.txt'
+                title = f'Last frame {variable} {method} theta={theta} dt={dt} dx={dx}'
             
         if not os.path.exists(file_path):
             raise FileNotFoundError(f'File {file_path} not found')
@@ -122,13 +196,9 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
             x = np.arange(0, (len(data_last)-1) * float(dx), float(dx))
             x = np.append(x, (len(data_last)-1) * float(dx))
             
-            if cell_model == 'AFHN':
-                plt.plot(x, data_last)
-            elif cell_model == 'TT2':
-                plt.plot(x, data_last)
             plt.ylim(min_value, max_value)
             plt.title(f'{title}')
-            plt.ylabel('V (mV)')
+            plt.ylabel('Vm (mV)')
             plt.xlabel('L (cm)')
         
         else:
@@ -141,13 +211,15 @@ def plot_last_frame_state_variables(serial_or_gpu, real_type, problem, cell_mode
             plt.title(f'{title}')
             plt.tight_layout()
         
-        plt.savefig(f'{save_dir}/last{variable}_{dt}_{dx}.png')
+        plt.savefig(f'{save_dir}/lastframe{variable}.png')
         plt.close()
         
-        print(f'Last frame of {variable} saved to {save_dir}/last{variable}_{dt}_{dx}.png')
+        print(f'Plot of {variable} last frame saved to {save_dir}/lastframe{variable}.png')
 
-def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
+    save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if problem == 'CABLEEQ':
+        save_dir = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
@@ -162,13 +234,22 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
     elif cell_model == 'TT2':
         max_value = 100.0
         min_value = -90.0
+    elif cell_model == 'MV':
+        max_value = 50.0
+        min_value = -90.0
     
     if 'theta' not in method:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
-        title = f'Last frame dt={dt} dx={dx}'
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe.txt'
+        title = f'Last frame {method} dt={dt} dx={dx} dy={dy}'
+        if problem == 'CABLEEQ':
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe.txt'
+            title = f'Last frame {method} dt={dt} dx={dx}'
     else:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
-        title = f'Last frame ({theta}) dt={dt} dx={dx}'
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe.txt'
+        title = f'Last frame {method} theta={theta} dt={dt} dx={dx} dy={dy}'
+        if problem == 'CABLEEQ':
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe.txt'
+            title = f'Last frame {method} theta={theta} dt={dt} dx={dx}'
         
     if not os.path.exists(file_path):
         raise FileNotFoundError(f'File {file_path} not found')
@@ -191,18 +272,18 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         plt.plot(x, data_last)
         plt.ylim(min_value, max_value)
         plt.title(f'{title}')
-        plt.ylabel('V (mV)')
+        plt.ylabel('Vm (mV)')
         plt.xlabel('L (cm)')
-        plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+        plt.savefig(f'{save_dir}/lastframe.png')
         plt.close()
 
         # Plot AP too
         if 'theta' not in method:
-            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/AP/AP_{dt}_{dx}.txt'
-            title = f'AP of cell 0.5 cm dt={dt} dx={dx}'
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/AP.txt'
+            title = f'AP of cell 0.5 cm {method} dt={dt} dx={dx}'
         else:
-            file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/AP/AP_{dt}_{dx}.txt'
-            title = f'AP of cell 0.5 cm ({theta}) dt={dt} dx={dx}'
+            file_path = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/AP.txt'
+            title = f'AP of cell 0.5 cm {method} theta={theta} dt={dt} dx={dx}'
         
         if not os.path.exists(file_path):
             raise FileNotFoundError(f'File {file_path} not found')
@@ -211,34 +292,38 @@ def plot_last_frame(serial_or_gpu, real_type, problem, cell_model, method, dt, d
         data_AP = np.genfromtxt(file_path, dtype=float)
 
         plt.figure()
-        t = [float(dt)*i for i in range(0,len(data_AP))]
+        t = [float(dt)*i for i in range(0, len(data_AP))]
         plt.plot(t, data_AP)
         plt.ylim(min_value, max_value)
         plt.title(title)
-        plt.ylabel('V (mV)')
+        plt.ylabel('Vm (mV)')
         plt.xlabel('t (ms)')
-        plt.savefig(f'{save_dir}/AP_{dt}_{dx}.png')
+        plt.savefig(f'{save_dir}/AP.png')
         plt.close()
+        
+        os.remove(file_path)
+        print(f'Action potential saved to {save_dir}/AP.png')
     
     else:
+        if len(data_last) < len(data_last[0]):
+            orientation = 'horizontal'
+        else:
+            orientation = 'vertical'
         # Plot the last
         plt.figure(figsize=(6, 6))
         plt.imshow(data_last, cmap='plasma', vmin=min_value, vmax=max_value, origin='lower')
-        plt.colorbar(label='Value', fraction=0.04, pad=0.04)
+        plt.colorbar(label='Value', fraction=0.04, pad=0.04, orientation=orientation)
         plt.xticks([])
         plt.yticks([])
         plt.title(f'{title}')
         plt.tight_layout()
-        plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+        plt.savefig(f'{save_dir}/lastframe.png')
         plt.close()
     
-    print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
-    if problem == 'CABLEEQ':
-        os.remove(file_path)
-        print(f'Action potential saved to {save_dir}/AP_{dt}_{dx}.png')
+    print(f'Plot of last frame saved to {save_dir}/lastframe.png')
 
 def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
@@ -246,15 +331,15 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
         
         
     if 'theta' not in method:
-        file_path_last = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe/last_{dt}_{dx}.txt'
-        file_path_exact = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
+        file_path_last = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/lastframe.txt'
+        file_path_exact = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact.txt'
         title_last = f'Last frame dt={dt} dx={dx}'
         title_exact = f'Exact dt={dt} dx={dx}'
     else:
-        file_path_last = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe/last_{dt}_{dx}.txt'
-        file_path_exact = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact_{dt}_{dx}.txt'
-        title_last = f'Last frame ({theta}) dt={dt} dx={dx}'
-        title_exact = f'Exact ({theta}) dt={dt} dx={dx}'
+        file_path_last = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/lastframe.txt'
+        file_path_exact = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact.txt'
+        title_last = f'Last frame theta={theta} dt={dt} dx={dx}'
+        title_exact = f'Exact theta={theta} dt={dt} dx={dx}'
         
     if not os.path.exists(file_path_last):
         raise FileNotFoundError(f'File {file_path_last} not found')
@@ -282,10 +367,10 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
     plt.xticks([])
     plt.yticks([])
     plt.title(f'{title_last}')
-    plt.savefig(f'{save_dir}/last_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/last.png')
     plt.close()
     
-    print(f'Last frame saved to {save_dir}/last_{dt}_{dx}.png')
+    print(f'Plot of last frame saved to {save_dir}/last.png')
 
     # Plot the exact
     plt.figure()
@@ -294,24 +379,24 @@ def plot_last_frame_and_exact(serial_or_gpu, real_type, problem, cell_model, met
     plt.xticks([])
     plt.yticks([])
     plt.title(f'{title_exact}')
-    plt.savefig(f'{save_dir}/exact_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/exact.png')
     plt.close()
     
-    print(f'Exact saved to {save_dir}/exact_{dt}_{dx}.png')
+    print(f'Plot of exact saved to {save_dir}/exact.png')
 
 def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    save_dir = f'./simulation_files/figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
     if 'theta' not in method:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact_{dt}_{dx}.txt'
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/exact/exact.txt'
         title = f'Exact dt={dt} dx={dx}'
     else:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact_{dt}_{dx}.txt'
-        title = f'Exact ({theta}) dt={dt} dx={dx}'   
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/exact/exact.txt'
+        title = f'Exact theta={theta} dt={dt} dx={dx}'   
         
     if not os.path.exists(file_path):
         raise FileNotFoundError(f'File {file_path} not found')
@@ -326,24 +411,24 @@ def plot_exact(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     plt.xticks([])
     plt.yticks([])
     plt.title(f'{title}')
-    plt.savefig(f'{save_dir}/exact_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/exact.png')
     plt.close()
     
-    print(f'Exact saved to {save_dir}/exact_{dt}_{dx}.png')
+    print(f'Plot of exact saved to {save_dir}/exact.png')
     
-def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    save_dir = f'./simulation_files/errors_figures/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
+    save_dir = f'./simulation_files/errors_dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
         
     if 'theta' not in method:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/errors/errors_{dt}_{dx}.txt'
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/errors/errors.txt'
         title = f'Errors dt={dt} dx={dx}'
     else:
-        file_path = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/errors/errors_{dt}_{dx}.txt'
-        title = f'Errors ({theta}) dt={dt} dx={dx}'
+        file_path = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/errors/errors.txt'
+        title = f'Errors theta={theta} dt={dt} dx={dx}'
         
     if not os.path.exists(file_path):
         raise FileNotFoundError(f'File {file_path} not found')
@@ -358,39 +443,38 @@ def plot_errors(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, t
     plt.xticks([])
     plt.yticks([])
     plt.title(f'{title} (max_error={data.max()})')
-    plt.savefig(f'{save_dir}/errors_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/errors.png')
     plt.close()
     
-    print(f'Errors saved to {save_dir}/errors_{dt}_{dx}.png')
+    print(f'Plot of errors saved to {save_dir}/errors.png')
 
-def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
+def plot_difference_map_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, Nx, Ny, theta='0.00'):
     save_dir = f'./simulation_files/difference_maps/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
         os.makedirs(f'{save_dir}')
     
-    side_length = int(np.sqrt(len(data)))
     data = abs(data)
-    data = data.reshape((side_length, side_length))
+    data = data.reshape((Ny, Nx))
     
     if 'theta' not in method:
-        title = f'DiffMap dt={dt} dx={dx}'
+        title = f'DiffMap dt={dt} dx={dx} dy={dy}'
     else:
-        title = f'DiffMap ({theta}) dt={dt} dx={dx}'
+        title = f'DiffMap theta={theta} dt={dt} dx={dx} dy={dy}'
     
     # Plot the data
-    plt.figure(figsize=(6, 6))
+    plt.figure()
     plt.imshow(data, cmap='viridis', origin='lower', vmin=0, vmax=100)
     plt.colorbar(label='Value', fraction=0.04, pad=0.04)
     plt.xticks([])
     plt.yticks([])
     plt.tight_layout()
     plt.title(f'{title} (max_error={(data.max()):.2f})')
-    plt.savefig(f'{save_dir}/diffmap_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/diffmap.png')
     plt.close()
     
-    print(f'Difference map saved to {save_dir}/diffmap_{dt}_{dx}.png')
+    print(f'Plot of difference map saved to {save_dir}/diffmap.png')
 
 def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
     save_dir = f'./simulation_files/difference_vector/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
@@ -405,7 +489,7 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
     if 'theta' not in method:
         title = f'DiffVec dt={dt} dx={dx}'
     else:
-        title = f'DiffVec ({theta}) dt={dt} dx={dx}'
+        title = f'DiffVec theta={theta} dt={dt} dx={dx}'
     
     # x-axis
     xaxis = [i * float(dx) for i in range(len(data))]
@@ -418,14 +502,16 @@ def plot_difference_vector_from_data(data, serial_or_gpu, real_type, problem, ce
     plt.axhline(0, color='gray', linewidth=0.5, linestyle='--')
     plt.grid()
     plt.title(f'{title} (max_error={(data.max()):.2f})')
-    plt.savefig(f'{save_dir}/diff_{dt}_{dx}.png')
+    plt.savefig(f'{save_dir}/diff.png')
     plt.close()
     
-    print(f'Difference vector saved to {save_dir}/diff_{dt}_{dx}.png')
+    print(f'Plot of difference vector saved to {save_dir}/diff.png')
 
-def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, theta='0.00'):
-    # Create gif directory
-    save_dir = f'./simulation_files/gifs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+def create_GIF(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, dy, theta='0.00'):
+    # Create GIF directory
+    save_dir = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
+    if problem == 'CABLEEQ':
+        save_dir = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}'
     if 'theta' in method:
         save_dir += f'/{theta}'
     if not os.path.exists(f'{save_dir}'):
@@ -436,11 +522,17 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     frames = []
 
     if 'theta' not in method:
-        frames_file = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/frames/frames_{dt}_{dx}.txt'
-        title = f'Simulation dt={dt} dx={dx}'
+        frames_file = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/frames.txt'
+        title = f'Simulation {method} dt={dt} dx={dx} dy={dy}'
+        if problem == 'CABLEEQ':
+            frames_file = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/frames.txt'
+            title = f'Simulation {method} dt={dt} dx={dx}'
     else:
-        frames_file = f'./simulation_files/outputs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/frames/frames_{dt}_{dx}.txt'
-        title = f'Simulation ({theta}) dt={dt} dx={dx}'
+        frames_file = f'./simulation_files/dt_{dt}_dx_{dx}_dy_{dy}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/frames.txt'
+        title = f'Simulation {method} theta={theta} dt={dt} dx={dx} dy={dy}'
+        if problem == 'CABLEEQ':
+            frames_file = f'./simulation_files/dt_{dt}_dx_{dx}/{serial_or_gpu}/{real_type}/{problem}/{cell_model}/{method}/{theta}/frames.txt'
+            title = f'Simulation {method} theta={theta} dt={dt} dx={dx}'
     
     if not os.path.exists(frames_file):
         raise FileNotFoundError(f'File {frames_file} not found')
@@ -451,6 +543,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
     line = line.split()
     frame_count = 0
     
+    print(f'Creating GIF for {title}...')
     while True:
         if not line:
             break
@@ -489,20 +582,29 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
                 elif cell_model == 'TT2':
                     plt.plot(x, frame[0])
                     plt.ylim(-90.0, 100.0)
+                elif cell_model == 'MV':
+                    plt.plot(x, frame[0])
+                    plt.ylim(-90.0, 50.0)
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 # plt.tight_layout()
-                plt.ylabel('V (mV)')
+                plt.ylabel('Vm (mV)')
                 plt.xlabel('L (cm)')
                 plt.savefig(frame_name)
                 plt.close()
             
             else:
-                plt.figure(figsize=(6, 6))
+                if len(frame) < len(frame[0]):
+                    orientation = 'horizontal'
+                else:
+                    orientation = 'vertical'
+                plt.figure()
                 if cell_model == 'AFHN':
                     plt.imshow(frame, cmap='plasma', vmin=0.0, vmax=100, origin='lower')
                 elif cell_model == 'TT2':
                     plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=100, origin='lower')
-                plt.colorbar(label='V (mV)', fraction=0.04, pad=0.04)
+                elif cell_model == 'MV':
+                    plt.imshow(frame, cmap='plasma', vmin=-90.0, vmax=50.0, origin='lower')
+                plt.colorbar(label='Vm (mV)', fraction=0.04, pad=0.04, orientation=orientation)
                 plt.title(f'{title} ({times[frame_count]:.2f} ms)')
                 plt.xticks([])
                 plt.yticks([])
@@ -512,12 +614,18 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
             
             frame_count += 1
 
-    # Build gif
-    gif_path = f'{save_dir}/gif_{dt}_{dx}.gif'
-    with imageio.v2.get_writer(gif_path, mode='I') as writer:
-        for frame in frames:
-            image = imageio.v2.imread(frame)
-            writer.append_data(image)
+    # Build GIF
+    GIF_path = f'{save_dir}/gif.gif'
+    images = []
+    for frame in frames:
+        image = imageio.v2.imread(frame)
+        images.append(image)
+    imageio.v2.mimsave(
+        GIF_path, 
+        images,
+        duration=0.9,
+        loop=0  # Set infinite loop
+    )
 
     # Remove files
     for png in set(frames):
@@ -525,7 +633,7 @@ def create_gif(serial_or_gpu, real_type, problem, cell_model, method, dt, dx, th
             os.remove(png)
     
     os.remove(frames_file)
-    print(f'Gif saved to {gif_path}')
+    print(f'Gif saved to {GIF_path}')
       
 def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem, cell_model, methods, dts, dxs, thetas):
     graph_dir = f'./simulation_files/graphs/{serial_or_gpu}/{real_type}/{problem}/{cell_model}'
@@ -561,7 +669,7 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
                 analysis_file.write('\n\n')
                 print('\n')
                 
-                plt.loglog([float(dt) for dt in dts], errors, '-', marker='x', label=f'{method} ({theta})')
+                plt.loglog([float(dt) for dt in dts], errors, '-', marker='x', label=f'{method} theta={theta}')
 
         else:
             errors = read_errors(serial_or_gpu, real_type, problem, cell_model, method, dts, dxs)
@@ -588,8 +696,10 @@ def run_script_for_convergence_analysis(alpha, serial_or_gpu, real_type, problem
     plt.savefig(f'{graph_dir}/convergence_analysis.png')
     plt.close()
     
-def read_values_with_rate(filename, rate):
+def read_values_with_rate(filename, rate_x, rate_y):
     selected_values = []
+    Nx = 0
+    Ny = 0
     
     with open(filename, 'r') as file:
         
@@ -597,12 +707,18 @@ def read_values_with_rate(filename, rate):
         for line_index, line in enumerate(file):
             
             # If the line index is multiple of the rate, select the line
-            if line_index % rate == 0:
+            if line_index % rate_y == 0:
             
                 values = line.split()
                 values = [float(value) for value in values]
                 
                 # Select columns with the rate
-                selected_values.extend(values[::rate])
+                selected_values.extend(values[::rate_x])
+
+                # Get the number of columns
+                Nx = len(values[::rate_x])
+
+                # Get the number of lines
+                Ny += 1
     
-    return selected_values
+    return selected_values, Nx, Ny
