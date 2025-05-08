@@ -7,8 +7,10 @@
 #include <math.h>
 #include <stdbool.h>
 #include <omp.h>
+#ifdef GPU
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#endif // GPU
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -48,11 +50,13 @@ typedef double real;
 #define REAL_TYPE "double"
 #define STRTOREAL strtod
 #define FSCANF_REAL "%le"
+#define PRINTF_REAL "%lf"
 #else
 typedef float real;
 #define REAL_TYPE "float"
 #define STRTOREAL strtof
 #define FSCANF_REAL "%e"
+#define PRINTF_REAL "%f"
 #endif
 
 #ifdef SERIAL
@@ -67,6 +71,16 @@ typedef float real;
 #define EXECUTION_TYPE "GPU"
 #define RUNSIMULATION runSimulationGPU
 #endif // GPU
+
+// Define extension for files
+#ifdef SAVE_AS_VTK
+#define FILE_EXTENSION "vtk"
+#define SAVEFRAME(filePath, Vm, Nx, Ny, dx, dy) saveVTK2D(filePath, Vm, Nx, Ny, dx, dy)
+#else
+#define SAVE_AS_TXT
+#define FILE_EXTENSION "txt"
+#define SAVEFRAME(file, Vm, Nx, Ny, dx, dy) saveFrame(file, Vm, Nx, Ny)
+#endif // SAVE_AS_VTK
 
 // Define cell model via compile command line (-D{OPTION}, AFHN, TT2 or MV)
 // if cell model has phenotype, define it as well
@@ -335,7 +349,7 @@ const real K_bufSS = 0.00025f; // Half-saturation constant of subspace buffer ->
 
 // Model definition https://www.sciencedirect.com/science/article/pii/S0022519308001690?via%3Dihub
 // const __constant__ real Dtilde = 1.171f * 1e-3; // cm^2/s
-const __constant__ real Dtilde = 0.65f * 1e-3; // cm^2/s
+const real Dtilde = 0.65f * 1e-3; // cm^2/s
 
 #ifdef EPI
 

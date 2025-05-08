@@ -445,9 +445,15 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Save frames variables
     char framesPath[MAX_STRING_SIZE];
-    FILE *fpFrames;
     snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
+
+#ifdef SAVE_AS_TXT
+
+    FILE *fpFrames;
     fpFrames = fopen(framesPath, "w");
+
+#endif // SAVE_AS_TXT
+
     real startSaveFramesTime, finishSaveFramesTime, elapsedSaveFramesTime = 0.0f;
 
 #endif // SAVE_FRAMES
@@ -628,9 +634,21 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
             // Copy memory of d_Vm from device to host Vm
             CUDA_CALL(cudaMemcpy(Vm, d_Vm, Nx * Ny * sizeof(real), cudaMemcpyDeviceToHost));
 
-            // Save frame
+#ifdef SAVE_AS_VTK
+
+            snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frame_%05d.txt", pathToSaveData, timeStepCounter);
+            SAVEFRAME(framesPath, Vm, Nx, Ny, delta_x, delta_y);
+
+#endif // SAVE_AS_VTK
+
+#ifdef SAVE_AS_TXT
+            
+            // Save time to file
             fprintf(fpFrames, "%lf\n", actualTime);
-            saveFrame(fpFrames, Vm, Nx, Ny);
+            SAVEFRAME(fpFrames, Vm, Nx, Ny);
+        
+#endif // SAVE_AS_TXT
+
             SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
         }
 
@@ -695,11 +713,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 
+#ifdef SAVE_AS_VTK
+
+    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frame_%05d.txt", pathToSaveData, timeStepCounter);
+    SAVEFRAME(framesPath, Vm, Nx, Ny, delta_x, delta_y);
+
+#endif // SAVE_AS_VTK
+
+#ifdef SAVE_AS_TXT
+
     fprintf(fpFrames, "%lf\n", actualTime);
     saveFrame(fpFrames, Vm, Nx, Ny);
-    SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
     fclose(fpFrames);
 
+#endif // SAVE_AS_TXT
+
+    SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, framesPath);
+    
 #endif // SAVE_FRAMES
 
     printf("Simulation done!\n");
@@ -810,13 +840,23 @@ void runSimulationGPU(real delta_t, real delta_x, real delta_y)
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
-    FILE *fpLast = fopen(lastFrameFilePath, "w");
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.%s", pathToSaveData, FILE_EXTENSION);
 
-    saveFrame(fpLast, Vm, Nx, Ny);
+#ifdef SAVE_AS_VTK
+
+    SAVEFRAME(lastFrameFilePath, Vm, Nx, Ny, dx, dy);
+
+#endif // SAVE_AS_VTK
+
+#ifdef SAVE_AS_TXT
+
+    FILE *fpLast = fopen(lastFrameFilePath, "w");
+    SAVEFRAME(fpLast, Vm, Nx, Ny);
+    fclose(fpLast);
+
+#endif // SAVE_AS_TXT
 
     SUCCESSMSG("Last frame saved to %s\n", lastFrameFilePath);
-    fclose(fpLast);
 
 #endif // SAVE_LAST_FRAME
 

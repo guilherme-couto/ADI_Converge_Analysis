@@ -486,6 +486,45 @@ void saveFrame(FILE *file, real *Vm, int Nx, int Ny)
     }
 }
 
+void saveVTK2D(const char *filePath, real *Vm, int Nx, int Ny, real dx, real dy)
+{
+    FILE *file = fopen(filePath, "w");
+    if (file == NULL)
+    {
+        ERRORMSG("Error opening file %s\n", filePath);
+        exit(1);
+    }
+    
+
+    // Write the VTK file - Header for 2D data
+    fprintf(file, "# vtk DataFile Version 3.0\n");
+    fprintf(file, "Monodomain Vm Data 2D\n");
+    fprintf(file, "ASCII\n");
+    fprintf(file, "DATASET STRUCTURED_POINTS\n");
+    fprintf(file, "DIMENSIONS %d %d 1\n", Nx, Ny);
+    fprintf(file, "ORIGIN 0 0 0\n");
+    fprintf(file, "SPACING %.15g %.15g 1.0\n", dx, dy);
+    fprintf(file, "POINT_DATA %d\n", Nx * Ny);
+    fprintf(file, "SCALARS Vm %s 1\n", REAL_TYPE);
+    fprintf(file, "LOOKUP_TABLE default\n");
+
+    for (int i = 0; i < Ny; ++i)
+    {
+        for (int j = 0; j < Nx; ++j)
+        {
+            int index = i * Nx + j;
+#ifndef MV
+            fprintf(file, "%e\n", Vm[index]);
+#else
+            fprintf(file, "%e\n", rescaleVm(Vm[index]));
+#endif
+        }
+    }
+
+    fclose(file);
+}
+
+
 #endif // GPU
 
 #endif // AUXFUNCS_H

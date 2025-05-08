@@ -953,6 +953,19 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
             : (d_s[index] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
 
 #endif // FE
+
+#ifdef HV // Hundsdorfer-Verwer scheme (for anisotropy)
+
+        // Boundary conditions
+        real im1Vm = (i - 1 == -1) ? d_Vm[index + Nx] : d_Vm[index - Nx];
+        real ip1Vm = (i + 1 == Ny) ? d_Vm[index - Nx] : d_Vm[index + Nx];
+        real jm1Vm = (j - 1 == -1) ? d_Vm[index + 1] : d_Vm[index - 1];
+        real jp1Vm = (j + 1 == Nx) ? d_Vm[index - 1] : d_Vm[index + 1];
+        //TODO: solve cross derivatives in boundaries
+
+        real diff_term = diff_coeff * (phi_x * (jm1Vm - 2.0f * actualVm + jp1Vm) + phi_y * (im1Vm - 2.0f * actualVm + ip1Vm));
+
+#endif // HV
     }
 }
 

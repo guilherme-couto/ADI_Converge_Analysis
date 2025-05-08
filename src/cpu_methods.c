@@ -1,7 +1,5 @@
-#ifndef CPU_METHODS_H
-#define CPU_METHODS_H
-
-#include "auxfuncs.h"
+#include "../include/auxfuncs.h"
+#include "../include/core_definitions.h"
 
 void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 {
@@ -2351,5 +2349,3 @@ void runSimulationSerial(real delta_t, real delta_x, real delta_y)
 
     return;
 }
-
-#endif // CPU_METHODS_H
