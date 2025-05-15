@@ -2,10 +2,6 @@
 
 void runMonodomainSimulationSerial(const SimulationConfig *config)
 {
-    printf("Nx = %d\n", config->Nx);
-    printf("Ny = %d\n", config->Ny);
-    printf("Points in the domain = %d\n", config->Nx * config->Ny);
-    
     // Allocate and populate time array
     real *time_array = (real *)malloc(config->M * sizeof(real));
     initializeTimeArray(time_array, config->M, config->dt);
@@ -30,7 +26,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
     else
     {
         ERRORMSG("Invalid cell model selected.");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Free allocated memory
@@ -958,7 +954,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
 
 //     fprintf(fpInfos, "\n");
-//     fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
+//     fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", pathToSaveData);
 //     fclose(fpInfos);
 
 //     INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);
@@ -2899,7 +2895,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
 
 //     fprintf(fpInfos, "\n");
-//     fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
+//     fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", pathToSaveData);
 //     fclose(fpInfos);
 
 //     INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);

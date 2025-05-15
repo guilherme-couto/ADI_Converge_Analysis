@@ -42,6 +42,7 @@ void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denom
 const int createDirectories(char *dir_path, bool remove_old_files)
 {
     char path[MAX_STRING_SIZE];
+    char frames_path[MAX_STRING_SIZE];
 
     // Check for path length to avoid buffer overflow
     if (strlen(dir_path) >= MAX_STRING_SIZE)
@@ -92,7 +93,7 @@ const int createDirectories(char *dir_path, bool remove_old_files)
         return -1;
     }
 
-    // If remove_old_files is true, remove the old files in the directory
+    // If remove_old_files is true, remove the old files in the directory, including the frames subdirectory
     if (remove_old_files)
     {
         // Open the directory
@@ -101,6 +102,43 @@ const int createDirectories(char *dir_path, bool remove_old_files)
         {
             perror("opendir");
             return -1;
+        }
+
+        // Check if "frames" subdirectory exists and remove its contents
+        snprintf(frames_path, sizeof(frames_path), "%s/frames", path);
+        DIR *frames_dir = opendir(frames_path);
+        if (frames_dir != NULL)
+        {
+            // Remove files inside "frames" subdirectory
+            struct dirent *entry;
+            while ((entry = readdir(frames_dir)) != NULL)
+            {
+                // Skip the current and parent directory entries
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+
+                // Construct the full path to the file
+                char full_path[MAX_STRING_SIZE];
+                snprintf(full_path, sizeof(full_path), "%s/%s", frames_path, entry->d_name);
+
+                // Remove the file
+                if (remove(full_path) != 0)
+                {
+                    perror("remove");
+                    closedir(frames_dir);
+                    closedir(dir);
+                    return -1;
+                }
+            }
+            closedir(frames_dir);
+
+            // Remove the "frames" directory itself
+            if (rmdir(frames_path) != 0 && errno != ENOENT)
+            {
+                perror("rmdir");
+                closedir(dir);
+                return -1;
+            }
         }
 
         struct dirent *entry;
@@ -142,6 +180,14 @@ const int createDirectories(char *dir_path, bool remove_old_files)
 
     // Safely copy the path to the original dir_path using snprintf
     snprintf(dir_path, MAX_STRING_SIZE, "%s", path);
+
+    // Create the frames subdirectory
+    snprintf(frames_path, sizeof(frames_path), "%s/frames", dir_path);
+    if (mkdir(frames_path, 0777) != 0 && errno != EEXIST)
+    {
+        perror("mkdir");
+        return -1;
+    }
 
     return 0;
 }
@@ -236,19 +282,16 @@ int populateStimuli(SimulationConfig *config)
     return 0;
 }
 
-void printSimulationConfig(const SimulationConfig *config)
+void saveCopyOfSimulationConfig(const char *ini_file_path, const char *output_dir)
 {
-    printf("Simulation Configuration:\n");
-    printf("Execution Mode: %s\n", executionModeToString(config->exec_mode));
-    printf("Equation Type: %s\n", equationTypeToString(config->equation_type));
-    printf("Cell Model: %s\n", cellModelToString(config->cell_model));
-    printf("Method: %s\n", numericalMethodToString(config->method));
-    printf("Domain Length in X: %.4g cm\n", config->Lx);
-    printf("Domain Length in Y: %.4g cm\n", config->Ly);
-    printf("Total Time: %.4g ms\n", config->total_time);
-    printf("Delta T: %.5g ms (%d time steps)\n", config->dt, config->M);
-    printf("Delta X: %.5g cm (%d um) (%d space steps in x)\n", config->dx, CM_TO_UM(config->dx), config->Nx);
-    printf("Delta Y: %.5g cm (%d um) (%d space steps in y)\n", config->dy, CM_TO_UM(config->dy), config->Ny);
+    // Copy the configuration file to the output directory
+    char command[MAX_STRING_SIZE];
+    snprintf(command, sizeof(command), "cp %s %s/simulation_config.ini", ini_file_path, output_dir);
+    int result = system(command);
+    if (result != 0)
+    {
+        ERRORMSG("Error copying simulation configuration file\n");
+    }
 }
 
 // Basic Thomas algorithm for solving tridiagonal systems
@@ -277,7 +320,7 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
 {
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE, "%s/infos.txt", config->output_dir);
+    snprintf(infosFilePath, MAX_STRING_SIZE, "%s/simulation_infos.txt", config->output_dir);
 
     FILE *fpInfos = fopen(infosFilePath, "w");
     if (fpInfos == NULL)
@@ -335,9 +378,10 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", measurement->elapsedExecutionTime);
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", config->output_dir);
+    fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", config->output_dir);
     fclose(fpInfos);
 
+    printf("\n");
     INFOMSG("Simulation total execution time = %.5g s\n", measurement->elapsedExecutionTime);
     SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
 

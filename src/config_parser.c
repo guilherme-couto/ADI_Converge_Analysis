@@ -1,6 +1,8 @@
 #include "../include/config_parser.h"
 #include "../external/inih/ini.h"
 
+#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+
 // Convert string to lowercase for case-insensitive comparison
 static void strtolower(char *str)
 {
@@ -16,8 +18,6 @@ static int config_parser_handler(void *user, const char *section, const char *na
     // Make case-insensitive comparison easier
     strncpy(lower_value, value, sizeof(lower_value));
     strtolower(lower_value);
-
-#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 
     // Handle the "simulation" section
     if (MATCH("simulation", "execution_mode"))
@@ -112,7 +112,7 @@ static int config_parser_handler(void *user, const char *section, const char *na
         // Validate index
         if (stim_index < 0)
         {
-            ERRORMSG("Invalid stimulus index in section: %s -> Stimulus index must be a positive integer\n", section);
+            printf("Invalid stimulus index in section: %s -> Stimulus index must be a positive integer\n", section);
             return 0;
         }
 
@@ -122,7 +122,7 @@ static int config_parser_handler(void *user, const char *section, const char *na
             Stimulus *new_stim = realloc(config->stimuli, (stim_index + 1) * sizeof(Stimulus));
             if (!new_stim)
             {
-                ERRORMSG("Failed to allocate memory for stimuli\n");
+                printf("Failed to allocate memory for stimuli\n");
                 return 0;
             }
             config->stimuli = new_stim;
@@ -149,14 +149,14 @@ static int config_parser_handler(void *user, const char *section, const char *na
         else if (strcmp(name, "y_max") == 0)
             stim->y_range.max = atof(value);
         else
-            WARNINGMSG("Unknown configuration parameter: %s.%s -> IGNORING...\n", section, name);
+            printf("Unknown configuration parameter: %s.%s -> IGNORING...\n", section, name);
     }
     return 1;
 }
 
 int load_simulation_config(const char *filename, SimulationConfig *config)
 {
-    DEBUGMSG("Loading config from: %s\n", filename);
+    printf("Loading config from: %s\n", filename);
 
     memset(config, 0, sizeof(SimulationConfig));
 
@@ -192,12 +192,12 @@ int load_simulation_config(const char *filename, SimulationConfig *config)
     int result = ini_parse(filename, config_parser_handler, config);
     if (result < 0)
     {
-        ERRORMSG("Failed to open config file: %s\n", filename);
+        printf("Failed to open config file: %s\n", filename);
         return -1;
     }
     if (result > 0)
     {
-        ERRORMSG("Error parsing config file at line %d\n", result);
+        printf("Error parsing config file at line %d\n", result);
         return -2;
     }
 
@@ -214,7 +214,7 @@ int load_simulation_config(const char *filename, SimulationConfig *config)
     config->Nx = Nx;
     config->Ny = Ny;
 
-    SUCCESSMSG("Configuration loaded successfully\n");
+    printf("Configuration loaded successfully\n");
 
     return 0;
 }
@@ -225,85 +225,85 @@ bool validate_simulation_config(const SimulationConfig *config)
 
     if (config->exec_mode == EXEC_INVALID)
     {
-        ERRORMSG("Invalid execution mode specified\n");
+        printf("Invalid execution mode specified\n");
         valid = false;
     }
     if (config->equation_type == EQUATION_INVALID)
     {
-        ERRORMSG("Invalid equation type specified\n");
+        printf("Invalid equation type specified\n");
         valid = false;
     }
     if (config->cell_model == CELL_MODEL_INVALID)
     {
-        ERRORMSG("Invalid cell model specified\n");
+        printf("Invalid cell model specified\n");
         valid = false;
     }
     if (config->method == METHOD_INVALID)
     {
-        ERRORMSG("Invalid numerical method specified\n");
+        printf("Invalid numerical method specified\n");
         valid = false;
     }
     if (config->dt <= 0)
     {
-        ERRORMSG("Time step (dt) must be positive\n");
+        printf("Time step (dt) must be positive\n");
         valid = false;
     }
     if (config->dx <= 0 || config->dy <= 0)
     {
-        ERRORMSG("Spatial steps (dx, dy) must be positive\n");
+        printf("Spatial steps (dx, dy) must be positive\n");
         valid = false;
     }
     if (config->sigma <= 0)
     {
-        ERRORMSG("Diffusion coefficient (sigma) must be positive\n");
+        printf("Diffusion coefficient (sigma) must be positive\n");
         valid = false;
     }
     if (config->total_time <= 0)
     {
-        ERRORMSG("Total time must be positive\n");
+        printf("Total time must be positive\n");
         valid = false;
     }
     if (config->Lx <= 0 || config->Ly <= 0)
     {
-        ERRORMSG("Simulation domain dimensions (Lx, Ly) must be positive\n");
+        printf("Simulation domain dimensions (Lx, Ly) must be positive\n");
         valid = false;
     }
     if (config->save_function == NULL && (config->save_last_frame || config->save_frames))
     {
-        ERRORMSG("Save function must be specified for saving frames\n");
+        printf("Save function must be specified for saving frames\n");
         valid = false;
     }
     if (config->number_of_threads <= 0 && config->exec_mode == EXEC_OPENMP)
     {
-        ERRORMSG("Number of threads must be positive for OpenMP execution\n");
+        printf("Number of threads must be positive for OpenMP execution\n");
         valid = false;
     }
     if (config->frame_save_rate <= 0 && config->save_frames)
     {
-        ERRORMSG("Frame save rate must be positive for saving frames\n");
+        printf("Frame save rate must be positive for saving frames\n");
         valid = false;
     }
     if (config->output_dir[0] == '\0')
     {
-        ERRORMSG("Output directory must be specified\n");
+        printf("Output directory must be specified\n");
         valid = false;
     }
     for (int i = 0; i < config->stimulus_count; i++)
     {
         if (config->stimuli[i].begin_time < 0)
         {
-            ERRORMSG("Stimulus begin time must be non-negative\n");
+            printf("Stimulus begin time must be non-negative\n");
             valid = false;
         }
         if (config->stimuli[i].duration <= 0)
         {
-            ERRORMSG("Stimulus duration must be positive\n");
+            printf("Stimulus duration must be positive\n");
             valid = false;
         }
         if (config->stimuli[i].x_range.min < 0 || config->stimuli[i].x_range.max < 0 ||
             config->stimuli[i].y_range.min < 0 || config->stimuli[i].y_range.max < 0)
         {
-            ERRORMSG("Stimulus spatial range must be non-negative\n");
+            printf("Stimulus spatial range must be non-negative\n");
             valid = false;
         }
     }

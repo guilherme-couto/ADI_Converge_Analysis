@@ -4,6 +4,9 @@
 #include "../../../include/core_definitions.h"
 #include "../../../include/config_parser.h"
 #include "../../../include/auxfuncs.h"
+#include "../../../include/logger.h"
+
+#define AFHN_THRESHOLD 10.0f // Threshold for AFHN model
 
 // Function prototypes
 real forcingTerm(real x, real y, real t, real W, real Lx, real Ly, real sigma);

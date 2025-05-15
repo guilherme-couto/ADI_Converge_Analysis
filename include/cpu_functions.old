@@ -1,7 +1,6 @@
 #ifndef CPU_FUNCTIONS_H
 #define CPU_FUNCTIONS_H
 
-// #include "simulation_config.h"
 #include "core_definitions.h"
 
 #ifdef DIFF

@@ -11,6 +11,8 @@
         "chrono": "cpp",
         "initializer_list": "cpp",
         "*.old": "c",
-        "auxfuncs.h": "c"
+        "auxfuncs.h": "c",
+        "cpu_functions.h": "c",
+        "stdlib.h": "c"
     }
 }

@@ -3,6 +3,8 @@
 
 #include "../../../include/core_definitions.h"
 #include "../../../include/config_parser.h"
+#include "../../../include/auxfuncs.h"
+#include "../../../include/logger.h"
 
 // Options: ENDO, M, EPI, PB, TNNP -> default is ENDO
 #if !defined(MCELL) && !defined(EPI) && !defined(ENDO) && !defined(PB) && !defined(TNNP)

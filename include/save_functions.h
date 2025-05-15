@@ -26,5 +26,5 @@ save_function_t get_save_function(const char *name);
 //     solvers[config->cell_model](config, &measurement, time_array);
 // } else {
 //     ERRORMSG("Invalid cell model selected.");
-//     exit(EXIT_FAILURE);
+//     return;
 // }

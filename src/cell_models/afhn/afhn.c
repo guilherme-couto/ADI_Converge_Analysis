@@ -99,7 +99,7 @@ void solveMonodomainAFHN(const SimulationConfig *config, Measurement *measuremen
     else
     {
         fprintf(stderr, "Error: Unsupported method for AFHN model.\n");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Save frames variables
@@ -113,7 +113,7 @@ void solveMonodomainAFHN(const SimulationConfig *config, Measurement *measuremen
     // Save last frame
     if (config->save_last_state)
     {
-        snprintf(file_path, MAX_STRING_SIZE, "%s/Vm_%05d.%s", config->output_dir, M, file_extension);
+        snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", config->output_dir, M, file_extension);
         config->save_function(file_path, Vm, Nx, Ny, config->dx, config->dy);
         SUCCESSMSG("Last frame (time %.2f ms) saved to %s\n", M * config->dt, file_path);
     }
@@ -164,11 +164,7 @@ void run_SSIADI_AFHN(const SimulationConfig *config, Measurement *measurement, c
     real finishLSTime = 0.0f;
     real elapsedTime1stLS = 0.0f;
     real elapsedTime2ndLS = 0.0f;
-    real startSaveFramesTime = 0.0f;
-    real finishSaveFramesTime = 0.0f;
     real elapsedSaveFramesTime = 0.0f;
-    real startMeasureVelocityTime = 0.0f;
-    real finishMeasureVelocityTime = 0.0f;
     real elapsedMeasureVelocityTime = 0.0f;
 
     // Auxiliary variables for the loops
@@ -186,7 +182,6 @@ void run_SSIADI_AFHN(const SimulationConfig *config, Measurement *measurement, c
 
     // Measure velocity variables
     real stim_velocity = 0.0f;
-    real point_potential = 0.0f;
     real begin_point = config->Lx / 3.0f;
     real end_point = 2.0f * begin_point;
     int begin_point_index = round(begin_point / delta_x) + 1;
@@ -369,33 +364,32 @@ void run_SSIADI_AFHN(const SimulationConfig *config, Measurement *measurement, c
         // Save frame if needed
         if (saveFrames)
         {
-            startSaveFramesTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                snprintf(file_path, MAX_STRING_SIZE, "%s/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
+                snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
                 save_function(file_path, Vm, Nx, Ny, delta_x, delta_y);
                 SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, file_path);
             }
 
-            finishSaveFramesTime = omp_get_wtime();
-            elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
+            finishTime = omp_get_wtime();
+            elapsedSaveFramesTime += finishTime - startTime;
         }
 
         // Measure velocity if needed
         if (measureVelocity)
         {
-            startMeasureVelocityTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
                 if (!aux_stim_velocity_flag)
                 {
-                    point_potential = Vm[begin_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[begin_point_index] > AFHN_THRESHOLD)
                     {
                         begin_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -403,20 +397,18 @@ void run_SSIADI_AFHN(const SimulationConfig *config, Measurement *measurement, c
                 }
                 else
                 {
-                    point_potential = Vm[end_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[end_point_index] > AFHN_THRESHOLD)
                     {
                         end_point_time = actualTime;
-                        stim_velocity = (end_point- begin_point) / (end_point_time - begin_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
+                        stim_velocity = ((end_point - begin_point) / (end_point_time - begin_point_time)) * 1000.0f; // cm/ms
                         stim_velocity_measured = true;
                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
                     }
                 }
             }
 
-            finishMeasureVelocityTime = omp_get_wtime();
-            elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+            finishTime = omp_get_wtime();
+            elapsedMeasureVelocityTime += finishTime - startTime;
         }
 
         // Update time step counter
@@ -489,11 +481,7 @@ void run_OSADI_AFHN(const SimulationConfig *config, Measurement *measurement, co
     real finishLSTime = 0.0f;
     real elapsedTime1stLS = 0.0f;
     real elapsedTime2ndLS = 0.0f;
-    real startSaveFramesTime = 0.0f;
-    real finishSaveFramesTime = 0.0f;
     real elapsedSaveFramesTime = 0.0f;
-    real startMeasureVelocityTime = 0.0f;
-    real finishMeasureVelocityTime = 0.0f;
     real elapsedMeasureVelocityTime = 0.0f;
 
     // Auxiliary variables for the loops
@@ -511,7 +499,6 @@ void run_OSADI_AFHN(const SimulationConfig *config, Measurement *measurement, co
 
     // Measure velocity variables
     real stim_velocity = 0.0f;
-    real point_potential = 0.0f;
     real begin_point = config->Lx / 3.0f;
     real end_point = 2.0f * begin_point;
     int begin_point_index = round(begin_point / delta_x) + 1;
@@ -551,8 +538,8 @@ void run_OSADI_AFHN(const SimulationConfig *config, Measurement *measurement, co
     real *LS_b_y = (real *)malloc(Ny * sizeof(real));
     real *result_y = (real *)malloc(Ny * sizeof(real));
 
-    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, 0.5f * phi_x * diff_coeff);
-    populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, 0.5f * phi_y * diff_coeff);
+    populateDiagonalThomasAlgorithm(la_x, lb_x, lc_x, Nx, phi_x * diff_coeff);
+    populateDiagonalThomasAlgorithm(la_y, lb_y, lc_y, Ny, phi_y * diff_coeff);
 
     printf("\n");
     printf("Starting simulation...\n");
@@ -677,33 +664,32 @@ void run_OSADI_AFHN(const SimulationConfig *config, Measurement *measurement, co
         // Save frame if needed
         if (saveFrames)
         {
-            startSaveFramesTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                snprintf(file_path, MAX_STRING_SIZE, "%s/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
+                snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
                 save_function(file_path, Vm, Nx, Ny, delta_x, delta_y);
                 SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, file_path);
             }
 
-            finishSaveFramesTime = omp_get_wtime();
-            elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
+            finishTime = omp_get_wtime();
+            elapsedSaveFramesTime += finishTime - startTime;
         }
 
         // Measure velocity if needed
         if (measureVelocity)
         {
-            startMeasureVelocityTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
                 if (!aux_stim_velocity_flag)
                 {
-                    point_potential = Vm[begin_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[begin_point_index] > AFHN_THRESHOLD)
                     {
                         begin_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -711,20 +697,18 @@ void run_OSADI_AFHN(const SimulationConfig *config, Measurement *measurement, co
                 }
                 else
                 {
-                    point_potential = Vm[end_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[end_point_index] > AFHN_THRESHOLD)
                     {
                         end_point_time = actualTime;
-                        stim_velocity = (end_point- begin_point) / (end_point_time - begin_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
+                        stim_velocity = ((end_point - begin_point) / (end_point_time - begin_point_time)) * 1000.0f; // cm/ms
                         stim_velocity_measured = true;
                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
                     }
                 }
             }
 
-            finishMeasureVelocityTime = omp_get_wtime();
-            elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+            finishTime = omp_get_wtime();
+            elapsedMeasureVelocityTime += finishTime - startTime;
         }
 
         // Update time step counter
@@ -792,11 +776,7 @@ void run_FE_AFHN(const SimulationConfig *config, Measurement *measurement, const
     real elapsedExecutionTime = 0.0f;
     real elapsedTime1stPart = 0.0f;
     real elapsedTime2ndPart = 0.0f;
-    real startSaveFramesTime = 0.0f;
-    real finishSaveFramesTime = 0.0f;
     real elapsedSaveFramesTime = 0.0f;
-    real startMeasureVelocityTime = 0.0f;
-    real finishMeasureVelocityTime = 0.0f;
     real elapsedMeasureVelocityTime = 0.0f;
 
     // Auxiliary variables for the loops
@@ -814,7 +794,6 @@ void run_FE_AFHN(const SimulationConfig *config, Measurement *measurement, const
 
     // Measure velocity variables
     real stim_velocity = 0.0f;
-    real point_potential = 0.0f;
     real begin_point = config->Lx / 3.0f;
     real end_point = 2.0f * begin_point;
     int begin_point_index = round(begin_point / delta_x) + 1;
@@ -911,33 +890,32 @@ void run_FE_AFHN(const SimulationConfig *config, Measurement *measurement, const
         // Save frame if needed
         if (saveFrames)
         {
-            startSaveFramesTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // If save frames is true and time step is multiple of frame save rate
             if (timeStepCounter % frameSaveRate == 0)
             {
                 // Save frame
-                snprintf(file_path, MAX_STRING_SIZE, "%s/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
+                snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", pathToSaveData, timeStepCounter, file_extension);
                 save_function(file_path, Vm, Nx, Ny, delta_x, delta_y);
                 SUCCESSMSG("Frame at time %.2f ms saved to %s\n", actualTime, file_path);
             }
 
-            finishSaveFramesTime = omp_get_wtime();
-            elapsedSaveFramesTime += finishSaveFramesTime - startSaveFramesTime;
+            finishTime = omp_get_wtime();
+            elapsedSaveFramesTime += finishTime - startTime;
         }
 
         // Measure velocity if needed
         if (measureVelocity)
         {
-            startMeasureVelocityTime = omp_get_wtime();
+            startTime = omp_get_wtime();
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
             {
                 if (!aux_stim_velocity_flag)
                 {
-                    point_potential = Vm[begin_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[begin_point_index] > AFHN_THRESHOLD)
                     {
                         begin_point_time = actualTime;
                         aux_stim_velocity_flag = true;
@@ -945,20 +923,18 @@ void run_FE_AFHN(const SimulationConfig *config, Measurement *measurement, const
                 }
                 else
                 {
-                    point_potential = Vm[end_point_index];
-                    if (point_potential > 10.0f)
+                    if (Vm[end_point_index] > AFHN_THRESHOLD)
                     {
                         end_point_time = actualTime;
-                        stim_velocity = (end_point- begin_point) / (end_point_time - begin_point_time); // cm/ms
-                        stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
+                        stim_velocity = ((end_point - begin_point) / (end_point_time - begin_point_time)) * 1000.0f; // cm/ms
                         stim_velocity_measured = true;
                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
                     }
                 }
             }
 
-            finishMeasureVelocityTime = omp_get_wtime();
-            elapsedMeasureVelocityTime += finishMeasureVelocityTime - startMeasureVelocityTime;
+            finishTime = omp_get_wtime();
+            elapsedMeasureVelocityTime += finishTime - startTime;
         }
 
         // Update time step counter

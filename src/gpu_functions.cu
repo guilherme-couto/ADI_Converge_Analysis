@@ -847,7 +847,7 @@ void runSimulationGPU(const SimulationConfig *config)
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
 
     fprintf(fpInfos, "\n");
-    fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
+    fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", pathToSaveData);
     fclose(fpInfos);
 
     INFOMSG("Simulation total execution time = %.5g s\n", elapsedExecutionTime);

@@ -3,6 +3,7 @@
 
 #include "core_definitions.h"
 #include "config_parser.h"
+#include "logger.h"
 
 void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real phi);
 void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N); // TODO: Correct this function
@@ -12,7 +13,7 @@ void initializeMeasurement(Measurement *measurement);
 const int lim(int num, int N);
 const real rescaleVm(real Vm);
 int populateStimuli(SimulationConfig *config);
-void printSimulationConfig(const SimulationConfig *config);
+void saveCopyOfSimulationConfig(const char *ini_file_path, const char *output_dir);
 void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result);
 const int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement);
 

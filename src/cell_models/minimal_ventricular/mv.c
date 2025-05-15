@@ -228,7 +228,7 @@ void solveMonodomainMV(const SimulationConfig *config, Measurement *measurement,
     // else
     // {
     //     fprintf(stderr, "Error: Unsupported method for AFHN model.\n");
-    //     exit(EXIT_FAILURE);
+    //     return;
     // }
 
     // Save frames variables
@@ -242,7 +242,7 @@ void solveMonodomainMV(const SimulationConfig *config, Measurement *measurement,
     // Save last frame
     if (config->save_last_state)
     {
-        snprintf(file_path, MAX_STRING_SIZE, "%s/Vm_%05d.%s", config->output_dir, M, file_extension);
+        snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", config->output_dir, M, file_extension);
         config->save_function(file_path, Vm, Nx, Ny, config->dx, config->dy);
         SUCCESSMSG("Last frame (time %.2f ms) saved to %s\n", M * config->dt, file_path);
     }

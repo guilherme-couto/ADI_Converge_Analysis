@@ -1,7 +1,11 @@
 #ifndef GPU_FUNCTIONS_H
 #define GPU_FUNCTIONS_H
 
+#include "config_parser.h"
 #include "core_definitions.h"
+#include "logger.h"
+#include "auxfuncs.h"
+#include "../src/cell_models/cell_models.h"
 
 #ifdef USE_CUDA
 

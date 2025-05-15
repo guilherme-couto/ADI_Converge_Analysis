@@ -15,7 +15,7 @@ save_function_t get_save_function(const char *name)
 {
     if (name == NULL)
     {
-        ERRORMSG("Error: save function name is NULL\n");
+        printf("Error: save function name is NULL\n");
         return NULL;
     }
 
@@ -35,7 +35,7 @@ void save_as_vtk(const char *file_path, real *data, int Nx, int Ny, real delta_x
     FILE *file = fopen(file_path, "w");
     if (file == NULL)
     {
-        ERRORMSG("Error opening file %s\n", file_path);
+        printf("Error opening file %s\n", file_path);
         exit(1);
     }
 
@@ -68,7 +68,7 @@ void save_as_txt(const char *file_path, real *data, int Nx, int Ny, real delta_x
     FILE *file = fopen(file_path, "w");
     if (file == NULL)
     {
-        ERRORMSG("Error opening file %s\n", file_path);
+        printf("Error opening file %s\n", file_path);
         exit(1);
     }
 
