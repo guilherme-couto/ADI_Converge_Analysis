@@ -1,79 +1,105 @@
 #include "../include/config_parser.h"
 #include "../include/logger.h"
 #include "../include/core_definitions.h"
-#include <stdlib.h>
+#include "../include/auxfuncs.h"
+#include "../include/cpu_functions.h"
 
-int main(int argc, char *argv[]) {
+#ifdef USE_CUDA
+#include "../include/gpu_functions.h"
+#endif // USE_CUDA
 
-    // Initialize logger
-    log_init(stderr, "simulation.log", true);
-    
+int main(int argc, char *argv[])
+{
     // Verify arguments
-    if (argc < 2) {
-        LOG_ERROR("Usage: %s <config_file.ini>", argv[0]);
-        LOG_FATAL("No configuration file provided");
-        log_close();
+    if (argc < 2)
+    {
+        INFOMSG("Usage: %s <configuration_file>", argv[0]);
+        ERRORMSG("No configuration file provided\n");
         exit(EXIT_FAILURE);
     }
 
-    // Log the complete configuration file first
-    log_file_content(argv[1], "Simulation configuration file content");
-    
     // Then proceed with normal loading
     SimulationConfig config;
-    LOG_INFO("Loading configuration from: %s", argv[1]);
+    INFOMSG("Loading configuration from: %s\n", argv[1]);
     int config_status = load_simulation_config(argv[1], &config);
-    if (config_status != 0) {
-        LOG_ERROR("Failed to load configuration (error code: %d)", config_status);
-        log_close();
+    if (config_status != 0)
+    {
+        ERRORMSG("Failed to load configuration (error code: %d)\n", config_status);
         exit(EXIT_FAILURE);
     }
+
+    // Create directories
+    if (createDirectories(config.output_dir, config.remove_old_files) != 0)
+    {
+        printf("Error creating directories\n");
+        exit(EXIT_FAILURE);
+    }
+    INFOMSG("Output directory: %s\n", config.output_dir);
+
+    // Populate the stimuli array
+    if (populateStimuli(&config) != 0)
+    {
+        ERRORMSG("Failed to populate stimuli\n");
+        free_simulation_config(&config);
+        return -4;
+    }
+
+    // Print the simulation configuration
+    printSimulationConfig(&config);
+
+    // Initialize logger
+    char log_file[MAX_STRING_SIZE];
+    snprintf(log_file, MAX_STRING_SIZE, "%s/simulation.log", config.output_dir);
+    INFOMSG("Log file: %s\n", log_file);
+
+    if (!log_init(stderr, log_file, true))
+    {
+        ERRORMSG("Failed to initialize logger\n");
+        free_simulation_config(&config);
+        return -3;
+    }
     
-    LOG_SUCCESS("Configuration loaded successfully");
-    LOG_DEBUG("Configuration details:");
-    LOG_DEBUG("  Execution mode: %s", 
-             config.exec_mode == GPU ? "GPU" : 
-             config.exec_mode == OPENMP ? "OpenMP" : "Serial");
-    LOG_DEBUG("  Cell model: %s", 
-             config.cell_model == AFHN ? "AFHN" :
-             config.cell_model == TT2 ? "TT2" : "MV");
-    LOG_DEBUG("  dt=%.4f, dx=%.6f, dy=%.6f", config.dt, config.dx, config.dy);
-    
-    // Inicialização da simulação
-    LOG_INFO("Initializing simulation components");
-    
-    // ... [seu código de inicialização] ...
-    LOG_LINE();  // Ponto de verificação
-    
-    // Simulação principal
-    LOG_INFO("Starting simulation with %s method", config.method);
-    
-    // [seu código de simulação] ...
-    //     LOG_DEBUG("Simulation progress: 25%% completed");
-    //     // ... [mais simulação] ...
-    //     LOG_DEBUG("Simulation progress: 50%% completed");
-        
-    //     // Exemplo de verificação periódica
-    //     if (check_something_wrong()) {
-    //         LOG_ERROR("Numerical instability detected at iteration %d", iteration);
-    //         // ... tratamento de erro ...
-    //     }
-        
-    //     // ... [continuação da simulação] ...
-        
-    // LOG_SUCCESS("Simulation completed successfully");
-    // LOG_FATAL("Simulation failed: %s", e.what());
-    // log_close();
-    // exit(EXIT_FAILURE);
-    
-    // Finalização
-    LOG_INFO("Saving results");
-    // ... [código para salvar resultados] ...
-    
-    LOG_INFO("Cleaning up resources");
-    // ... [limpeza] ...
-    
-    LOG_SUCCESS("Program completed successfully");
+    // Log the complete configuration file first
+    // log_file_content(argv[1], "Simulation configuration file content");
+
+    // Check the execution mode and the equation type to determine the simulation type
+    if (config.exec_mode == EXEC_SERIAL)
+    {
+        if (config.equation_type == EQUATION_MONODOMAIN)
+        {
+            runMonodomainSimulationSerial(&config);
+        }
+        else
+        {
+            ERRORMSG("Unsupported equation type");
+            free_simulation_config(&config);
+            LOG_ERROR("Unsupported equation type");
+            log_close();
+            return -2;
+        }
+    }
+
+#ifdef USE_CUDA
+
+    else if (config.exec_mode == EXEC_CUDA)
+    {
+        if (config.equation_type == EQUATION_MONODOMAIN)
+        {
+            runMonodomainSimulationCUDA(&config);
+        }
+        else
+        {
+            ERRORMSG("Unsupported equation type");
+            free_simulation_config(&config);
+            LOG_ERROR("Unsupported equation type");
+            log_close();
+            return -2;
+        }
+    }
+
+#endif // USE_CUDA
+
+
     log_close();
     return EXIT_SUCCESS;
 }

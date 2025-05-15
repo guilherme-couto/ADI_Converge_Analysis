@@ -1,59 +1,90 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
+cmake_policy(SET CMP0104 NEW)
+
 project(MonodomainSimulation C CXX CUDA)
+
+# === Set Release build and flags ===
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_C_FLAGS_RELEASE "-O3 -march=native -ffast-math")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ffast-math")
+set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -Xcompiler=-march=native")
 
 # === Build options ===
 option(USE_CUDA "Enable CUDA support" ON)
 option(USE_OPENMP "Enable OpenMP support" ON)
+option(USE_FLOAT "Use float precision instead of double" OFF)
 
-# === Set folders ===
+# === Directories ===
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+set(CELL_MODELS_DIR "${SRC_DIR}/cell_models")
 set(INC_DIR "${CMAKE_SOURCE_DIR}/include")
 set(EXT_DIR "${CMAKE_SOURCE_DIR}/external/inih")
 set(BIN_DIR "${CMAKE_SOURCE_DIR}/bin")
 
 # === Include paths ===
 include_directories(${INC_DIR} ${EXT_DIR})
+include_directories(${CELL_MODELS_DIR})
+file(GLOB_RECURSE CELL_HEADERS "${CELL_MODELS_DIR}/*.h")
+file(GLOB_RECURSE CELL_C_FILES "${CELL_MODELS_DIR}/*.c")
+file(GLOB_RECURSE CELL_CU_FILES "${CELL_MODELS_DIR}/*.cu")
 
-# === Collect sources ===
+# === Other source files ===
 file(GLOB SRC_C_FILES "${SRC_DIR}/*.c")
 file(GLOB SRC_CU_FILES "${SRC_DIR}/*.cu")
 file(GLOB EXT_C_FILES "${EXT_DIR}/*.c")
 
-# === Start with only C sources ===
-set(SOURCES ${SRC_C_FILES} ${EXT_C_FILES})
+set(SOURCES ${SRC_C_FILES} ${EXT_C_FILES} ${CELL_C_FILES})
 
-# === If CUDA enabled, add .cu files ===
+# === CUDA support ===
 if(USE_CUDA)
     enable_language(CUDA)
-    message(STATUS "CUDA support ENABLED")
-    list(APPEND SOURCES ${SRC_CU_FILES})
+    message(STATUS "✅ CUDA support ENABLED")
+    list(APPEND SOURCES ${SRC_CU_FILES} ${CELL_CU_FILES})
+    set(CUDA_LIBRARIES cusparse)
 else()
-    message(STATUS "CUDA support DISABLED")
+    message(STATUS "❌ CUDA support DISABLED")
 endif()
 
 # === Create executable ===
 add_executable(monodomain_simulation ${SOURCES})
 
-# === Set output binary directory ===
+# === Output binary ===
 set_target_properties(monodomain_simulation PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${BIN_DIR}
 )
 
-# === Link CUDA libraries if needed ===
+# === CUDA libraries ===
 if(USE_CUDA)
-    target_link_libraries(monodomain_simulation cusparse)
+    target_link_libraries(monodomain_simulation ${CUDA_LIBRARIES})
 endif()
 
-# === Link OpenMP if enabled ===
+# === OpenMP support ===
 if(USE_OPENMP)
     find_package(OpenMP REQUIRED)
     if(OpenMP_FOUND)
         target_link_libraries(monodomain_simulation OpenMP::OpenMP_C)
-        message(STATUS "OpenMP support ENABLED")
+        message(STATUS "✅ OpenMP support ENABLED")
     endif()
 else()
-    message(STATUS "OpenMP support DISABLED")
+    message(STATUS "❌ OpenMP support DISABLED")
 endif()
 
-# === pthread always required if OpenMP is used ===
+# === Precision ===
+if(USE_FLOAT)
+    target_compile_definitions(monodomain_simulation PRIVATE USE_FLOAT)
+    message(STATUS "🧮 Precision set to: float")
+else()
+    target_compile_definitions(monodomain_simulation PRIVATE USE_DOUBLE)
+    message(STATUS "🧮 Precision set to: double")
+endif()
+
+# === System libraries ===
 target_link_libraries(monodomain_simulation pthread m)
+
+# === CUDA architecture (logging only) ===
+if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+    message(STATUS "🧠 CUDA architecture: ${CMAKE_CUDA_ARCHITECTURES}")
+endif()

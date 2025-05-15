@@ -1,9 +1,9 @@
 #ifndef GPU_FUNCTIONS_H
 #define GPU_FUNCTIONS_H
 
-#include "simulation_config.h"
+#include "core_definitions.h"
 
-#ifdef MONODOMAIN
+#ifdef USE_CUDA
 
 #ifdef AFHN
 
@@ -470,7 +470,6 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real RHS_Na_itilde_term = -((INatilde + IbNatilde + 3.0f * INaKtilde + 3.0f * INaCatilde) * Cm / (V_C * F));
         real RHS_K_itilde_term = -((IK1tilde + Itotilde + IKrtilde + IKstilde - 2.0f * INaKtilde + IpKtilde + stim) * Cm / (V_C * F));
 
-
         // Explicit method - update approximations with RK2 (Heun's method)
         d_R_prime[index] = actualR_prime + (delta_t * RHS_R_primetilde_term);
         d_Ca_i[index] = actualCa_i + (delta_t * RHS_Ca_itilde_term);
@@ -831,11 +830,11 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         (tau_v_RL > 1.0e-10)
             ? (vtilde = v_inf_RL - (v_inf_RL - actualv) * exp(-0.5f * delta_t / tau_v_RL))
             : (vtilde = actualv + 0.5f * delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
-        
+
         (tau_w_RL > 1.0e-10)
             ? (wtilde = w_inf_RL - (w_inf_RL - actualw) * exp(-0.5f * delta_t / tau_w_RL))
             : (wtilde = actualw + 0.5f * delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
-        
+
         (tau_s > 1.0e-10)
             ? (stilde = s_inf_RL - (s_inf_RL - actuals) * exp(-0.5f * delta_t / tau_s))
             : (stilde = actuals + 0.5f * delta_t * (s_inf_RL - actuals) / tau_s);
@@ -871,17 +870,17 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
 
         tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
-        s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;       
+        s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;
 
         // Update state variables with Rush-Larsen or RK2 (Heun's method) using approximations
         (tau_v_RL > 1.0e-10)
             ? (d_v[index] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
             : (d_v[index] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - vtilde) / tau_vminus - Htheta_v * vtilde / tau_vplus);
-        
+
         (tau_w_RL > 1.0e-10)
             ? (d_w[index] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
             : (d_w[index] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - wtilde) / tau_wminus - Htheta_w * wtilde / tau_wplus);
-        
+
         (tau_s > 1.0e-10)
             ? (d_s[index] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
             : (d_s[index] = actuals + delta_t * (s_inf_RL - stilde) / tau_s);
@@ -910,11 +909,11 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         (tau_v_RL > 1.0e-10)
             ? (d_v[index] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
             : (d_v[index] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
-        
+
         (tau_w_RL > 1.0e-10)
             ? (d_w[index] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
             : (d_w[index] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
-        
+
         (tau_s > 1.0e-10)
             ? (d_s[index] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
             : (d_s[index] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
@@ -943,11 +942,11 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         (tau_v_RL > 1.0e-10)
             ? (d_v[index] = v_inf_RL + (actualv - v_inf_RL) * exp(-delta_t / tau_v_RL))
             : (d_v[index] = actualv + delta_t * ((1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus));
-        
+
         (tau_w_RL > 1.0e-10)
             ? (d_w[index] = w_inf_RL + (actualw - w_inf_RL) * exp(-delta_t / tau_w_RL))
             : (d_w[index] = actualw + delta_t * ((1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus));
-        
+
         (tau_s > 1.0e-10)
             ? (d_s[index] = s_inf_RL + (actuals - s_inf_RL) * exp(-delta_t / tau_s))
             : (d_s[index] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
@@ -961,7 +960,7 @@ __global__ void computeApprox(int Nx, int Ny, real delta_t, real phi_x, real phi
         real ip1Vm = (i + 1 == Ny) ? d_Vm[index - Nx] : d_Vm[index + Nx];
         real jm1Vm = (j - 1 == -1) ? d_Vm[index + 1] : d_Vm[index - 1];
         real jp1Vm = (j + 1 == Nx) ? d_Vm[index - 1] : d_Vm[index + 1];
-        //TODO: solve cross derivatives in boundaries
+        // TODO: solve cross derivatives in boundaries
 
         real diff_term = diff_coeff * (phi_x * (jm1Vm - 2.0f * actualVm + jp1Vm) + phi_y * (im1Vm - 2.0f * actualVm + ip1Vm));
 
@@ -1217,6 +1216,6 @@ __global__ void parallelThomasHorizontal(int numSys, int sysSize, real *d, real 
 //     }
 // }
 
-#endif // MONODOMAIN
+#endif // USE_CUDA
 
 #endif // GPU_FUNCTIONS_H

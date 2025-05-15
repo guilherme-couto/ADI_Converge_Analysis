@@ -4,17 +4,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
 #include <omp.h>
-#ifdef GPU
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#endif // GPU
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <time.h>
+#include "logger.h"
+
+#ifdef USE_CUDA
+
+#include <cuda_runtime.h>
+
+#endif // USE_CUDA
+
+// Define path separator based on OS
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path) // On Windows, _mkdir ignores mode
+#define PATH_SEPARATOR '\\'
+#else
+#include <unistd.h>
+#define PATH_SEPARATOR '/'
+#endif
 
 // ANSI color codes
 #define RESET "\033[0m"
@@ -35,9 +50,14 @@
 #define MAX_STRING_SIZE 200
 
 // Define block size for GPU
+#ifdef USE_CUDA
+
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
+
+#endif // USE_CUDA
+
 #define MAX_SYS_SIZE 10002
 #define NUMTHREADS 6
 
@@ -45,13 +65,12 @@
 #define CM_TO_UM(x) ((int)(x * 1.0e4))
 
 // Define real type
-#ifdef USE_DOUBLE
 typedef double real;
 #define REAL_TYPE "double"
 #define STRTOREAL strtod
 #define FSCANF_REAL "%le"
 #define PRINTF_REAL "%lf"
-#else
+#ifdef USE_FLOAT
 typedef float real;
 #define REAL_TYPE "float"
 #define STRTOREAL strtof
@@ -59,32 +78,35 @@ typedef float real;
 #define PRINTF_REAL "%f"
 #endif
 
-// Define execution type
-#ifdef SERIAL
-#define EXECUTION_TYPE "SERIAL"
-#define RUNSIMULATION runSimulationSerial
-#endif
-#ifdef OPENMP
-#define EXECUTION_TYPE "OPENMP"
-#define RUNSIMULATION runSimulationOpenMP
-#endif
-#ifdef GPU
-#define EXECUTION_TYPE "GPU"
-#define RUNSIMULATION runSimulationGPU
-#endif
+#define _PI 3.14159265358979323846f
 
-// Define file extension
-#ifdef SAVE_AS_VTK
-#define FILE_EXTENSION "vtk"
-#define SAVEFRAME(filePath, Vm, Nx, Ny, dx, dy) saveVTK2D(filePath, Vm, Nx, Ny, dx, dy)
-#else
-#define SAVE_AS_TXT
-#define FILE_EXTENSION "txt"
-#define SAVEFRAME(file, Vm, Nx, Ny, dx, dy) saveFrame(file, Vm, Nx, Ny)
-#endif
+// Define measurement structure
+typedef struct
+{
+    real elapsedExecutionTime;
+    real elapsedTime1stPart;
+    real elapsedTime2ndPart;
+    real elapsedTime1stLS;
+    real elapsedTime2ndLS;
+    real elapsedSaveFramesTime;
+    real elapsedMeasureVelocityTime;
+    real stimVelocity;
+} Measurement;
+
+// Define stimulus structure
+typedef struct
+{
+    real amplitude;
+    real begin_time;
+    real duration;
+    struct
+    {
+        real min;
+        real max;
+    } x_range, y_range, x_discretized, y_discretized;
+} Stimulus;
 
 // Define CUDA error checking
-#ifdef GPU
 #define CUDA_CALL(call)                                                                                                        \
     do                                                                                                                         \
     {                                                                                                                          \
@@ -95,6 +117,5 @@ typedef float real;
             exit(EXIT_FAILURE);                                                                                                \
         }                                                                                                                      \
     } while (0)
-#endif
 
 #endif // CORE_DEFINITIONS_H

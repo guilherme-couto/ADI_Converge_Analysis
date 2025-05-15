@@ -1,5 +1,7 @@
 TODO
 frames*txt
+*.vtk
+*.vtu
 
 # Prerequisites
 *.d

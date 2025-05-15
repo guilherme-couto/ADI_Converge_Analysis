@@ -1,0 +1,543 @@
+#include "../include/auxfuncs.h"
+
+// Populate diagonals for Thomas algorithm
+// la -> Subdiagonal
+// lb -> Diagonal
+// lc -> Superdiagonal
+// N -> Number of elements
+// phi -> Coefficient for the diagonals
+void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real phi)
+{
+    for (int i = 0; i < N; i++)
+    {
+        la[i] = -phi;
+        lb[i] = 1.0f + 2.0f * phi;
+        lc[i] = -phi;
+    }
+
+    // Set the first and last elements of the diagonals, boundary conditions
+    lc[0] = lc[0] + la[0];
+    la[N - 1] = la[N - 1] + lc[N - 1];
+    la[0] = 0.0f;
+    lc[N - 1] = 0.0f;
+}
+
+// TODO: Correct this function
+void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N)
+{
+    c_prime[0] = lc[0] / lb[0];
+    denominator[0] = 1.0f / lb[0];
+
+    for (int i = 1; i < N; i++)
+    {
+        real denom = 1.0f / (lb[i] - c_prime[i - 1] * la[i]);
+        if (i < N - 1)
+        {
+            c_prime[i] = lc[i] * denom;
+        }
+        denominator[i] = denom;
+    }
+}
+
+const int createDirectories(char *dir_path, bool remove_old_files)
+{
+    char path[MAX_STRING_SIZE];
+
+    // Check for path length to avoid buffer overflow
+    if (strlen(dir_path) >= MAX_STRING_SIZE)
+    {
+        ERRORMSG("Path length exceeds maximum size of %d characters.\n", MAX_STRING_SIZE);
+        return -1;
+    }
+
+    // Copy and normalize path separators to platform-specific style
+    size_t len = strlen(dir_path);
+    for (size_t i = 0; i < len; i++)
+    {
+        if (dir_path[i] == '/' || dir_path[i] == '\\')
+        {
+            path[i] = PATH_SEPARATOR;
+        }
+        else
+        {
+            path[i] = dir_path[i];
+        }
+    }
+    path[len] = '\0'; // Ensure null-termination
+
+    // Traverse the path one segment at a time and create directories if needed
+    for (char *p = path + 1; *p; p++)
+    {
+        if (*p == PATH_SEPARATOR)
+        {
+            char saved = *p;
+            *p = '\0'; // Temporarily terminate the string to isolate the subpath
+
+            // Attempt to create the directory
+            // If mkdir fail because it already exists (error EEXIST), we ignore the error
+            if (mkdir(path, 0777) != 0 && errno != EEXIST)
+            {
+                perror("mkdir");
+                return -1;
+            }
+
+            *p = saved; // Restore the original character
+        }
+    }
+
+    // Create the final (full) directory
+    if (mkdir(path, 0777) != 0 && errno != EEXIST)
+    {
+        perror("mkdir");
+        return -1;
+    }
+
+    // If remove_old_files is true, remove the old files in the directory
+    if (remove_old_files)
+    {
+        // Open the directory
+        DIR *dir = opendir(path);
+        if (dir == NULL)
+        {
+            perror("opendir");
+            return -1;
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            // Skip the current and parent directory entries
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+
+            // Construct the full path to the file
+            char full_path[MAX_STRING_SIZE];
+            snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+            // Remove the file
+            if (remove(full_path) != 0)
+            {
+                perror("remove");
+                closedir(dir);
+                return -1;
+            }
+        }
+
+        closedir(dir);
+    }
+
+    // Check if there is a path separator at the end of the dir_path, if so, remove it
+    size_t path_len = strlen(path);
+    if (path_len > 0 && (path[path_len - 1] == '/' || path[path_len - 1] == '\\'))
+    {
+        path[path_len - 1] = '\0';
+    }
+    
+    // Check if the path is empty after removing the separator
+    if (strlen(path) == 0)
+    {
+        ERRORMSG("Error: The path is empty after removing the separator.\n");
+        return -1;
+    }
+
+    // Safely copy the path to the original dir_path using snprintf
+    snprintf(dir_path, MAX_STRING_SIZE, "%s", path);
+
+    return 0;
+}
+
+void initializeTimeArray(real *timeArray, int M, real dt)
+{
+    for (int i = 0; i < M; i++)
+        timeArray[i] = i * dt;
+}
+
+void initializeMeasurement(Measurement *measurement)
+{
+    measurement->elapsedExecutionTime = 0.0f;
+    measurement->elapsedTime1stPart = 0.0f;
+    measurement->elapsedTime2ndPart = 0.0f;
+    measurement->elapsedTime1stLS = 0.0f;
+    measurement->elapsedTime2ndLS = 0.0f;
+    measurement->elapsedSaveFramesTime = 0.0f;
+    measurement->elapsedMeasureVelocityTime = 0.0f;
+    measurement->stimVelocity = 0.0f;
+}
+
+const int lim(int num, int N)
+{
+    if (num == -1)
+        return 1;
+    else if (num == N)
+        return N - 2;
+    return num;
+}
+
+// Rescale Vm -> from Minimal Ventricular paper
+const real rescaleVm(real Vm)
+{
+    return 85.7f * Vm - 84.0f;
+}
+
+int populateStimuli(SimulationConfig *config)
+{
+    // Unpack parameters from the config
+    real delta_x = config->dx;
+    real delta_y = config->dy;
+    int numberOfStimuli = config->stimulus_count;
+
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        // Get the stimulus and update the discretized limits
+        Stimulus *stim = &config->stimuli[i];
+        if (stim == NULL)
+        {
+            ERRORMSG("Error in stimulus %d: stimulus is NULL\n", i);
+            return -1;
+        }
+        if (stim->x_range.min >= stim->x_range.max)
+        {
+            ERRORMSG("Error in stimulus %d: x_min >= x_max\n", i);
+            return -1;
+        }
+        if (stim->y_range.min >= stim->y_range.max)
+        {
+            ERRORMSG("Error in stimulus %d: y_min >= y_max\n", i);
+            return -1;
+        }
+        
+        stim->x_discretized.max = round(stim->x_range.max / delta_x);
+        stim->x_discretized.min = round(stim->x_range.min / delta_x);
+        stim->y_discretized.max = round(stim->y_range.max / delta_y);
+        stim->y_discretized.min = round(stim->y_range.min / delta_y);
+    }
+
+    // Check if the stimulus is within the simulation domain
+    for (int i = 0; i < numberOfStimuli; i++)
+    {
+        Stimulus *stim = &config->stimuli[i];
+        if (stim == NULL)
+        {
+            ERRORMSG("Error in stimulus %d: stimulus is NULL\n", i);
+            return -1;
+        }
+        if (stim->x_discretized.min < 0 || stim->x_discretized.max >= config->Nx)
+        {
+            ERRORMSG("Error in stimulus %d: x_discretized out of bounds\n", i);
+            return -1;
+        }
+        if (stim->y_discretized.min < 0 || stim->y_discretized.max >= config->Ny)
+        {
+            ERRORMSG("Error in stimulus %d: y_discretized out of bounds\n", i);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+void printSimulationConfig(const SimulationConfig *config)
+{
+    printf("Simulation Configuration:\n");
+    printf("Execution Mode: %s\n", executionModeToString(config->exec_mode));
+    printf("Equation Type: %s\n", equationTypeToString(config->equation_type));
+    printf("Cell Model: %s\n", cellModelToString(config->cell_model));
+    printf("Method: %s\n", numericalMethodToString(config->method));
+    printf("Domain Length in X: %.4g cm\n", config->Lx);
+    printf("Domain Length in Y: %.4g cm\n", config->Ly);
+    printf("Total Time: %.4g ms\n", config->total_time);
+    printf("Delta T: %.5g ms (%d time steps)\n", config->dt, config->M);
+    printf("Delta X: %.5g cm (%d um) (%d space steps in x)\n", config->dx, CM_TO_UM(config->dx), config->Nx);
+    printf("Delta Y: %.5g cm (%d um) (%d space steps in y)\n", config->dy, CM_TO_UM(config->dy), config->Ny);
+}
+
+// Basic Thomas algorithm for solving tridiagonal systems
+void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result)
+{
+    c_prime[0] = lc[0] / lb[0];
+    for (int i = 1; i < N - 1; i++)
+    {
+        c_prime[i] = lc[i] / (lb[i] - c_prime[i - 1] * la[i]);
+    }
+
+    d_prime[0] = d[0] / lb[0];
+    for (int i = 1; i < N; i++)
+    {
+        d_prime[i] = (d[i] - d_prime[i - 1] * la[i]) / (lb[i] - c_prime[i - 1] * la[i]);
+    }
+
+    result[N - 1] = d_prime[N - 1];
+    for (int i = N - 2; i >= 0; i--)
+    {
+        result[i] = d_prime[i] - c_prime[i] * result[i + 1];
+    }
+}
+
+const int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement)
+{
+    // Write infos to file
+    char infosFilePath[MAX_STRING_SIZE];
+    snprintf(infosFilePath, MAX_STRING_SIZE, "%s/infos.txt", config->output_dir);
+
+    FILE *fpInfos = fopen(infosFilePath, "w");
+    if (fpInfos == NULL)
+    {
+        ERRORMSG("Error opening file %s\n", infosFilePath);
+        return -1;
+    }
+
+    fprintf(fpInfos, "EXECUTION TYPE = %s\n", executionModeToString(config->exec_mode));
+    fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
+    fprintf(fpInfos, "PROBLEM = %s\n", equationTypeToString(config->equation_type));
+    fprintf(fpInfos, "CELL MODEL = %s\n", cellModelToString(config->cell_model));
+    fprintf(fpInfos, "METHOD = %s\n", numericalMethodToString(config->method));
+    fprintf(fpInfos, "\n");
+
+    fprintf(fpInfos, "DOMAIN LENGTH IN X = %.4g cm\n", config->Lx);
+    fprintf(fpInfos, "DOMAIN LENGTH IN Y = %.4g cm\n", config->Ly);
+    fprintf(fpInfos, "TOTAL TIME = %.4g ms\n", config->total_time);
+    fprintf(fpInfos, "\n");
+
+    fprintf(fpInfos, "delta_t = %.5g ms (%d time steps)\n", config->dt, config->M);
+    fprintf(fpInfos, "delta_x = %.5g cm (%d um) (%d space steps in x)\n", config->dx, CM_TO_UM(config->dx), config->Nx);
+    fprintf(fpInfos, "delta_y = %.5g cm (%d um) (%d space steps in y)\n", config->dy, CM_TO_UM(config->dy), config->Ny);
+    fprintf(fpInfos, "TOTAL POINTS IN DOMAIN = %d\n", config->Nx * config->Ny);
+    fprintf(fpInfos, "SIGMA = %.8g\n", config->sigma);
+    fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", config->stimulus_count);
+    for (int i = 0; i < config->stimulus_count; i++)
+    {
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, config->stimuli[i].begin_time);
+    }
+
+    if (config->measure_velocity)
+    {
+        fprintf(fpInfos, "\n");
+        fprintf(fpInfos, "STIMULUS S1 VELOCITY = %.4g cm/s\n", measurement->stimVelocity);
+    }
+
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "TIME OF THE FIRST PART = %.5g s\n", measurement->elapsedTime1stPart);
+    fprintf(fpInfos, "TIME OF THE SECOND PART = %.5g s\n", measurement->elapsedTime2ndPart);
+
+    if (config->method != METHOD_FE)
+    {
+        fprintf(fpInfos, "TIME TO SOLVE THE 1st LINEAR SYSTEM = %.5g s\n", measurement->elapsedTime1stLS);
+        fprintf(fpInfos, "TIME TO SOLVE THE 2nd LINEAR SYSTEM = %.5g s\n", measurement->elapsedTime2ndLS);
+    }
+
+    if (config->measure_velocity)
+        fprintf(fpInfos, "TIME TO MEASURE VELOCITY = %.5g s\n", measurement->elapsedMeasureVelocityTime);
+
+    if (config->save_frames)
+        fprintf(fpInfos, "TIME TO SAVE FRAMES = %.5g s\n", measurement->elapsedSaveFramesTime);
+
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", measurement->elapsedExecutionTime);
+
+    fprintf(fpInfos, "\n");
+    fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", config->output_dir);
+    fclose(fpInfos);
+
+    INFOMSG("Simulation total execution time = %.5g s\n", measurement->elapsedExecutionTime);
+    SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
+
+    return 0;
+}
+
+// Exact solution when using forcing term
+real exactSolution(real t, real x, real y, real Lx, real Ly)
+{
+    return (exp(-t)) * cos(_PI * x / Lx) * cos(_PI * y / Ly);
+}
+
+real calculateNorm2Error(real *Vm, real *exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y, real Lx, real Ly)
+{
+    real x, y;
+    real solution;
+    real sum = 0.0;
+    int index;
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            index = i * Nx + j;
+            x = j * delta_x;
+            y = i * delta_y;
+            solution = exactSolution(totalTime, x, y, Lx, Ly);
+            exact[index] = solution;
+            sum += ((Vm[index] - solution) * (Vm[index] - solution));
+        }
+    }
+    return sqrt(sum / (Nx * Ny));
+}
+
+void initializeVariableWithExactSolution(real *Var, int Nx, int Ny, real delta_x, real delta_y, real Lx, real Ly)
+{
+    real x, y;
+    int index;
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            index = i * Nx + j;
+            y = i * delta_y;
+            x = j * delta_x;
+            Var[index] = exactSolution(0.0f, x, y, Lx, Ly);
+        }
+    }
+}
+
+void initializeVariableWithValue(real *Var, int Nx, int Ny, real value)
+{
+    int index;
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            index = i * Nx + j;
+            Var[index] = value;
+        }
+    }
+}
+
+void initializeVariableFromFile(real *Var, int Nx, int Ny, char *filename, real delta_x, real delta_y, char *varName, real reference_dx, real reference_dy, real Lx, real Ly)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        ERRORMSG("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    int baseNx = round(Lx / reference_dx) + 1;
+    int baseNy = round(Ly / reference_dy) + 1;
+    int rate_x = round(delta_x / reference_dx);
+    int rate_y = round(delta_y / reference_dy);
+
+    int sizeFile = 0;
+    int sizeVar = 0;
+    real value;
+
+    INFOMSG("Reading file %s to initialize variable with rate_x=%d and rate_y=%d\n", filename, rate_x, rate_y);
+    for (int i = 0; i < baseNy; i++)
+    {
+        for (int j = 0; j < baseNx; j++)
+        {
+            // Read value from file to variable
+            // If i and j are multiples of rate, read value to Var
+            fscanf(file, FSCANF_REAL, &value);
+            if (i % rate_y == 0 && j % rate_x == 0)
+            {
+                Var[sizeVar] = value;
+                if (isnan(value))
+                {
+                    ERRORMSG("At var index %d, file index %d, value is NaN\n", sizeVar, i * baseNx + j);
+                    exit(1);
+                }
+                sizeVar++;
+            }
+            sizeFile++;
+        }
+    }
+    fclose(file);
+    INFOMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+}
+
+void shiftVariableToLeft(real *Var, int Nx, int Ny, real length, real delta_x, real delta_y, real initValue, char *varName)
+{
+    real *temp = (real *)malloc(Nx * sizeof(real));
+    int index;
+    for (int i = 0; i < Ny; i++)
+    {
+        for (int j = 0; j < Nx; j++)
+        {
+            index = i * Nx + j;
+            temp[j] = Var[index];
+        }
+
+        int lengthIndex = round(length / delta_x) + 1;
+        for (int j = 0; j < Nx - lengthIndex; j++)
+        {
+            index = i * Nx + j;
+            Var[index] = temp[j + lengthIndex];
+        }
+        for (int j = Nx - lengthIndex; j < Nx; j++)
+        {
+            index = i * Nx + j;
+            Var[index] = initValue;
+        }
+    }
+    free(temp);
+    SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
+}
+
+#ifdef CABLEEQ
+
+void initialize1DVariableWithValue(real *Var, int N, real value)
+{
+    for (int i = 0; i < N; i++)
+        Var[i] = value;
+}
+
+void initialize1DVariableFromFile(real *Var, int N, char *filename, real delta_x, char *varName, real reference_dx, real Lx)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        ERRORMSG("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    int baseN = round(Lx / reference_dx) + 1;
+    int rate = round(delta_x / reference_dx);
+
+    int sizeFile = 0;
+    int sizeVar = 0;
+    real value;
+
+    INFOMSG("Reading file %s to initialize variable with a rate of %d\n", filename, rate);
+
+    for (int i = 0; i < baseN; i++)
+    {
+        // Read value from file to variable
+        // If i is multiple of rate, read value to Var
+        fscanf(file, FSCANF_REAL, &value);
+        if (i % rate == 0)
+        {
+            Var[(int)(i / rate)] = value;
+            if (isnan(value))
+            {
+                ERRORMSG("At var index [%d], file index %d, value is NaN\n", (int)(i / rate), i);
+                exit(1);
+            }
+            sizeVar++;
+        }
+        sizeFile++;
+    }
+    fclose(file);
+
+    SUCCESSMSG("Variable %s initialized with %d values from the %d values in file\n", varName, sizeVar, sizeFile);
+}
+
+void shift1DVariableToLeft(real *Var, int N, real length, real delta_x, real initValue, char *varName)
+{
+    real *temp = (real *)malloc(N * sizeof(real));
+    for (int i = 0; i < N; i++)
+    {
+        temp[i] = Var[i];
+    }
+
+    int lengthIndex = round(length / delta_x) + 1;
+    for (int i = 0; i < N - lengthIndex; i++)
+    {
+        Var[i] = temp[i + lengthIndex];
+    }
+    for (int i = N - lengthIndex; i < N; i++)
+    {
+        Var[i] = initValue;
+    }
+    free(temp);
+    SUCCESSMSG("Variable %s shifted to the left by %.2f cm\n", varName, length);
+}
+
+#endif // CABLEEQ

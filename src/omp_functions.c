@@ -1,10 +1,35 @@
-#ifndef OMP_METHODS_H
-#define OMP_METHODS_H
+#include "../include/core_definitions.h"
+#include "../include/config_parser.h"
+#include "../include/auxfuncs.h"
+#include "cell_models/afhn/afhn.h"
 
-#include "auxfuncs.h"
+#ifdef USE_CUDA
 
-void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
+void runSimulationOpenMP(const SimulationConfig *config)
 {
+    // Unpack configuration parameters
+    const ExecutionMode exec_mode = config->exec_mode;
+    const CellModel cell_model = config->cell_model;
+    const NumericalMethod method = config->method;
+    const real delta_t = config->dt;
+    const real delta_x = config->dx;
+    const real delta_y = config->dy;
+    const real totalTime = config->total_time;
+    const real Lx = config->Lx;
+    const real Ly = config->Ly;
+    const int numberOfStimuli = config->stimulus_count;
+    const Stimulus *stimuli = config->stimuli;
+    const int frameSaveRate = config->frame_save_rate;
+    const int numberOfThreads = config->number_of_threads;
+    const char *pathToSaveData = config->output_dir;
+    const char *pathToRestoreStateFiles = config->path_to_restore_state_files;
+    const char *saveFunctionName = config->save_function_name;
+    const bool shiftState = config->shift_state;
+    const bool saveFrames = config->save_frames;
+    const bool saveLastFrame = config->save_last_frame;
+    const bool saveLastState = config->save_last_state;
+    const bool measureVelocity = config->measure_velocity;
+
     // Number of steps
     int M = round(totalTime / delta_t); // Number of time steps
     int Nx = round(Lx / delta_x) + 1;   // Spatial steps in x
@@ -15,8 +40,8 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     printf("Points in the domain = %d\n", Nx * Ny);
 
     // Allocate and populate time array
-    real *time = (real *)malloc(M * sizeof(real));
-    initializeTimeArray(time, M, delta_t);
+    real *time_array = (real *)malloc(M * sizeof(real));
+    initializeTimeArray(time_array, M, delta_t);
 
     // Allocate 2D arrays for variables
     real **partRHS = (real **)malloc(Ny * sizeof(real *));
@@ -120,7 +145,6 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 #endif // MV
     }
 
-
     // Initialize variables
 #ifdef AFHN
 
@@ -171,69 +195,69 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     real real_ref_dx = 0.002f;
     real real_def_dy = 0.002f;
 
-    char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    char *pathToRestoreStateFiles = (char *)malloc(MAX_STRING_SIZE);
 
 #ifdef AFHN
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeW.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(W, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "W", real_ref_dx, real_def_dy);
 
 #endif // AFHN
 
 #ifdef TT2
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeX_r1.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(X_r1, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r1", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeX_r2.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(X_r2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_r2", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeX_s.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeX_s.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(X_s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "X_s", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframem.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframem.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(m, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "m", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeh.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(h, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "h", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframej.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(_j, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "j", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframed.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(d, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "d", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframef.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(f, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframef2.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframef2.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(f2, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "f2", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframefCaSS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframefCaSS.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(fCaSS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "fCaSS", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframer.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframer.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(r, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "r", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeCa_i.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Ca_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_i", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SR.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeCa_SR.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Ca_SR, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SR", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeCa_SS.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeCa_SS.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Ca_SS, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Ca_SS", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeR_prime.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeR_prime.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(R_prime, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "R_prime", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeNa_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeNa_i.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Na_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Na_i", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeK_i.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(K_i, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "K_i", real_ref_dx, real_def_dy);
 
 #endif // TT2
 
 #ifdef MV
 
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframeVm.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(Vm, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "Vm", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframev.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframev.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(v, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "v", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframew.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframew.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(w, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "w", real_ref_dx, real_def_dy);
-    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE * sizeof(char), "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, CELL_MODEL);
+    snprintf(pathToRestoreStateFiles, MAX_STRING_SIZE, "./restore_state/%s/%s/%s/lastframes.txt", REAL_TYPE, PROBLEM, cell_model);
     initialize2DVariableFromFile(s, Nx, Ny, pathToRestoreStateFiles, delta_x, delta_y, "s", real_ref_dx, real_def_dy);
 
 #endif // MV
@@ -345,14 +369,10 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
 #if defined(MONODOMAIN)
 
-    // Allocate array for the stimuli
-    Stimulus *stimuli = (Stimulus *)malloc(numberOfStimuli * sizeof(Stimulus));
-    populateStimuli(stimuli, delta_x, delta_y);
-
 #endif // MONODOMAIN
 
     // Create directories
-    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE * sizeof(char));
+    char *pathToSaveData = (char *)malloc(MAX_STRING_SIZE);
     createDirectories(delta_t, delta_x, delta_y, pathToSaveData);
 
 #ifdef SAVE_FRAMES
@@ -360,7 +380,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     // Save frames variables
     char framesPath[MAX_STRING_SIZE];
     FILE *fpFrames;
-    snprintf(framesPath, MAX_STRING_SIZE * sizeof(char), "%s/frames.txt", pathToSaveData);
+    snprintf(framesPath, MAX_STRING_SIZE, "%s/frames.txt", pathToSaveData);
     fpFrames = fopen(framesPath, "w");
     real startSaveFramesTime, finishSaveFramesTime, elapsedSaveFramesTime = 0.0f;
 
@@ -386,7 +406,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     real startExecutionTime, finishExecutionTime, elapsedExecutionTime = 0.0f;
     real startTime, finishTime, elapsedTime1stPart, elapsedTime2ndPart = 0.0f;
     real startLSTime, finishLSTime, elapsedTime1stLS, elapsedTime2ndLS = 0.0f;
-    
+
     // Auxiliary variables for the time loop
     int timeStepCounter = 0;
     real actualTime = 0.0f;
@@ -412,7 +432,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     real Vmtilde, Wtilde, RHS_Vmtilde_term;
 
 #pragma omp parallel default(shared) \
-        private(i, j, si, actualVm, diff_term, stim, actualW, RHS_Vm_term, Vmtilde, Wtilde, RHS_Vmtilde_term)
+    private(i, j, si, actualVm, diff_term, stim, actualW, RHS_Vm_term, Vmtilde, Wtilde, RHS_Vmtilde_term)
 
 #endif // AFHN
 
@@ -436,8 +456,8 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     real J_fi_tilde, J_so_tilde, J_si_tilde;
     real RHS_Vmtilde_term;
 
-#pragma omp parallel default(shared) \
-        private(i, j, si, actualVm, diff_term, stim, actualv, actualw, actuals, Htheta_w, Htheta_o, Htheta_v, \
+#pragma omp parallel default(shared)                                                                              \
+    private(i, j, si, actualVm, diff_term, stim, actualv, actualw, actuals, Htheta_w, Htheta_o, Htheta_v,         \
                 Htheta_vminus, tau_o, tau_so, tau_vminus, J_fi, J_so, J_si, RHS_Vm_term, Vmtilde, vtilde, wtilde, \
                 stilde, v_inf, tau_v_RL, v_inf_RL, w_inf, tau_wminus, tau_w_RL, w_inf_RL, tau_s, s_inf_RL)
 
@@ -446,17 +466,17 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     while (timeStepCounter < M)
     {
         // Get time step
-        actualTime = time[timeStepCounter];
+        actualTime = time_array[timeStepCounter];
 
-        // Start measuring time of 1st part
-        #pragma omp barrier
-        #pragma omp single
+// Start measuring time of 1st part
+#pragma omp barrier
+#pragma omp single
         startTime = omp_get_wtime();
 
-        // ================================================!
-        //  Calculate Approxs. and Update ODEs             !
-        // ================================================!
-        #pragma omp for collapse(2) schedule(static)
+// ================================================!
+//  Calculate Approxs. and Update ODEs             !
+// ================================================!
+#pragma omp for collapse(2) schedule(static)
         for (i = 0; i < Ny; i++)
         {
             for (j = 0; j < Nx; j++)
@@ -466,7 +486,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 // Calculate the explicit part of the RHS, including the diffusion term in both directions
                 actualVm = Vm[i][j];
                 actualW = W[i][j];
-                RHS_Vm_term = RHS_Vm(actualVm, actualW) / (Cm * chi);
+                RHS_Vm_term = (G * actualVm * (1.0f - (actualVm / vth)) * (1.0f - (actualVm / vp))) + (eta1 * actualVm * actualW);
 
                 // Stimulation
                 stim = 0.0f;
@@ -474,7 +494,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 #pragma unroll
                 for (si = 0; si < numberOfStimuli; si++)
                 {
-                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
                         stim = stimuli[si].amplitude;
                         break;
@@ -488,12 +508,12 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 Vmtilde = actualVm + 0.5f * diff_term + (0.5f * delta_t * (stim - RHS_Vm_term));
 
                 // Calculate approximation for state variables and prepare part of the RHS of the following linear systems
-                Wtilde = actualW + (0.5f * delta_t * RHS_W(actualVm, actualW));
-                RHS_Vmtilde_term = RHS_Vm(Vmtilde, Wtilde) / (Cm * chi);
+                Wtilde = actualW + (0.5f * delta_t * (eta2 * ((actualVm / vp) - (eta3 * actualW))));
+                RHS_Vmtilde_term = (G * Vmtilde * (1.0f - (Vmtilde / vth)) * (1.0f - (Vmtilde / vp))) + (eta1 * Vmtilde * Wtilde);
                 partRHS[i][j] = delta_t * (stim - RHS_Vmtilde_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(Vmtilde, Wtilde); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
+                W[i][j] = actualW + delta_t * (eta2 * ((Vmtilde / vp) - (eta3 * Wtilde))); // with RK2 -> Wn+1 = Wn + dt*R(Vm*, W*)
 
 #endif // SSIADI
 
@@ -503,7 +523,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 partRHS[i][j] = delta_t * (stim - RHS_Vm_term);
 
                 // Update state variables
-                W[i][j] = actualW + delta_t * RHS_W(actualVm, actualW); // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
+                W[i][j] = actualW + delta_t * (eta2 * ((actualVm / vp) - (eta3 * actualW))); // with Forward Euler -> Wn+1 = Wn + dt*R(Vmn, Wn)
 
 #endif // OSADI
 
@@ -513,7 +533,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 diff_term = diff_coeff * (phi_x * (Vm[i][lim(j - 1, Nx)] - 2.0f * actualVm + Vm[i][lim(j + 1, Nx)]) + phi_y * (Vm[lim(i - 1, Ny)][j] - 2.0f * actualVm + Vm[lim(i + 1, Ny)][j]));
                 partRHS[i][j] = actualVm + diff_term + delta_t * (stim - RHS_Vm_term);
 
-                W[i][j] = actualW + delta_t * RHS_W(actualVm, actualW);
+                W[i][j] = actualW + delta_t * (eta2 * ((actualVm / vp) - (eta3 * actualW)));
 
 #endif // FE
 
@@ -530,13 +550,13 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 actualv = v[i][j];
                 actualw = w[i][j];
                 actuals = s[i][j];
-                
+
                 stim = 0.0f;
 
 #pragma unroll
                 for (si = 0; si < numberOfStimuli; si++)
                 {
-                    if (actualTime >= stimuli[si].begin && actualTime <= stimuli[si].begin + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
                         stim = stimuli[si].amplitude;
                         break;
@@ -587,11 +607,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 (tau_v_RL > 1.0e-10)
                     ? (vtilde = v_inf_RL - (v_inf_RL - actualv) * exp(-0.5f * delta_t / tau_v_RL))
                     : (vtilde = actualv + 0.5f * delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
-                
+
                 (tau_w_RL > 1.0e-10)
                     ? (wtilde = w_inf_RL - (w_inf_RL - actualw) * exp(-0.5f * delta_t / tau_w_RL))
                     : (wtilde = actualw + 0.5f * delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
-                
+
                 (tau_s > 1.0e-10)
                     ? (stilde = s_inf_RL - (s_inf_RL - actuals) * exp(-0.5f * delta_t / tau_s))
                     : (stilde = actuals + 0.5f * delta_t * (s_inf_RL - actuals) / tau_s);
@@ -627,17 +647,17 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
 
                 tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
-                s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;       
+                s_inf_RL = (1.0f + tanh(k_s * (Vmtilde - u_s))) * 0.5f;
 
                 // Update state variables with Rush-Larsen or RK2 (Heun's method) using approximations
                 (tau_v_RL > 1.0e-10)
                     ? (v[i][j] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
                     : (v[i][j] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - vtilde) / tau_vminus - Htheta_v * vtilde / tau_vplus);
-                
+
                 (tau_w_RL > 1.0e-10)
                     ? (w[i][j] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
                     : (w[i][j] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - wtilde) / tau_wminus - Htheta_w * wtilde / tau_wplus);
-                
+
                 (tau_s > 1.0e-10)
                     ? (s[i][j] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
                     : (s[i][j] = actuals + delta_t * (s_inf_RL - stilde) / tau_s);
@@ -666,11 +686,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 (tau_v_RL > 1.0e-10)
                     ? (v[i][j] = v_inf_RL - (v_inf_RL - actualv) * exp(-delta_t / tau_v_RL))
                     : (v[i][j] = actualv + delta_t * (1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus);
-                
+
                 (tau_w_RL > 1.0e-10)
                     ? (w[i][j] = w_inf_RL - (w_inf_RL - actualw) * exp(-delta_t / tau_w_RL))
                     : (w[i][j] = actualw + delta_t * (1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus);
-                
+
                 (tau_s > 1.0e-10)
                     ? (s[i][j] = s_inf_RL - (s_inf_RL - actuals) * exp(-delta_t / tau_s))
                     : (s[i][j] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
@@ -700,11 +720,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 (tau_v_RL > 1.0e-10)
                     ? (v[i][j] = v_inf_RL + (actualv - v_inf_RL) * exp(-delta_t / tau_v_RL))
                     : (v[i][j] = actualv + delta_t * ((1.0f - Htheta_v) * (v_inf - actualv) / tau_vminus - Htheta_v * actualv / tau_vplus));
-                
+
                 (tau_w_RL > 1.0e-10)
                     ? (w[i][j] = w_inf_RL + (actualw - w_inf_RL) * exp(-delta_t / tau_w_RL))
                     : (w[i][j] = actualw + delta_t * ((1.0f - Htheta_w) * (w_inf - actualw) / tau_wminus - Htheta_w * actualw / tau_wplus));
-                
+
                 (tau_s > 1.0e-10)
                     ? (s[i][j] = s_inf_RL + (actuals - s_inf_RL) * exp(-delta_t / tau_s))
                     : (s[i][j] = actuals + delta_t * (s_inf_RL - actuals) / tau_s);
@@ -715,8 +735,8 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
             }
         }
 
-        #pragma omp barrier
-        #pragma omp single
+#pragma omp barrier
+#pragma omp single
         {
             // End of the 1st part of the time step
             finishTime = omp_get_wtime();
@@ -733,12 +753,12 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
         real *LS_b_y = (real *)malloc(Ny * sizeof(real));
         real *result_y = (real *)malloc(Ny * sizeof(real));
 
-        // ================================================!
-        //  Calculate Vm at n+1/2 -> Result goes to RHS    !
-        //  diffusion implicit in y and explicit in x      !
-        // ================================================!
-        #pragma omp barrier
-        #pragma omp for schedule(static)
+// ================================================!
+//  Calculate Vm at n+1/2 -> Result goes to RHS    !
+//  diffusion implicit in y and explicit in x      !
+// ================================================!
+#pragma omp barrier
+#pragma omp for schedule(static)
         for (j = 0; j < Nx; j++)
         {
             // Calculate the RHS of the linear system with the explicit diffusion term along x
@@ -750,7 +770,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
             }
 
             // Solve the linear system
-            tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+            tridiagonalSystemSolver(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
 
             // Update with the result
             for (i = 0; i < Ny; i++)
@@ -766,13 +786,13 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
         real *d_prime_x = (real *)malloc(Nx * sizeof(real));
         real *LS_b_x = (real *)malloc(Nx * sizeof(real));
         real *result_x = (real *)malloc(Nx * sizeof(real));
-        
-        // ================================================!
-        //  Calculate Vm at n+1 -> Result goes to Vm       !
-        //  diffusion implicit in x and explicit in y      !
-        // ================================================!
-        #pragma omp barrier
-        #pragma omp for schedule(static)
+
+// ================================================!
+//  Calculate Vm at n+1 -> Result goes to Vm       !
+//  diffusion implicit in x and explicit in y      !
+// ================================================!
+#pragma omp barrier
+#pragma omp for schedule(static)
         for (i = 0; i < Ny; i++)
         {
             // Calculate the RHS of the linear system with the explicit diffusion term along y
@@ -784,19 +804,17 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
             }
 
             // Solve the linear system
-            tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            tridiagonalSystemSolver(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
 
             // Update with the result
             for (j = 0; j < Nx; j++)
                 Vm[i][j] = result_x[j];
-
         }
 
         free(c_prime_x);
         free(d_prime_x);
         free(LS_b_x);
         free(result_x);
-        
 
 #endif // SSIADI
 
@@ -807,11 +825,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
         real *LS_b_y = (real *)malloc(Ny * sizeof(real));
         real *result_y = (real *)malloc(Ny * sizeof(real));
 
-        // ================================================!
-        //  Calculate Vm at n+1/2 -> Result goes to Vm      !
-        // ================================================!
-        #pragma omp barrier
-        #pragma omp for schedule(static)
+// ================================================!
+//  Calculate Vm at n+1/2 -> Result goes to Vm      !
+// ================================================!
+#pragma omp barrier
+#pragma omp for schedule(static)
         for (j = 0; j < Nx; j++)
         {
             // Calculate the RHS of the linear system
@@ -819,7 +837,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 LS_b_y[i] = Vm[i][j] + 0.5f * partRHS[i][j];
 
             // Solve the linear system
-            tridiag(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
+            tridiagonalSystemSolver(la_y, lb_y, lc_y, c_prime_y, d_prime_y, Ny, LS_b_y, result_y);
 
             // Update with the result
             for (i = 0; i < Ny; i++)
@@ -836,11 +854,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
         real *LS_b_x = (real *)malloc(Nx * sizeof(real));
         real *result_x = (real *)malloc(Nx * sizeof(real));
 
-        // ================================================!
-        //  Calculate Vm at n+1 -> Result goes to Vm       !
-        // ================================================!
-        #pragma omp barrier
-        #pragma omp for schedule(static)
+// ================================================!
+//  Calculate Vm at n+1 -> Result goes to Vm       !
+// ================================================!
+#pragma omp barrier
+#pragma omp for schedule(static)
         for (i = 0; i < Ny; i++)
         {
             // Calculate the RHS of the linear system
@@ -848,12 +866,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 LS_b_x[j] = Vm[i][j] + 0.5f * partRHS[i][j];
 
             // Solve the linear system
-            tridiag(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
+            tridiagonalSystemSolver(la_x, lb_x, lc_x, c_prime_x, d_prime_x, Nx, LS_b_x, result_x);
 
             // Update with the result
             for (j = 0; j < Nx; j++)
                 Vm[i][j] = result_x[j];
-
         }
 
         free(c_prime_x);
@@ -865,20 +882,20 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
 #ifdef FE
 
-        // ==================!
-        //  Update Vm        !
-        // ==================!
-        #pragma omp barrier
-        #pragma omp for collapse(2) schedule(static)
+// ==================!
+//  Update Vm        !
+// ==================!
+#pragma omp barrier
+#pragma omp for collapse(2) schedule(static)
         for (i = 0; i < Ny; i++)
             for (j = 0; j < Nx; j++)
                 Vm[i][j] = partRHS[i][j];
 
 #endif // FE
 
-        // End of the 2nd part of the time step
-        #pragma omp barrier
-        #pragma omp single
+// End of the 2nd part of the time step
+#pragma omp barrier
+#pragma omp single
         {
             finishTime = omp_get_wtime();
             elapsedTime2ndPart += finishTime - startTime;
@@ -886,7 +903,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
 #ifdef SAVE_FRAMES
 
-        #pragma omp single
+#pragma omp single
         {
             startSaveFramesTime = omp_get_wtime();
 
@@ -907,23 +924,23 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
 #ifdef MEASURE_VELOCITY
 
-        #pragma omp single
+#pragma omp single
         {
             startMeasureVelocityTime = omp_get_wtime();
 
             // Calculate stim velocity
             if (!stim_velocity_measured)
-            {   
+            {
                 real point_potential = 0.0f;
                 if (!aux_stim_velocity_flag)
                 {
                     point_potential = Vm[0][begin_point_index];
 
-        #ifdef MV
+#ifdef MV
 
                     point_potential = rescaleVm(point_potential);
 
-        #endif // MV
+#endif // MV
 
                     if (point_potential > 10.0f)
                     {
@@ -935,11 +952,11 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
                 {
                     point_potential = Vm[0][end_point_index];
 
-        #ifdef MV
+#ifdef MV
 
                     point_potential = rescaleVm(point_potential);
 
-        #endif // MV
+#endif // MV
 
                     if (point_potential > 10.0f)
                     {
@@ -958,8 +975,8 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
 #endif // MEASURE_VELOCITY
 
-        // Update time step counter
-        #pragma omp single
+// Update time step counter
+#pragma omp single
         timeStepCounter++;
     }
 
@@ -981,16 +998,16 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     printf("\n");
 
     // Write infos to file
-    srand((unsigned int)::time(NULL));
+    srand(time(NULL));
     int random_number = (rand() % 500) + 1;
     char infosFilePath[MAX_STRING_SIZE];
-    snprintf(infosFilePath, MAX_STRING_SIZE * sizeof(char), "%s/infos%d.txt", pathToSaveData, random_number);
+    snprintf(infosFilePath, MAX_STRING_SIZE, "%s/infos%d.txt", pathToSaveData, random_number);
     FILE *fpInfos = fopen(infosFilePath, "w");
-    fprintf(fpInfos, "EXECUTION TYPE = %s\n", EXECUTION_TYPE);
+    fprintf(fpInfos, "EXECUTION TYPE = %s\n", exec_mode);
     fprintf(fpInfos, "PRECISION = %s\n", REAL_TYPE);
     fprintf(fpInfos, "PROBLEM = %s\n", PROBLEM);
-    fprintf(fpInfos, "CELL MODEL = %s\n", CELL_MODEL);
-    fprintf(fpInfos, "METHOD = %s\n", METHOD);
+    fprintf(fpInfos, "CELL MODEL = %s\n", cell_model);
+    fprintf(fpInfos, "METHOD = %s\n", method);
     fprintf(fpInfos, "\n");
 
     fprintf(fpInfos, "DOMAIN LENGTH IN X = %.4g cm\n", Lx);
@@ -1006,7 +1023,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
     for (int i = 0; i < numberOfStimuli; i++)
     {
-        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin);
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin_time);
     }
 
     fprintf(fpInfos, "\n");
@@ -1044,7 +1061,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", elapsedExecutionTime);
-    
+
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "PATH TO SAVE DATA = %s\n", pathToSaveData);
     fclose(fpInfos);
@@ -1056,7 +1073,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 
     // Save last frame
     char lastFrameFilePath[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePath, MAX_STRING_SIZE * sizeof(char), "%s/lastframe.txt", pathToSaveData);
+    snprintf(lastFrameFilePath, MAX_STRING_SIZE, "%s/lastframe.txt", pathToSaveData);
     FILE *fpLast = fopen(lastFrameFilePath, "w");
 
     saveFrame(fpLast, Vm, Nx, Ny);
@@ -1071,8 +1088,8 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 #ifdef AFHN
 
     char lastFrameFilePathVm[MAX_STRING_SIZE], lastFrameFilePathW[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
-    snprintf(lastFrameFilePathW, MAX_STRING_SIZE * sizeof(char), "%s/lastframeW.txt", pathToSaveData);
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE, "%s/lastframeVm.txt", pathToSaveData);
+    snprintf(lastFrameFilePathW, MAX_STRING_SIZE, "%s/lastframeW.txt", pathToSaveData);
 
     FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastW = fopen(lastFrameFilePathW, "w");
@@ -1102,25 +1119,25 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
         lastFrameFilePathf2[MAX_STRING_SIZE], lastFrameFilePathfCaSS[MAX_STRING_SIZE], lastFrameFilePaths[MAX_STRING_SIZE], lastFrameFilePathr[MAX_STRING_SIZE],
         lastFrameFilePathR_prime[MAX_STRING_SIZE], lastFrameFilePathCa_i[MAX_STRING_SIZE], lastFrameFilePathCa_SR[MAX_STRING_SIZE], lastFrameFilePathCa_SS[MAX_STRING_SIZE],
         lastFrameFilePathNa_i[MAX_STRING_SIZE], lastFrameFilePathK_i[MAX_STRING_SIZE];
-    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/lastframeVm.txt", pathToSaveData);
-    snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r1.txt", pathToSaveData);
-    snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_r2.txt", pathToSaveData);
-    snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE * sizeof(char), "%s/lastframeX_s.txt", pathToSaveData);
-    snprintf(lastFrameFilePathm, MAX_STRING_SIZE * sizeof(char), "%s/lastframem.txt", pathToSaveData);
-    snprintf(lastFrameFilePathh, MAX_STRING_SIZE * sizeof(char), "%s/lastframeh.txt", pathToSaveData);
-    snprintf(lastFrameFilePathj, MAX_STRING_SIZE * sizeof(char), "%s/lastframej.txt", pathToSaveData);
-    snprintf(lastFrameFilePathd, MAX_STRING_SIZE * sizeof(char), "%s/lastframed.txt", pathToSaveData);
-    snprintf(lastFrameFilePathf, MAX_STRING_SIZE * sizeof(char), "%s/lastframef.txt", pathToSaveData);
-    snprintf(lastFrameFilePathf2, MAX_STRING_SIZE * sizeof(char), "%s/lastframef2.txt", pathToSaveData);
-    snprintf(lastFrameFilePathfCaSS, MAX_STRING_SIZE * sizeof(char), "%s/lastframefCaSS.txt", pathToSaveData);
-    snprintf(lastFrameFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/lastframes.txt", pathToSaveData);
-    snprintf(lastFrameFilePathr, MAX_STRING_SIZE * sizeof(char), "%s/lastframer.txt", pathToSaveData);
-    snprintf(lastFrameFilePathR_prime, MAX_STRING_SIZE * sizeof(char), "%s/lastframeR_prime.txt", pathToSaveData);
-    snprintf(lastFrameFilePathCa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_i.txt", pathToSaveData);
-    snprintf(lastFrameFilePathCa_SR, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_SR.txt", pathToSaveData);
-    snprintf(lastFrameFilePathCa_SS, MAX_STRING_SIZE * sizeof(char), "%s/lastframeCa_SS.txt", pathToSaveData);
-    snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeNa_i.txt", pathToSaveData);
-    snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE * sizeof(char), "%s/lastframeK_i.txt", pathToSaveData);
+    snprintf(lastFrameFilePathVm, MAX_STRING_SIZE, "%s/lastframeVm.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_r1, MAX_STRING_SIZE, "%s/lastframeX_r1.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_r2, MAX_STRING_SIZE, "%s/lastframeX_r2.txt", pathToSaveData);
+    snprintf(lastFrameFilePathX_s, MAX_STRING_SIZE, "%s/lastframeX_s.txt", pathToSaveData);
+    snprintf(lastFrameFilePathm, MAX_STRING_SIZE, "%s/lastframem.txt", pathToSaveData);
+    snprintf(lastFrameFilePathh, MAX_STRING_SIZE, "%s/lastframeh.txt", pathToSaveData);
+    snprintf(lastFrameFilePathj, MAX_STRING_SIZE, "%s/lastframej.txt", pathToSaveData);
+    snprintf(lastFrameFilePathd, MAX_STRING_SIZE, "%s/lastframed.txt", pathToSaveData);
+    snprintf(lastFrameFilePathf, MAX_STRING_SIZE, "%s/lastframef.txt", pathToSaveData);
+    snprintf(lastFrameFilePathf2, MAX_STRING_SIZE, "%s/lastframef2.txt", pathToSaveData);
+    snprintf(lastFrameFilePathfCaSS, MAX_STRING_SIZE, "%s/lastframefCaSS.txt", pathToSaveData);
+    snprintf(lastFrameFilePaths, MAX_STRING_SIZE, "%s/lastframes.txt", pathToSaveData);
+    snprintf(lastFrameFilePathr, MAX_STRING_SIZE, "%s/lastframer.txt", pathToSaveData);
+    snprintf(lastFrameFilePathR_prime, MAX_STRING_SIZE, "%s/lastframeR_prime.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_i, MAX_STRING_SIZE, "%s/lastframeCa_i.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_SR, MAX_STRING_SIZE, "%s/lastframeCa_SR.txt", pathToSaveData);
+    snprintf(lastFrameFilePathCa_SS, MAX_STRING_SIZE, "%s/lastframeCa_SS.txt", pathToSaveData);
+    snprintf(lastFrameFilePathNa_i, MAX_STRING_SIZE, "%s/lastframeNa_i.txt", pathToSaveData);
+    snprintf(lastFrameFilePathK_i, MAX_STRING_SIZE, "%s/lastframeK_i.txt", pathToSaveData);
 
     FILE *fpLastVm = fopen(lastFrameFilePathVm, "w");
     FILE *fpLastX_r1 = fopen(lastFrameFilePathX_r1, "w");
@@ -1234,10 +1251,10 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     // Save last state
     char lastStateFilePathVm[MAX_STRING_SIZE], lastStateFilePathv[MAX_STRING_SIZE],
         lastStateFilePathw[MAX_STRING_SIZE], lastStateFilePaths[MAX_STRING_SIZE];
-    snprintf(lastStateFilePathVm, MAX_STRING_SIZE * sizeof(char), "%s/laststateVm.txt", pathToSaveData);
-    snprintf(lastStateFilePathv, MAX_STRING_SIZE * sizeof(char), "%s/laststatev.txt", pathToSaveData);
-    snprintf(lastStateFilePathw, MAX_STRING_SIZE * sizeof(char), "%s/laststatew.txt", pathToSaveData);
-    snprintf(lastStateFilePaths, MAX_STRING_SIZE * sizeof(char), "%s/laststates.txt", pathToSaveData);
+    snprintf(lastStateFilePathVm, MAX_STRING_SIZE, "%s/laststateVm.txt", pathToSaveData);
+    snprintf(lastStateFilePathv, MAX_STRING_SIZE, "%s/laststatev.txt", pathToSaveData);
+    snprintf(lastStateFilePathw, MAX_STRING_SIZE, "%s/laststatew.txt", pathToSaveData);
+    snprintf(lastStateFilePaths, MAX_STRING_SIZE, "%s/laststates.txt", pathToSaveData);
 
     FILE *fpLastStateVm = fopen(lastStateFilePathVm, "w");
     FILE *fpLastStatev = fopen(lastStateFilePathv, "w");
@@ -1274,7 +1291,7 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
 #endif // SAVE_LAST_STATE
 
     // Free memory
-    free(time);
+    free(time_array);
     free(pathToSaveData);
 
     for (int i = 0; i < Ny; i++)
@@ -1338,20 +1355,18 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     free(lb_y);
     free(lc_y);
 
-#endif // SSIADI || OSADI   
+#endif // SSIADI || OSADI
 
     free(Vm);
     free(partRHS);
 
 #if defined(SSIADI) || defined(OSADI)
-    
+
     free(la_x);
     free(lb_x);
     free(lc_x);
 
-#endif // SSIADI || OSADI  
-
-    free(stimuli);
+#endif // SSIADI || OSADI
 
 #ifdef AFHN
 
@@ -1393,4 +1408,4 @@ void runSimulationOpenMP(real delta_t, real delta_x, real delta_y)
     return;
 }
 
-#endif // OMP_METHODS_H
+#endif // USE_OPENMP
