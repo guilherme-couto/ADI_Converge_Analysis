@@ -198,10 +198,24 @@ CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s"
 	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/afhn/afhn.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s
 
+CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
+CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c
+CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o"
+	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c
+
+CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i"
+	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c > CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i
+
+CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s"
+	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s
+
 CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
 CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c
 CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o"
 	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c
 
 CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.i: cmake_force
@@ -215,7 +229,7 @@ CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.s:
 CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
 CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c
 CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o"
 	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c
 
 CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.i: cmake_force
@@ -237,6 +251,7 @@ monodomain_simulation_OBJECTS = \
 "CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o" \
 "CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o" \
 "CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o" \
+"CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o" \
 "CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o" \
 "CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o"
 
@@ -252,13 +267,14 @@ monodomain_simulation_EXTERNAL_OBJECTS =
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/build.make
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: /home/guilherme-couto/.conda/envs/numerical-env/lib/libgomp.so
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: /home/guilherme-couto/.conda/envs/numerical-env/x86_64-conda-linux-gnu/sysroot/usr/lib/libpthread.so
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking C executable /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Linking C executable /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/monodomain_simulation.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

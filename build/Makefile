@@ -201,6 +201,30 @@ src/cell_models/afhn/afhn.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s
 .PHONY : src/cell_models/afhn/afhn.c.s
 
+src/cell_models/cell_models.o: src/cell_models/cell_models.c.o
+.PHONY : src/cell_models/cell_models.o
+
+# target to build an object file
+src/cell_models/cell_models.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o
+.PHONY : src/cell_models/cell_models.c.o
+
+src/cell_models/cell_models.i: src/cell_models/cell_models.c.i
+.PHONY : src/cell_models/cell_models.i
+
+# target to preprocess a source file
+src/cell_models/cell_models.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i
+.PHONY : src/cell_models/cell_models.c.i
+
+src/cell_models/cell_models.s: src/cell_models/cell_models.c.s
+.PHONY : src/cell_models/cell_models.s
+
+# target to generate assembly for a file
+src/cell_models/cell_models.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s
+.PHONY : src/cell_models/cell_models.c.s
+
 src/cell_models/minimal_ventricular/mv.o: src/cell_models/minimal_ventricular/mv.c.o
 .PHONY : src/cell_models/minimal_ventricular/mv.o
 
@@ -411,6 +435,9 @@ help:
 	@echo "... src/cell_models/afhn/afhn.o"
 	@echo "... src/cell_models/afhn/afhn.i"
 	@echo "... src/cell_models/afhn/afhn.s"
+	@echo "... src/cell_models/cell_models.o"
+	@echo "... src/cell_models/cell_models.i"
+	@echo "... src/cell_models/cell_models.s"
 	@echo "... src/cell_models/minimal_ventricular/mv.o"
 	@echo "... src/cell_models/minimal_ventricular/mv.i"
 	@echo "... src/cell_models/minimal_ventricular/mv.s"

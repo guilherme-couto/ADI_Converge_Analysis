@@ -170,7 +170,7 @@ const int createDirectories(char *dir_path, bool remove_old_files)
     {
         path[path_len - 1] = '\0';
     }
-    
+
     // Check if the path is empty after removing the separator
     if (strlen(path) == 0)
     {
@@ -207,16 +207,8 @@ void initializeMeasurement(Measurement *measurement)
     measurement->elapsedTime2ndLS = 0.0f;
     measurement->elapsedSaveFramesTime = 0.0f;
     measurement->elapsedMeasureVelocityTime = 0.0f;
+    measurement->elapsedSaveStateTime = 0.0f;
     measurement->stimVelocity = 0.0f;
-}
-
-const int lim(int num, int N)
-{
-    if (num == -1)
-        return 1;
-    else if (num == N)
-        return N - 2;
-    return num;
 }
 
 // Rescale Vm -> from Minimal Ventricular paper
@@ -251,7 +243,7 @@ int populateStimuli(SimulationConfig *config)
             ERRORMSG("Error in stimulus %d: y_min >= y_max\n", i);
             return -1;
         }
-        
+
         stim->x_discretized.max = round(stim->x_range.max / delta_x);
         stim->x_discretized.min = round(stim->x_range.min / delta_x);
         stim->y_discretized.max = round(stim->y_range.max / delta_y);
@@ -373,6 +365,9 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
 
     if (config->save_frames)
         fprintf(fpInfos, "TIME TO SAVE FRAMES = %.5g s\n", measurement->elapsedSaveFramesTime);
+
+    if (config->save_last_state)
+        fprintf(fpInfos, "TIME TO SAVE LAST STATE = %.5g s\n", measurement->elapsedSaveStateTime);
 
     fprintf(fpInfos, "\n");
     fprintf(fpInfos, "SIMULATION TOTAL EXECUTION TIME = %.5g s\n", measurement->elapsedExecutionTime);

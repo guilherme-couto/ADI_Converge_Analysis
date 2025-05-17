@@ -74,6 +74,7 @@ typedef struct
 
     char save_function_name[MAX_STRING_SIZE];
     save_function_t save_function;
+    char file_extension[4];
 
     // Boolean flags (using stdbool.h)
     bool shift_state;

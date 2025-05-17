@@ -74,6 +74,7 @@ typedef struct
     real elapsedTime2ndLS;
     real elapsedSaveFramesTime;
     real elapsedMeasureVelocityTime;
+    real elapsedSaveStateTime;
     real stimVelocity;
 } Measurement;
 

@@ -13,6 +13,7 @@
         "*.old": "c",
         "auxfuncs.h": "c",
         "cpu_functions.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "simulation_helpers.h": "c"
     }
 }

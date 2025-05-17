@@ -9,32 +9,24 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
     // Structure for measurement
     Measurement measurement;
     initializeMeasurement(&measurement);
-    
+
     // Define which cell model to use
-    if (config->cell_model == CELL_MODEL_AFHN)
-    {
-        solveMonodomainAFHN(config, &measurement, time_array);
-    }
-    else if (config->cell_model == CELL_MODEL_TT2)
-    {
-        solveMonodomainTT2(config, &measurement, time_array);
-    }
-    else if (config->cell_model == CELL_MODEL_MV)
-    {
-        solveMonodomainMV(config, &measurement, time_array);
-    }
-    else
+    cell_model_solver_t cell_model_solver = get_cell_model_solver(&config->cell_model);
+    if (cell_model_solver == NULL)
     {
         ERRORMSG("Invalid cell model selected.");
+        free(time_array);
         return;
     }
+
+    // Run the simulation
+    cell_model_solver(config, &measurement, time_array);
 
     // Free allocated memory
     free(time_array);
 
     // Save simulation information
     saveSimulationInfos(config, &measurement);
-    
 }
 
 // void baseForRunMonodomain(const SimulationConfig *config)
@@ -357,12 +349,12 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 
 //     // Measure velocity variables
 //     real stim_velocity = 0.0;
-//     real begin_point = Lx / 3.0f;
-//     real end_point = 2.0f * begin_point;
-//     int begin_point_index = round(begin_point / delta_x) + 1;
-//     int end_point_index = round(end_point / delta_x) + 1;
-//     real begin_point_time = 0.0;
-//     real end_point_time = 0.0;
+//     real x0 = Lx / 3.0f;
+//     real x1 = 2.0f * x0;
+//     int idx0 = round(x0 / delta_x) + 1;
+//     int idx1 = round(x1 / delta_x) + 1;
+//     real t0 = 0.0;
+//     real t1 = 0.0;
 //     bool aux_stim_velocity_flag = false;
 //     bool stim_velocity_measured = false;
 //     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
@@ -852,29 +844,29 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //                 real point_potential = 0.0f;
 //                 if (!aux_stim_velocity_flag)
 //                 {
-//                     point_potential = Vm[begin_point_index];
+//                     point_potential = Vm[idx0];
 //                     if (cell_model == CELL_MODEL_MV)
 //                         point_potential = rescaleVm(point_potential);
 
 //                     if (point_potential > 10.0f)
 //                     {
-//                         begin_point_time = actualTime;
+//                         t0 = actualTime;
 //                         aux_stim_velocity_flag = true;
 //                     }
 //                 }
 //                 else
 //                 {
-//                     point_potential = Vm[end_point_index];
+//                     point_potential = Vm[idx1];
 //                     if (cell_model == CELL_MODEL_MV)
 //                         point_potential = rescaleVm(point_potential);
 
 //                     if (point_potential > 10.0f)
 //                     {
-//                         end_point_time = actualTime;
-//                         stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
+//                         t1 = actualTime;
+//                         stim_velocity = (x1 - x0) / (t1 - t0); // cm/ms
 //                         stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
 //                         stim_velocity_measured = true;
-//                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
+//                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", x0, x1, stim_velocity);
 //                     }
 //                 }
 //             }
@@ -1660,12 +1652,12 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 
 //     // Measure velocity
 //     real stim_velocity = 0.0;
-//     real begin_point = Lx / 3.0f;
-//     real end_point = 2.0f * begin_point;
-//     int begin_point_index = round(begin_point / delta_x) + 1;
-//     int end_point_index = round(end_point / delta_x) + 1;
-//     real begin_point_time = 0.0;
-//     real end_point_time = 0.0;
+//     real x0 = Lx / 3.0f;
+//     real x1 = 2.0f * x0;
+//     int idx0 = round(x0 / delta_x) + 1;
+//     int idx1 = round(x1 / delta_x) + 1;
+//     real t0 = 0.0;
+//     real t1 = 0.0;
 //     bool aux_stim_velocity_flag = false;
 //     bool stim_velocity_measured = false;
 //     real startMeasureVelocityTime, finishMeasureVelocityTime, elapsedMeasureVelocityTime = 0.0f;
@@ -2213,29 +2205,29 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //             real point_potential = 0.0f;
 //             if (!aux_stim_velocity_flag)
 //             {
-//                 point_potential = Vm[begin_point_index];
+//                 point_potential = Vm[idx0];
 // #ifdef MV
 //                 point_potential = rescaleVm(point_potential);
 // #endif // MV
 //                 if (point_potential > 10.0f)
 //                 {
-//                     begin_point_time = actualTime;
+//                     t0 = actualTime;
 //                     aux_stim_velocity_flag = true;
 //                 }
 //             }
 //             else
 //             {
-//                 point_potential = Vm[end_point_index];
+//                 point_potential = Vm[idx1];
 // #ifdef MV
 //                 point_potential = rescaleVm(point_potential);
 // #endif // MV
 //                 if (point_potential > 10.0f)
 //                 {
-//                     end_point_time = actualTime;
-//                     stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
+//                     t1 = actualTime;
+//                     stim_velocity = (x1 - x0) / (t1 - t0); // cm/ms
 //                     stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
 //                     stim_velocity_measured = true;
-//                     INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
+//                     INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", x0, x1, stim_velocity);
 //                 }
 //             }
 //         }
@@ -2700,21 +2692,21 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //             {
 //                 if (!aux_stim_velocity_flag)
 //                 {
-//                     if (Vm[begin_point_index] > 10.0f)
+//                     if (Vm[idx0] > 10.0f)
 //                     {
-//                         begin_point_time = actualTime;
+//                         t0 = actualTime;
 //                         aux_stim_velocity_flag = true;
 //                     }
 //                 }
 //                 else
 //                 {
-//                     if (Vm[end_point_index] > 10.0f)
+//                     if (Vm[idx1] > 10.0f)
 //                     {
-//                         end_point_time = actualTime;
-//                         stim_velocity = (end_point - begin_point) / (end_point_time - begin_point_time); // cm/ms
+//                         t1 = actualTime;
+//                         stim_velocity = (x1 - x0) / (t1 - t0); // cm/ms
 //                         stim_velocity = stim_velocity * 1000.0f;                                         // cm/s
 //                         stim_velocity_measured = true;
-//                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", begin_point, end_point, stim_velocity);
+//                         INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", x0, x1, stim_velocity);
 //                     }
 //                 }
 //             }

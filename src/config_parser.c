@@ -64,6 +64,7 @@ static int config_parser_handler(void *user, const char *section, const char *na
     {
         strncpy(config->save_function_name, value, sizeof(config->save_function_name));
         config->save_function = get_save_function(config->save_function_name);
+        strncpy(config->file_extension, get_file_extension(config->save_function_name), sizeof(config->file_extension));
     }
     else if (MATCH("simulation", "theta"))
         config->theta = atof(value);
@@ -90,9 +91,10 @@ static int config_parser_handler(void *user, const char *section, const char *na
     else if (MATCH("simulation", "remove_old_files"))
         config->remove_old_files = (strstr(lower_value, "true") != NULL);
     else if (MATCH("simulation", "path_to_restore_state_files"))
+    {
         strncpy(config->path_to_restore_state_files, value, sizeof(config->path_to_restore_state_files));
-    else if (MATCH("simulation", "init_mode"))
-        strncpy(config->init_mode, value, sizeof(config->init_mode));
+        strncpy(config->init_mode, "Restore State", sizeof(config->init_mode));
+    }
     else if (MATCH("simulation", "shift_state"))
         config->shift_state = (strstr(lower_value, "true") != NULL);
     else if (MATCH("simulation", "save_frames"))
@@ -184,10 +186,11 @@ int load_simulation_config(const char *filename, SimulationConfig *config)
     config->stimulus_count = -1;
     config->save_function = NULL;
     config->save_function_name[0] = '\0';
+    config->file_extension[0] = '\0';
     config->output_dir[0] = '\0';
     config->remove_old_files = true;
     config->path_to_restore_state_files[0] = '\0';
-    config->init_mode[0] = '\0';
+    strncpy(config->init_mode, "Initial Condition", sizeof(config->init_mode));
 
     int result = ini_parse(filename, config_parser_handler, config);
     if (result < 0)

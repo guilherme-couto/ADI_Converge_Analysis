@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o.d"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o.d"
+  "CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o"
+  "CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o.d"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o.d"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o"
