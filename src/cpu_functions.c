@@ -1,4 +1,34 @@
 #include "../include/cpu_functions.h"
+#include "numerical_methods/numerical_methods.h"
+
+void runMonodomainSimulationSerialTT(const SimulationConfig *config)
+{
+    // Allocate and populate time array
+    real *time_array = (real *)malloc(config->M * sizeof(real));
+    initializeTimeArray(time_array, config->M, config->dt);
+
+    // Structure for measurement
+    Measurement measurement;
+    initializeMeasurement(&measurement);
+
+    // Define which cell model to use
+    // cell_model_solver_t cell_model_solver = get_cell_model_solver(&config->cell_model);
+    // if (cell_model_solver == NULL)
+    // {
+    //     ERRORMSG("Invalid cell model selected.");
+    //     free(time_array);
+    //     return;
+    // }
+
+    // // Run the simulation
+    // cell_model_solver(config, &measurement, time_array);
+
+    // Free allocated memory
+    free(time_array);
+
+    // Save simulation information
+    saveSimulationInfos(config, &measurement);
+}
 
 void runMonodomainSimulationSerial(const SimulationConfig *config)
 {
@@ -10,8 +40,8 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
     Measurement measurement;
     initializeMeasurement(&measurement);
 
-    // Define which cell model to use
-    cell_model_solver_t cell_model_solver = get_cell_model_solver(&config->cell_model);
+    // Define which cell model solver to use
+    const CellModelSolver *cell_model_solver = get_solver_struct(&config->cell_model);
     if (cell_model_solver == NULL)
     {
         ERRORMSG("Invalid cell model selected.");
@@ -19,8 +49,74 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
         return;
     }
 
-    // Run the simulation
-    cell_model_solver(config, &measurement, time_array);
+    // Allocate aux array for variables
+    int total_points = config->Nx * config->Ny;
+    real *partRHS = (real *)malloc(total_points * sizeof(real));
+
+    // Allocate and initialize state variables arrays
+    real *Vm = (real *)malloc(total_points * sizeof(real));
+    real *sV = (real *)malloc(total_points * cell_model_solver->n_state_vars * sizeof(real));
+    cell_model_solver->initialize(Vm, sV, config->Nx, config->Ny);
+
+    if (config->path_to_restore_state_files != NULL && strlen(config->path_to_restore_state_files) > 0)
+    {
+        printf("\n");
+        printf("Restoring state variables...\n");
+
+        // Load initial conditions from file
+        // TODO: Implement file loading logic
+    }
+
+    if (config->shift_state)
+    {
+        printf("\n");
+        printf("Shifting state variables...\n");
+
+        // Shift state variables to the left
+        real lengthToShift = 0.0f;
+        // TODO: Implement shift logic
+    }
+
+    // Run the simulation based on the selected method
+    numerical_method_t run_method = get_numerical_method(&config->method);
+    if (run_method == NULL)
+    {
+        fprintf(stderr, "Error: Invalid numerical method for AFHN model\n");
+        free(partRHS);
+        free(Vm);
+        free(sV);
+        return;
+    }
+
+    // Run the selected method
+    run_method(config, &measurement, time_array, cell_model_solver, Vm, sV, partRHS);
+
+    // Save last frame
+    if (config->save_last_frame)
+    {
+        real startTime = omp_get_wtime();
+        static char file_path[MAX_STRING_SIZE];
+        snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", config->output_dir, config->M, config->file_extension);
+        config->save_function(file_path, Vm, config->Nx, config->Ny, config->dx, config->dy);
+        measurement.elapsedSaveFramesTime += (omp_get_wtime() - startTime);
+        SUCCESSMSG("Last frame (time %.2f ms) saved to %s\n", config->M * config->dt, file_path);
+    }
+
+    // Save last state
+    if (config->save_last_state)
+    {
+        real startTime = omp_get_wtime();
+        // TODO: save as binary
+        static char file_path[MAX_STRING_SIZE];
+        snprintf(file_path, MAX_STRING_SIZE, "%s/state_%05d.dat", config->output_dir, config->M);
+        measurement.elapsedSaveStateTime += (omp_get_wtime() - startTime);
+        SUCCESSMSG("Last state (time %.2f ms) saved to %s\n", config->M * config->dt, file_path);
+    }
+
+    // Free memory
+    free(partRHS);
+    free(Vm);
+    free(sV);
 
     // Free allocated memory
     free(time_array);

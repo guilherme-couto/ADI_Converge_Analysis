@@ -134,7 +134,6 @@ void run_SSIADI_AFHN(const SimulationConfig *config, Measurement *measurement, c
                 // Calculate the explicit part of the RHS, including the diffusion term in both directions
                 actualVm = Vm[idx];
                 actualW = W[idx];
-                ;
 
                 // Stimulation
                 stim = get_stimulus_value(actualTime, i, j, stimuli, numberOfStimuli);
@@ -741,3 +740,14 @@ void solveMonodomainAFHN(const SimulationConfig *config, Measurement *measuremen
     free(Vm);
     free(W);
 }
+
+
+
+// Instantiate the AFHN model
+const CellModelSolver AFHN_MODEL = {
+    .n_state_vars = AFHN_NSV,
+    .initialize = initialize_AFHN,
+    .compute_dVmdt = compute_dVmdt_AFHN,
+    .compute_dSdt = compute_dSdt_AFHN,
+    .update_sV = update_sV_AFHN,
+};

@@ -20,6 +20,7 @@ option(USE_FLOAT "Use float precision instead of double" OFF)
 # === Directories ===
 set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(CELL_MODELS_DIR "${SRC_DIR}/cell_models")
+set(NUMERICAL_METHODS_DIR "${SRC_DIR}/numerical_methods")
 set(INC_DIR "${CMAKE_SOURCE_DIR}/include")
 set(EXT_DIR "${CMAKE_SOURCE_DIR}/external/inih")
 set(BIN_DIR "${CMAKE_SOURCE_DIR}/bin")
@@ -30,19 +31,23 @@ include_directories(${CELL_MODELS_DIR})
 file(GLOB_RECURSE CELL_HEADERS "${CELL_MODELS_DIR}/*.h")
 file(GLOB_RECURSE CELL_C_FILES "${CELL_MODELS_DIR}/*.c")
 file(GLOB_RECURSE CELL_CU_FILES "${CELL_MODELS_DIR}/*.cu")
+include_directories(${NUMERICAL_METHODS_DIR})
+file(GLOB_RECURSE NUMERICAL_METHODS_HEADERS "${NUMERICAL_METHODS_DIR}/*.h")
+file(GLOB_RECURSE NUMERICAL_METHODS_C_FILES "${NUMERICAL_METHODS_DIR}/*.c")
+file(GLOB_RECURSE NUMERICAL_METHODS_CU_FILES "${NUMERICAL_METHODS_DIR}/*.cu")
 
 # === Other source files ===
 file(GLOB SRC_C_FILES "${SRC_DIR}/*.c")
 file(GLOB SRC_CU_FILES "${SRC_DIR}/*.cu")
 file(GLOB EXT_C_FILES "${EXT_DIR}/*.c")
 
-set(SOURCES ${SRC_C_FILES} ${EXT_C_FILES} ${CELL_C_FILES})
+set(SOURCES ${SRC_C_FILES} ${EXT_C_FILES} ${CELL_C_FILES} ${NUMERICAL_METHODS_C_FILES})
 
 # === CUDA support ===
 if(USE_CUDA)
     enable_language(CUDA)
     message(STATUS "✅ CUDA support ENABLED")
-    list(APPEND SOURCES ${SRC_CU_FILES} ${CELL_CU_FILES})
+    list(APPEND SOURCES ${SRC_CU_FILES} ${CELL_CU_FILES} ${NUMERICAL_METHODS_CU_FILES})
     set(CUDA_LIBRARIES cusparse)
 else()
     message(STATUS "❌ CUDA support DISABLED")

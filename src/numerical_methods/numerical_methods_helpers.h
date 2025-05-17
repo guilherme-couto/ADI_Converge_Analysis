@@ -1,15 +1,15 @@
-#ifndef SIMULATION_HELPERS_H
-#define SIMULATION_HELPERS_H
+#ifndef NUMERICAL_METHODS_HELPERS_H
+#define NUMERICAL_METHODS_HELPERS_H
 
 #include "../../include/core_definitions.h"
 #include "../../include/config_parser.h"
-
-#define AFHN_THRESHOLD 10.0f // Threshold for AFHN model
+#include "../../include/auxfuncs.h"
+#include "../../include/logger.h"
 
 #ifndef USE_CUDA
 
 // Function to get the stimulus value at a given time and position
-static inline real get_stimulus_value(real actualTime, int i, int j, const Stimulus *stimuli, int numberOfStimuli)
+static inline real get_stimulus_valueNM(real actualTime, int i, int j, const Stimulus *stimuli, int numberOfStimuli)
 {
     for (int k = 0; k < numberOfStimuli; ++k)
     {
@@ -30,7 +30,7 @@ static inline real get_stimulus_value(real actualTime, int i, int j, const Stimu
 }
 
 // Funtion to get the diffusion term
-static inline real get_diffusion_term(const real *Vm, int i, int j, int Nx, int Ny, real coeff, real phi_x, real phi_y)
+static inline real get_diffusion_termNM(const real *Vm, int i, int j, int Nx, int Ny, real coeff, real phi_x, real phi_y)
 {
     int idx = i * Nx + j;
     int idx_left = i * Nx + lim(j - 1, Nx);
@@ -45,7 +45,7 @@ static inline real get_diffusion_term(const real *Vm, int i, int j, int Nx, int 
 #endif // USE_CUDA
 
 // Function to handle the saving of frames
-static inline void handle_frame_saving(const char *pathToSaveData, const char *file_extension,
+static inline void handle_frame_savingNM(const char *pathToSaveData, const char *file_extension,
                                        const save_function_t save_function, int timeStepCounter,
                                        int frameSaveRate, bool saveFrames, real *restrict Vm, int Nx, int Ny,
                                        real delta_x, real delta_y, real actualTime)
@@ -60,7 +60,7 @@ static inline void handle_frame_saving(const char *pathToSaveData, const char *f
 }
 
 // Function to handle the velocity measurement
-static inline void handle_velocity_measurement(real *Vm, int idx_x0, int idx_x1,
+static inline void handle_velocity_measurementNM(real *Vm, int idx_x0, int idx_x1,
                                                real *t0, real *t1,
                                                bool *aux_stim_velocity_flag, bool *stim_velocity_measured,
                                                real actualTime, real x0, real x1, real *stim_velocity)
@@ -71,7 +71,7 @@ static inline void handle_velocity_measurement(real *Vm, int idx_x0, int idx_x1,
 
     if (!*aux_stim_velocity_flag)
     {
-        if (Vm[idx_x0] > AFHN_THRESHOLD)
+        if (Vm[idx_x0] > 10.0f)
         {
             *t0 = actualTime;
             *aux_stim_velocity_flag = true;
@@ -79,7 +79,7 @@ static inline void handle_velocity_measurement(real *Vm, int idx_x0, int idx_x1,
     }
     else
     {
-        if (Vm[idx_x1] > AFHN_THRESHOLD)
+        if (Vm[idx_x1] > 10.0f)
         {
             *t1 = actualTime;
             *stim_velocity = ((x1 - x0) / (*t1 - *t0)) * 1000.0f; // cm/ms
@@ -90,7 +90,7 @@ static inline void handle_velocity_measurement(real *Vm, int idx_x0, int idx_x1,
 }
 
 // Free allocated resources
-static inline void freeResources(real *Vm, real *sV, real *partRHS)
+static inline void freeResourcesNM(real *Vm, real *sV, real *partRHS)
 {
     if (Vm != NULL)
         free(Vm);
@@ -100,4 +100,4 @@ static inline void freeResources(real *Vm, real *sV, real *partRHS)
         free(partRHS);
 }
 
-#endif // SIMULATION_HELPERS_H
+#endif // NUMERICAL_METHODS_HELPERS_H

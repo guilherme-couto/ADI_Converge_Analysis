@@ -1,7 +1,7 @@
 =================================================================
                 Monodomain Simulation Log
 -----------------------------------------------------------------
- Start Time             : 2025-05-17 15:08:15
+ Start Time             : 2025-05-17 19:28:02
  Configuration File     : configs/test.ini
  Output Directory       : outputs/test
 
@@ -532,5 +532,5 @@
 [+] Frame at time 498.00 ms saved to outputs/test/frames/Vm_49800.vtk
 [+] Frame at time 499.00 ms saved to outputs/test/frames/Vm_49900.vtk
 [+] Last frame (time 500.00 ms) saved to outputs/test/frames/Vm_50000.vtk
-[i] Simulation total execution time = 51.696 s
+[i] Simulation total execution time = 60.009 s
 [+] Simulation infos saved to outputs/test/simulation_infos.txt
