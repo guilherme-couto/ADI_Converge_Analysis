@@ -42,7 +42,7 @@ const char *get_file_extension(const char *name)
 }
 
 // Implementation of save functions
-void save_as_vtk(const char *file_path, real *restrict data, int Nx, int Ny, real delta_x, real delta_y)
+inline void save_as_vtk(const char *file_path, real *restrict data, int Nx, int Ny, real delta_x, real delta_y)
 {
     FILE *file = fopen(file_path, "w");
     if (file == NULL)
@@ -69,7 +69,7 @@ void save_as_vtk(const char *file_path, real *restrict data, int Nx, int Ny, rea
     fclose(file);
 }
 
-void save_as_txt(const char *file_path, real *restrict data, int Nx, int Ny, real delta_x, real delta_y)
+inline void save_as_txt(const char *file_path, real *restrict data, int Nx, int Ny, real delta_x, real delta_y)
 {
     FILE *file = fopen(file_path, "w");
     if (file == NULL)

@@ -8,10 +8,15 @@
 
 #ifndef USE_CUDA
 
-// Function to get the stimulus value at a given time and position
-static inline real get_stimulus_valueNM(real actualTime, int i, int j, const Stimulus *stimuli, int numberOfStimuli)
+static inline const int lim(const int num, const int N)
 {
-    for (int k = 0; k < numberOfStimuli; ++k)
+    return (num == -1) ? 1 : (num == N ? N - 2 : num);
+}
+
+// Function to get the stimulus value at a given time and position
+static inline const real get_stimulus_value(const real actualTime, const int i, const int j, const Stimulus *stimuli, const int numberOfStimuli)
+{
+    for (int k = 0; k < numberOfStimuli; k++)
     {
         const Stimulus *s = &stimuli[k];
 
@@ -30,7 +35,7 @@ static inline real get_stimulus_valueNM(real actualTime, int i, int j, const Sti
 }
 
 // Funtion to get the diffusion term
-static inline real get_diffusion_termNM(const real *Vm, int i, int j, int Nx, int Ny, real coeff, real phi_x, real phi_y)
+static inline const real get_diffusion_term(const real *Vm, const int i, const int j, const int Nx, const int Ny, const real coeff, const real phi_x, const real phi_y)
 {
     int idx = i * Nx + j;
     int idx_left = i * Nx + lim(j - 1, Nx);
@@ -45,10 +50,10 @@ static inline real get_diffusion_termNM(const real *Vm, int i, int j, int Nx, in
 #endif // USE_CUDA
 
 // Function to handle the saving of frames
-static inline void handle_frame_savingNM(const char *pathToSaveData, const char *file_extension,
-                                       const save_function_t save_function, int timeStepCounter,
-                                       int frameSaveRate, bool saveFrames, real *restrict Vm, int Nx, int Ny,
-                                       real delta_x, real delta_y, real actualTime)
+static inline void handle_frame_saving(const char *pathToSaveData, const char *file_extension,
+                                       const save_function_t save_function, const int timeStepCounter,
+                                       const int frameSaveRate, bool saveFrames, real *restrict Vm, const int Nx, const int Ny,
+                                       const real delta_x, const real delta_y, const real actualTime)
 {
     if (!saveFrames || (timeStepCounter % frameSaveRate != 0))
         return;
@@ -60,10 +65,10 @@ static inline void handle_frame_savingNM(const char *pathToSaveData, const char 
 }
 
 // Function to handle the velocity measurement
-static inline void handle_velocity_measurementNM(real *Vm, int idx_x0, int idx_x1,
+static inline void handle_velocity_measurement(const real *restrict Vm, const int idx_x0, const int idx_x1,
                                                real *t0, real *t1,
                                                bool *aux_stim_velocity_flag, bool *stim_velocity_measured,
-                                               real actualTime, real x0, real x1, real *stim_velocity)
+                                               const real actualTime, const real x0, const real x1, real *stim_velocity)
 {
     // Check if velocity has already been measured
     if (*stim_velocity_measured)
@@ -87,17 +92,6 @@ static inline void handle_velocity_measurementNM(real *Vm, int idx_x0, int idx_x
             INFOMSG("Stim velocity (measured from %.2f to %.2f cm) is %.4g cm/s\n", x0, x1, *stim_velocity);
         }
     }
-}
-
-// Free allocated resources
-static inline void freeResourcesNM(real *Vm, real *sV, real *partRHS)
-{
-    if (Vm != NULL)
-        free(Vm);
-    if (sV != NULL)
-        free(sV);
-    if (partRHS != NULL)
-        free(partRHS);
 }
 
 #endif // NUMERICAL_METHODS_HELPERS_H

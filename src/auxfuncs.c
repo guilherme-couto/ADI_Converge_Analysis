@@ -287,7 +287,7 @@ void saveCopyOfSimulationConfig(const char *ini_file_path, const char *output_di
 }
 
 // Basic Thomas algorithm for solving tridiagonal systems
-void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result)
+inline void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result)
 {
     c_prime[0] = lc[0] / lb[0];
     for (int i = 1; i < N - 1; i++)

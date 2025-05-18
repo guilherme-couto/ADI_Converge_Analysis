@@ -369,6 +369,30 @@ src/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/numerical_methods/fe/fe.o: src/numerical_methods/fe/fe.c.o
+.PHONY : src/numerical_methods/fe/fe.o
+
+# target to build an object file
+src/numerical_methods/fe/fe.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o
+.PHONY : src/numerical_methods/fe/fe.c.o
+
+src/numerical_methods/fe/fe.i: src/numerical_methods/fe/fe.c.i
+.PHONY : src/numerical_methods/fe/fe.i
+
+# target to preprocess a source file
+src/numerical_methods/fe/fe.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.i
+.PHONY : src/numerical_methods/fe/fe.c.i
+
+src/numerical_methods/fe/fe.s: src/numerical_methods/fe/fe.c.s
+.PHONY : src/numerical_methods/fe/fe.s
+
+# target to generate assembly for a file
+src/numerical_methods/fe/fe.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.s
+.PHONY : src/numerical_methods/fe/fe.c.s
+
 src/numerical_methods/numerical_methods.o: src/numerical_methods/numerical_methods.c.o
 .PHONY : src/numerical_methods/numerical_methods.o
 
@@ -393,29 +417,53 @@ src/numerical_methods/numerical_methods.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.s
 .PHONY : src/numerical_methods/numerical_methods.c.s
 
-src/numerical_methods/ssiadi.o: src/numerical_methods/ssiadi.c.o
-.PHONY : src/numerical_methods/ssiadi.o
+src/numerical_methods/osadi/osadi.o: src/numerical_methods/osadi/osadi.c.o
+.PHONY : src/numerical_methods/osadi/osadi.o
 
 # target to build an object file
-src/numerical_methods/ssiadi.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi.c.o
-.PHONY : src/numerical_methods/ssiadi.c.o
+src/numerical_methods/osadi/osadi.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o
+.PHONY : src/numerical_methods/osadi/osadi.c.o
 
-src/numerical_methods/ssiadi.i: src/numerical_methods/ssiadi.c.i
-.PHONY : src/numerical_methods/ssiadi.i
+src/numerical_methods/osadi/osadi.i: src/numerical_methods/osadi/osadi.c.i
+.PHONY : src/numerical_methods/osadi/osadi.i
 
 # target to preprocess a source file
-src/numerical_methods/ssiadi.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi.c.i
-.PHONY : src/numerical_methods/ssiadi.c.i
+src/numerical_methods/osadi/osadi.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.i
+.PHONY : src/numerical_methods/osadi/osadi.c.i
 
-src/numerical_methods/ssiadi.s: src/numerical_methods/ssiadi.c.s
-.PHONY : src/numerical_methods/ssiadi.s
+src/numerical_methods/osadi/osadi.s: src/numerical_methods/osadi/osadi.c.s
+.PHONY : src/numerical_methods/osadi/osadi.s
 
 # target to generate assembly for a file
-src/numerical_methods/ssiadi.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi.c.s
-.PHONY : src/numerical_methods/ssiadi.c.s
+src/numerical_methods/osadi/osadi.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.s
+.PHONY : src/numerical_methods/osadi/osadi.c.s
+
+src/numerical_methods/ssiadi/ssiadi.o: src/numerical_methods/ssiadi/ssiadi.c.o
+.PHONY : src/numerical_methods/ssiadi/ssiadi.o
+
+# target to build an object file
+src/numerical_methods/ssiadi/ssiadi.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o
+.PHONY : src/numerical_methods/ssiadi/ssiadi.c.o
+
+src/numerical_methods/ssiadi/ssiadi.i: src/numerical_methods/ssiadi/ssiadi.c.i
+.PHONY : src/numerical_methods/ssiadi/ssiadi.i
+
+# target to preprocess a source file
+src/numerical_methods/ssiadi/ssiadi.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.i
+.PHONY : src/numerical_methods/ssiadi/ssiadi.c.i
+
+src/numerical_methods/ssiadi/ssiadi.s: src/numerical_methods/ssiadi/ssiadi.c.s
+.PHONY : src/numerical_methods/ssiadi/ssiadi.s
+
+# target to generate assembly for a file
+src/numerical_methods/ssiadi/ssiadi.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.s
+.PHONY : src/numerical_methods/ssiadi/ssiadi.c.s
 
 src/omp_functions.o: src/omp_functions.c.o
 .PHONY : src/omp_functions.o
@@ -504,12 +552,18 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/numerical_methods/fe/fe.o"
+	@echo "... src/numerical_methods/fe/fe.i"
+	@echo "... src/numerical_methods/fe/fe.s"
 	@echo "... src/numerical_methods/numerical_methods.o"
 	@echo "... src/numerical_methods/numerical_methods.i"
 	@echo "... src/numerical_methods/numerical_methods.s"
-	@echo "... src/numerical_methods/ssiadi.o"
-	@echo "... src/numerical_methods/ssiadi.i"
-	@echo "... src/numerical_methods/ssiadi.s"
+	@echo "... src/numerical_methods/osadi/osadi.o"
+	@echo "... src/numerical_methods/osadi/osadi.i"
+	@echo "... src/numerical_methods/osadi/osadi.s"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.o"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.i"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.s"
 	@echo "... src/omp_functions.o"
 	@echo "... src/omp_functions.i"
 	@echo "... src/omp_functions.s"

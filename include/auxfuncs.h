@@ -5,11 +5,6 @@
 #include "config_parser.h"
 #include "logger.h"
 
-static inline int lim(int num, int N)
-{
-    return (num == -1) ? 1 : (num == N ? N - 2 : num);
-}
-
 void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real phi);
 void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N); // TODO: Correct this function
 const int createDirectories(char *dir_path, bool remove_old_files);

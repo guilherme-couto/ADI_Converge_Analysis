@@ -7,6 +7,8 @@ static const struct
     numerical_method_t solver;
 } numerical_method_map[] = {
     {METHOD_SSIADI, runSSIADI},
+    {METHOD_OSADI, runOSADI},
+    {METHOD_FE, runFE},
     {METHOD_INVALID, NULL}};
 
 numerical_method_t get_numerical_method(const NumericalMethod *method)

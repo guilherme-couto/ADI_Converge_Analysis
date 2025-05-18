@@ -1,35 +1,6 @@
 #include "../include/cpu_functions.h"
 #include "numerical_methods/numerical_methods.h"
 
-void runMonodomainSimulationSerialTT(const SimulationConfig *config)
-{
-    // Allocate and populate time array
-    real *time_array = (real *)malloc(config->M * sizeof(real));
-    initializeTimeArray(time_array, config->M, config->dt);
-
-    // Structure for measurement
-    Measurement measurement;
-    initializeMeasurement(&measurement);
-
-    // Define which cell model to use
-    // cell_model_solver_t cell_model_solver = get_cell_model_solver(&config->cell_model);
-    // if (cell_model_solver == NULL)
-    // {
-    //     ERRORMSG("Invalid cell model selected.");
-    //     free(time_array);
-    //     return;
-    // }
-
-    // // Run the simulation
-    // cell_model_solver(config, &measurement, time_array);
-
-    // Free allocated memory
-    free(time_array);
-
-    // Save simulation information
-    saveSimulationInfos(config, &measurement);
-}
-
 void runMonodomainSimulationSerial(const SimulationConfig *config)
 {
     // Allocate and populate time array

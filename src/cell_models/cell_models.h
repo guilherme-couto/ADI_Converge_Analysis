@@ -7,18 +7,20 @@
 #include "../../include/logger.h"
 
 // Types definition for the cell model solvers
-typedef void (*initialize_t)(real *restrict , real *restrict , const int, const int);
-typedef const real (*compute_dVmdt_t)(const real, const real *restrict, const int);
-typedef void (*compute_dSdt_t)(const real, const real *restrict, real *restrict, const int);
-typedef void (*update_sV_t)(real *, real *, real *restrict, const real, const int);
+typedef void (*initialize_t)(real *restrict, real *restrict, const int, const int);
+typedef void (*get_actual_sV_t)(real *restrict, const real *restrict, const int);
+typedef const real (*compute_dVmdt_t)(const real, const real *restrict);
+typedef void (*update_sVtilde_t)(real *restrict, const real, const real *restrict, const real);
+typedef void (*update_sV_t)(real *restrict, const real *, const real, const real *, const real, const int);
 
 // Structure to hold the cell model solver information
 typedef struct
 {
     int n_state_vars;
     initialize_t initialize;
+    get_actual_sV_t get_actual_sV;
     compute_dVmdt_t compute_dVmdt;
-    compute_dSdt_t compute_dSdt;
+    update_sVtilde_t update_sVtilde;
     update_sV_t update_sV;
 } CellModelSolver;
 
