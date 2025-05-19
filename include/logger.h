@@ -20,6 +20,7 @@ void init_logger(const char *filename);
 void close_logger(void);
 void log_message(const char *color, const char *prefix, const char *fmt, ...);
 void log_simulation_header(const SimulationConfig *config, const char *config_filename);
+void log_machine_info(void);
 
 // Macros for logging
 #define INFOMSG(fmt, ...)    log_message(BLUE,   "[i] ", fmt, ##__VA_ARGS__)
@@ -28,5 +29,6 @@ void log_simulation_header(const SimulationConfig *config, const char *config_fi
 #define ERRORMSG(fmt, ...)   log_message(RED,    "[x] ", fmt "\n", ##__VA_ARGS__)
 #define DEBUGMSG(fmt, ...)   log_message(YELLOW, "[.] ", fmt, ##__VA_ARGS__)
 #define LINEMSG()            log_message(YELLOW, "[.] ", "Line number %d in file %s\n", __LINE__, __FILE__)
+#define SIMPLEMSG(fmt, ...) log_message(RESET, "", fmt "\n", ##__VA_ARGS__)
 
 #endif // LOGGER_H

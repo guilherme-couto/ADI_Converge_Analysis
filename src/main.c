@@ -67,7 +67,8 @@ int main(int argc, char *argv[])
     init_logger(log_filename);
     atexit(close_logger); // Ensure logger is closed on exit
 
-    // Log the simulation header
+    // Log the machine info and simulation header
+    log_machine_info();
     log_simulation_header(&config, argv[1]);
 
     // Save a copy of the configuration file

@@ -493,7 +493,7 @@ void runSimulationOpenMP(const SimulationConfig *config)
 #pragma unroll
                 for (si = 0; si < numberOfStimuli; si++)
                 {
-                    if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
                         stim = stimuli[si].amplitude;
                         break;
@@ -555,7 +555,7 @@ void runSimulationOpenMP(const SimulationConfig *config)
 #pragma unroll
                 for (si = 0; si < numberOfStimuli; si++)
                 {
-                    if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
+                    if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].xMinDisc && j <= stimuli[si].xMaxDisc && i >= stimuli[si].yMinDisc && i <= stimuli[si].yMaxDisc)
                     {
                         stim = stimuli[si].amplitude;
                         break;
@@ -1022,7 +1022,7 @@ void runSimulationOpenMP(const SimulationConfig *config)
     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
     for (int i = 0; i < numberOfStimuli; i++)
     {
-        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin_time);
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].start_time);
     }
 
     fprintf(fpInfos, "\n");

@@ -6,6 +6,7 @@ static const struct
     const CellModelSolver *solver_struct;
 } cell_model_solver_map[] = {
     {CELL_MODEL_AFHN, &AFHN_MODEL},
+    {CELL_MODEL_MV, &MV_MODEL},
     {CELL_MODEL_INVALID, NULL}};
 
 const CellModelSolver *get_solver_struct(const CellModel *cell_model)

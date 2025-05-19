@@ -27,6 +27,8 @@
 #define PATH_SEPARATOR '\\'
 #else
 #include <unistd.h>
+#include <sys/utsname.h>
+#include <sys/sysinfo.h>
 #define PATH_SEPARATOR '/'
 #endif
 
@@ -82,7 +84,7 @@ typedef struct
 typedef struct
 {
     real amplitude;
-    real begin_time;
+    real start_time;
     real duration;
     struct
     {
@@ -99,7 +101,7 @@ typedef struct
         if (error != cudaSuccess)                                                                                                \
         {                                                                                                                        \
             fprintf(stderr, "\n\033[31m[x] \033[0mCUDA error at %s:%d - %s\n\n", __FILE__, __LINE__, cudaGetErrorString(error)); \
-            return;                                                                                                  \
+            return;                                                                                                              \
         }                                                                                                                        \
     } while (0)
 

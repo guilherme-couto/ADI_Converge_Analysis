@@ -9,6 +9,7 @@
 // Types definition for the cell model solvers
 typedef void (*initialize_t)(real *restrict, real *restrict, const int, const int);
 typedef void (*get_actual_sV_t)(real *restrict, const real *restrict, const int);
+typedef const real (*get_diffusion_coefficient_t)(const real);
 typedef const real (*compute_dVmdt_t)(const real, const real *restrict);
 typedef void (*update_sVtilde_t)(real *restrict, const real, const real *restrict, const real);
 typedef void (*update_sV_t)(real *restrict, const real *, const real, const real *, const real, const int);
@@ -17,8 +18,10 @@ typedef void (*update_sV_t)(real *restrict, const real *, const real, const real
 typedef struct
 {
     int n_state_vars;
+    real activation_thershold;
     initialize_t initialize;
     get_actual_sV_t get_actual_sV;
+    get_diffusion_coefficient_t get_diffusion_coefficient;
     compute_dVmdt_t compute_dVmdt;
     update_sVtilde_t update_sVtilde;
     update_sV_t update_sV;

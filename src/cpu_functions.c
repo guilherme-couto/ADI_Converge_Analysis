@@ -31,8 +31,8 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 
     if (config->path_to_restore_state_files != NULL && strlen(config->path_to_restore_state_files) > 0)
     {
-        printf("\n");
-        printf("Restoring state variables...\n");
+        SIMPLEMSG("\n");
+        INFOMSG("Restoring state variables...\n");
 
         // Load initial conditions from file
         // TODO: Implement file loading logic
@@ -40,8 +40,8 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 
     if (config->shift_state)
     {
-        printf("\n");
-        printf("Shifting state variables...\n");
+        SIMPLEMSG("\n");
+        INFOMSG("Shifting state variables...\n");
 
         // Shift state variables to the left
         real lengthToShift = 0.0f;
@@ -478,7 +478,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 // #pragma unroll
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -540,7 +540,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 // #pragma unroll
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -983,7 +983,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
 //     for (int i = 0; i < numberOfStimuli; i++)
 //     {
-//         fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin_time);
+//         fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].start_time);
 //     }
 
 //     if (measureVelocity)
@@ -1835,7 +1835,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 // #pragma unroll
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -1899,7 +1899,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 // #pragma unroll
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && j >= stimuli[si].x_discretized.min && j <= stimuli[si].x_discretized.max && i >= stimuli[si].y_discretized.min && i <= stimuli[si].y_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -2343,7 +2343,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //                 real stim = 0.0f;
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && i >= stimuli[si].x_discretized.min && i <= stimuli[si].x_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && i >= stimuli[si].x_discretized.min && i <= stimuli[si].x_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -2425,7 +2425,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //                 real stim = 0.0f;
 //                 for (int si = 0; si < numberOfStimuli; si++)
 //                 {
-//                     if (actualTime >= stimuli[si].begin_time && actualTime <= stimuli[si].begin_time + stimuli[si].duration && i >= stimuli[si].x_discretized.min && i <= stimuli[si].x_discretized.max)
+//                     if (actualTime >= stimuli[si].start_time && actualTime <= stimuli[si].start_time + stimuli[si].duration && i >= stimuli[si].x_discretized.min && i <= stimuli[si].x_discretized.max)
 //                     {
 //                         stim = stimuli[si].amplitude;
 //                         break;
@@ -2908,7 +2908,7 @@ void runMonodomainSimulationSerial(const SimulationConfig *config)
 //     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
 //     for (int i = 0; i < numberOfStimuli; i++)
 //     {
-//         fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin_time);
+//         fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].start_time);
 //     }
 
 // #endif // MONODOMAIN || CABLEEQ

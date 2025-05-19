@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 cmake_policy(SET CMP0104 NEW)
 
 project(MonodomainSimulation C CXX CUDA)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # === Set Release build and flags ===
 if(NOT CMAKE_BUILD_TYPE)
@@ -22,11 +23,12 @@ set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(CELL_MODELS_DIR "${SRC_DIR}/cell_models")
 set(NUMERICAL_METHODS_DIR "${SRC_DIR}/numerical_methods")
 set(INC_DIR "${CMAKE_SOURCE_DIR}/include")
-set(EXT_DIR "${CMAKE_SOURCE_DIR}/external/inih")
+set(EXT_INIH_DIR "${CMAKE_SOURCE_DIR}/external/inih")
+set(EXT_TINYEXPR_DIR "${CMAKE_SOURCE_DIR}/external/tinyexpr")
 set(BIN_DIR "${CMAKE_SOURCE_DIR}/bin")
 
 # === Include paths ===
-include_directories(${INC_DIR} ${EXT_DIR})
+include_directories(${INC_DIR} ${EXT_INIH_DIR} ${EXT_TINYEXPR_DIR})
 include_directories(${CELL_MODELS_DIR})
 file(GLOB_RECURSE CELL_HEADERS "${CELL_MODELS_DIR}/*.h")
 file(GLOB_RECURSE CELL_C_FILES "${CELL_MODELS_DIR}/*.c")
@@ -39,13 +41,15 @@ file(GLOB_RECURSE NUMERICAL_METHODS_CU_FILES "${NUMERICAL_METHODS_DIR}/*.cu")
 # === Other source files ===
 file(GLOB SRC_C_FILES "${SRC_DIR}/*.c")
 file(GLOB SRC_CU_FILES "${SRC_DIR}/*.cu")
-file(GLOB EXT_C_FILES "${EXT_DIR}/*.c")
+file(GLOB EXT_INIH_C_FILES "${EXT_INIH_DIR}/*.c")
+file(GLOB EXT_TINYEXPR_C_FILES "${EXT_TINYEXPR_DIR}/*.c")
 
-set(SOURCES ${SRC_C_FILES} ${EXT_C_FILES} ${CELL_C_FILES} ${NUMERICAL_METHODS_C_FILES})
+set(SOURCES ${SRC_C_FILES} ${EXT_INIH_C_FILES} ${EXT_TINYEXPR_C_FILES} ${CELL_C_FILES} ${NUMERICAL_METHODS_C_FILES})
 
 # === CUDA support ===
 if(USE_CUDA)
     enable_language(CUDA)
+    target_compile_definitions(monodomain_simulation PRIVATE USE_CUDA)
     message(STATUS "✅ CUDA support ENABLED")
     list(APPEND SOURCES ${SRC_CU_FILES} ${CELL_CU_FILES} ${NUMERICAL_METHODS_CU_FILES})
     set(CUDA_LIBRARIES cusparse)
@@ -71,6 +75,7 @@ if(USE_OPENMP)
     find_package(OpenMP REQUIRED)
     if(OpenMP_FOUND)
         target_link_libraries(monodomain_simulation OpenMP::OpenMP_C)
+        target_compile_definitions(monodomain_simulation PRIVATE USE_OPENMP)
         message(STATUS "✅ OpenMP support ENABLED")
     endif()
 else()

@@ -172,91 +172,160 @@ const real w_infstar = 0.94f;
 
 #endif // TNNP
 
-#endif // not USE_CUDA
-
-void solveMonodomainMV(const SimulationConfig *config, Measurement *measurement, const real *time_array)
+// MV solver functions
+static inline void initialize_MV(real *restrict Vm, real *restrict sV, const int Nx, const int Ny)
 {
-    // Unpack configuration parameters
-    const int M = config->M; // Number of time steps
-    const int Nx = config->Nx; // Spatial steps in x
-    const int Ny = config->Ny; // Spatial steps in y
+    // Initial conditions
+    const real u_init = 0.0f;
+    const real v_init = 1.0f;
+    const real w_init = 1.0f;
+    const real s_init = 0.0f;
 
-    // Allocate aux array for variables
-    int total_points = Nx * Ny;
-    real *partRHS = (real *)malloc(total_points * sizeof(real));
-
-    // Allocate and initialize state variables arrays
-    real *Vm = (real *)malloc(total_points * sizeof(real));
-    real *W = (real *)malloc(total_points * sizeof(real));
-    // initializeWithInitialConditionAFHN(Nx, Ny, Vm, W);
-
-    if (config->path_to_restore_state_files != NULL && strlen(config->path_to_restore_state_files) > 0)
+    // Initialize Vm and W with the initial condition
+    for (int idx = 0, idx_sv = 0; idx < Nx * Ny; idx++, idx_sv = idx * MV_NSV)
     {
-        printf("\n");
-        printf("Restoring state variables...\n");
-
-        // Load initial conditions from file
-        // TODO: Implement file loading logic
+        Vm[idx] = u_init;
+        sV[idx_sv] = v_init;
+        sV[idx_sv + 1] = w_init;
+        sV[idx_sv + 2] = s_init;
     }
-
-    if (config->shift_state)
-    {
-        printf("\n");
-        printf("Shifting state variables...\n");
-
-        // Shift state variables to the left
-        real lengthToShift = 0.0f;
-        // TODO: Implement shift logic
-    }
-
-    // Run the simulation based on the selected method
-    // if (config->method == METHOD_SSIADI)
-    // {
-    //     // Run the simulation using the SSIADI method
-    //     run_SSIADI_AFHN(config, measurement, time_array, Vm, W, partRHS);
-    // }
-    // else if (config->method == METHOD_OSADI)
-    // {
-    //     // Run the simulation using the OSADI method
-    //     run_OSADI_AFHN(config, measurement, time_array, Vm, W, partRHS);
-    // }
-    // else if (config->method == METHOD_FE)
-    // {
-    //     // Run the simulation using the Forward Euler method
-    //     run_FE_AFHN(config, measurement, time_array, Vm, W, partRHS);
-    // }
-    // else
-    // {
-    //     fprintf(stderr, "Error: Unsupported method for AFHN model.\n");
-    //     return;
-    // }
-
-    // Save frames variables
-    char file_path[MAX_STRING_SIZE];
-    char file_extension[4];
-    if (strstr(config->save_function_name, "txt") != NULL)
-        snprintf(file_extension, 4, "txt");
-    else if (strstr(config->save_function_name, "vtk") != NULL)
-        snprintf(file_extension, 4, "vtk");
-
-    // Save last frame
-    if (config->save_last_state)
-    {
-        snprintf(file_path, MAX_STRING_SIZE, "%s/frames/Vm_%05d.%s", config->output_dir, M, file_extension);
-        config->save_function(file_path, Vm, Nx, Ny, config->dx, config->dy);
-        SUCCESSMSG("Last frame (time %.2f ms) saved to %s\n", M * config->dt, file_path);
-    }
-
-    // Save last state
-    if (config->save_last_state)
-    {
-        // TODO: save as binary
-        snprintf(file_path, MAX_STRING_SIZE, "%s/state_%05d.dat", config->output_dir, M);
-        SUCCESSMSG("Last state (time %.2f ms) saved to %s\n", M * config->dt, file_path);
-    }
-
-    // Free memory
-    free(partRHS);
-    free(Vm);
-    free(W);
 }
+
+static inline void get_actual_sV_MV(real *restrict actualsV, const real *restrict sV, const int idx)
+{
+    int idx_sv = idx * MV_NSV;
+    actualsV[0] = sV[idx_sv];       // v
+    actualsV[1] = sV[idx_sv + 1];   // w
+    actualsV[2] = sV[idx_sv + 2];   // s
+}
+
+static inline const real compute_dVmdt_MV(const real Vm, const real *restrict sV)
+{
+    // Extract state variables
+    const real v = sV[0];
+    const real w = sV[1];
+    const real s = sV[2];
+
+    // Auxiliary variables
+    const real Htheta_w = (Vm - theta_w > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_o = (Vm - theta_o > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_v = (Vm - theta_v > 0.0f) ? 1.0f : 0.0f;
+
+    const real tau_o = (1.0f - Htheta_o) * tau_o1 + Htheta_o * tau_o2;
+    const real tau_so = tau_so1 + (tau_so2 - tau_so1) * (1.0f + tanh(k_so * (Vm - u_so))) * 0.5f;
+
+    // Currents
+    const real J_fi = -v * Htheta_v * (Vm - theta_v) * (u_u - Vm) / tau_fi;
+    const real J_so = ((Vm - u_o) * (1.0f - Htheta_w) / tau_o) + (Htheta_w / tau_so);
+    const real J_si = -Htheta_w * w * s / tau_si;
+
+    // Compute the derivative of Vm
+    return J_fi + J_so + J_si;
+}
+
+static inline void update_sVtilde_MV(real *restrict sVtilde, const real Vm, const real *restrict rhs_sV, const real delta_t)
+{
+    // Extract state variables
+    const real v = rhs_sV[0];
+    const real w = rhs_sV[1];
+    const real s = rhs_sV[2];
+
+    // Auxiliary variables
+    const real Htheta_w = (Vm - theta_w > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_o = (Vm - theta_o > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_v = (Vm - theta_v > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_vminus = (Vm - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+    const real tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
+    // Auxiliary variables for Rush-Larsen or Forward Euler
+    const real v_inf = ((Vm < theta_vminus) ? 1.0f : 0.0f);
+    const real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+    const real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+    const real w_inf = ((1.0f - Htheta_o) * (1.0f - (Vm / tau_winf)) + Htheta_o * w_infstar);
+    const real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (Vm - u_wminus))) * 0.5f;
+    const real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+    const real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+    const real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+    const real s_inf_RL = (1.0f + tanh(k_s * (Vm - u_s))) * 0.5f;
+
+    // Calculate approximations with Rush-Larsen or Forward Euler using half time step
+    (tau_v_RL > 1.0e-10)
+        ? (sVtilde[0] = v_inf_RL - (v_inf_RL - v) * exp(-delta_t / tau_v_RL))
+        : (sVtilde[0] = v + delta_t * (1.0f - Htheta_v) * (v_inf - v) / tau_vminus - Htheta_v * v / tau_vplus);
+
+    (tau_w_RL > 1.0e-10)
+        ? (sVtilde[1] = w_inf_RL - (w_inf_RL - w) * exp(-delta_t / tau_w_RL))
+        : (sVtilde[1] = w + delta_t * (1.0f - Htheta_w) * (w_inf - w) / tau_wminus - Htheta_w * w / tau_wplus);
+
+    (tau_s > 1.0e-10)
+        ? (sVtilde[2] = s_inf_RL - (s_inf_RL - s) * exp(-delta_t / tau_s))
+        : (sVtilde[2] = s + delta_t * (s_inf_RL - s) / tau_s);
+}
+
+static inline void update_sV_MV(real *restrict sV, const real *rhs_sV, const real dSdt_Vm, const real *dSdt_sV, const real delta_t, const int idx)
+{
+    // Extract state variables 
+    const real dSdt_v = dSdt_sV[0];
+    const real dSdt_w = dSdt_sV[1];
+    const real dSdt_s = dSdt_sV[2]; 
+
+    // Auxiliary variables
+    const real Htheta_w = (dSdt_Vm - theta_w > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_o = (dSdt_Vm - theta_o > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_v = (dSdt_Vm - theta_v > 0.0f) ? 1.0f : 0.0f;
+    const real Htheta_vminus = (dSdt_Vm - theta_vminus > 0.0f) ? 1.0f : 0.0f;
+    const real tau_vminus = (1.0f - Htheta_vminus) * tau_v1minus + Htheta_vminus * tau_v2minus;
+
+    // Auxiliary variables for Rush-Larsen or Forward Euler
+    const real v_inf = ((dSdt_Vm < theta_vminus) ? 1.0f : 0.0f);
+    const real tau_v_RL = (tau_vplus * tau_vminus) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+    const real v_inf_RL = (tau_vplus * v_inf * (1.0f - Htheta_v)) / (tau_vplus - tau_vplus * Htheta_v + tau_vminus * Htheta_v);
+
+    const real w_inf = ((1.0f - Htheta_o) * (1.0f - (dSdt_Vm / tau_winf)) + Htheta_o * w_infstar);
+    const real tau_wminus = tau_w1minus + (tau_w2minus - tau_w1minus) * (1.0f + tanh(k_wminus * (dSdt_Vm - u_wminus))) * 0.5f;
+    const real tau_w_RL = (tau_wplus * tau_wminus) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+    const real w_inf_RL = (tau_wplus * w_inf * (1.0f - Htheta_w)) / (tau_wplus - tau_wplus * Htheta_w + tau_wminus * Htheta_w);
+
+    const real tau_s = (1.0f - Htheta_w) * tau_s1 + Htheta_w * tau_s2;
+    const real s_inf_RL = (1.0f + tanh(k_s * (dSdt_Vm - u_s))) * 0.5f;
+
+    // Extract state variables
+    const real v = rhs_sV[0];
+    const real w = rhs_sV[1];
+    const real s = rhs_sV[2];
+
+    // Calculate approximations with Rush-Larsen or Forward Euler using half time step
+    const int idx_sv = idx * MV_NSV;
+    (tau_v_RL > 1.0e-10)
+        ? (sV[idx_sv] = v_inf_RL - (v_inf_RL - v) * exp(-delta_t / tau_v_RL))
+        : (sV[idx_sv] = v + delta_t * (1.0f - Htheta_v) * (v_inf - dSdt_v) / tau_vminus - Htheta_v * dSdt_v / tau_vplus);
+
+    (tau_w_RL > 1.0e-10)
+        ? (sV[idx_sv + 1] = w_inf_RL - (w_inf_RL - w) * exp(-delta_t / tau_w_RL))
+        : (sV[idx_sv + 1] = w + delta_t * (1.0f - Htheta_w) * (w_inf - dSdt_w) / tau_wminus - Htheta_w * dSdt_w / tau_wplus);
+
+    (tau_s > 1.0e-10)
+        ? (sV[idx_sv + 2] = s_inf_RL - (s_inf_RL - s) * exp(-delta_t / tau_s))
+        : (sV[idx_sv + 2] = s + delta_t * (s_inf_RL - dSdt_s) / tau_s);
+}
+
+#endif // USE_CUDA
+
+static inline const real get_diffusion_coefficient_MV(const real sigma)
+{
+    return sigma;
+}
+
+// Instantiate the MV model
+const CellModelSolver MV_MODEL = {
+    .n_state_vars = MV_NSV,
+    .activation_thershold = MV_ACTIVATION_THRESHOLD,
+    .initialize = initialize_MV,
+    .get_actual_sV = get_actual_sV_MV,
+    .get_diffusion_coefficient = get_diffusion_coefficient_MV,
+    .compute_dVmdt = compute_dVmdt_MV,
+    .update_sVtilde = update_sVtilde_MV,
+    .update_sV = update_sV_MV,
+};

@@ -23,8 +23,9 @@ void runFE(const SimulationConfig *config, Measurement *measurement, const real 
     const bool measureVelocity = config->measure_velocity;
 
     // Get the solver functions
-    const int n_state_vars = cell_model_solver->n_state_vars;
+    const real activation_threshold = cell_model_solver->activation_thershold;
     const get_actual_sV_t get_actual_sV = cell_model_solver->get_actual_sV;
+    const get_diffusion_coefficient_t get_diffusion_coefficient = cell_model_solver->get_diffusion_coefficient;
     const compute_dVmdt_t compute_dVmdt = cell_model_solver->compute_dVmdt;
     const update_sV_t update_sV = cell_model_solver->update_sV;
 
@@ -51,35 +52,29 @@ void runFE(const SimulationConfig *config, Measurement *measurement, const real 
         fprintf(stderr, "Error allocating memory for actualsV\n");
         exit(EXIT_FAILURE);
     }
-    real *dSdt = (real *)malloc(cell_model_solver->n_state_vars * sizeof(real));
-    if (dSdt == NULL)
-    {
-        fprintf(stderr, "Error allocating memory for dSdt\n");
-        exit(EXIT_FAILURE);
-    }
 
     // Calculate coefficients for the ADI method
     const real phi_x = delta_t / (delta_x * delta_x);
     const real phi_y = delta_t / (delta_y * delta_y);
-    const real diff_coeff = sigma / (AFHN_Cm * AFHN_CHI);
+    const real diff_coeff = get_diffusion_coefficient(sigma);
 
     // Variables for time measurement
     real startTime = 0.0f;
-    real startIterationTime = 0.0f;
+    real startExecutionTime = 0.0f;
     real elapsedExecutionTime = 0.0f;
     real elapsedTime1stPart = 0.0f;
     real elapsedTime2ndPart = 0.0f;
     real elapsedSaveFramesTime = 0.0f;
     real elapsedMeasureVelocityTime = 0.0f;
 
-    printf("\n");
-    printf("Starting simulation...\n");
+    SIMPLEMSG("\n");
+    INFOMSG("Starting simulation...\n");
 
     // Main time loop
+    startExecutionTime = omp_get_wtime();
+
     while (timeStepCounter < M)
     {
-        startIterationTime = omp_get_wtime();
-
         // Get time step
         actualTime = time_array[timeStepCounter];
 
@@ -130,17 +125,17 @@ void runFE(const SimulationConfig *config, Measurement *measurement, const real 
 
         // Measure velocity if needed
         startTime = omp_get_wtime();
-        handle_velocity_measurement(Vm, idx_x0, idx_x1, &t0, &t1, &aux_stim_velocity_flag, &stim_velocity_measured, actualTime, x0, x1, &stim_velocity);
+        handle_velocity_measurement(Vm[idx_x0], Vm[idx_x1], &t0, &t1, activation_threshold, &aux_stim_velocity_flag, &stim_velocity_measured, actualTime, x0, x1, &stim_velocity);
         elapsedMeasureVelocityTime += omp_get_wtime() - startTime;
 
         // Update time step counter
         timeStepCounter++;
         
-        elapsedExecutionTime += omp_get_wtime() - startIterationTime;
+        elapsedExecutionTime += omp_get_wtime() - startExecutionTime;
     }
 
-    printf("Simulation done!\n");
-    printf("\n");
+    INFOMSG("Simulation done!\n");
+    SIMPLEMSG("\n");
 
     // Update measurement structure
     measurement->elapsedExecutionTime = elapsedExecutionTime;
@@ -152,5 +147,4 @@ void runFE(const SimulationConfig *config, Measurement *measurement, const real 
 
     // Free allocated memory
     free(actualsV);
-    free(dSdt);
 }

@@ -1,23 +1,29 @@
-=================================================================
-                Monodomain Simulation Log
------------------------------------------------------------------
- Start Time             : 2025-05-18 15:54:30
+================================================================
+                         Machine Info
+----------------------------------------------------------------
+ Hostname             : host-10-22-10-114
+ OS                   : Linux
+ Architecture         : x86_64
+ CPU Cores            : 16
+ Total Memory (GB)    : 62.63
+ Free Memory (GB)     : 30.76
+---------------------------- OpenMP -----------------------------
+ Available Threads     : 16
+ Max Threads Allowed   : 16
+ Nested Parallelism    : Disabled
+================================================================
+
+================================================================
+                         Simulation Log
+----------------------------------------------------------------
+ Start Time             : 2025-05-19 13:04:43
  Configuration File     : configs/test.ini
  Output Directory       : outputs/test
 
  Execution Mode         : SERIAL
  Equation Type          : MONODOMAIN
- Cell Model             : AFHN
+ Cell Model             : MV
  Numerical Method       : SSIADI
-
- Grid Size (Nx x Ny)    : 201 x 201
- Domain Size (Lx x Ly)  : 2.00 x 2.00
- Spatial Step (dx, dy)  : 0.01, 0.01
- Time Step (dt)         : 0.01
- Total Time             : 500.00
- Number of Steps (M)    : 50000
- Sigma                  : 0.0012
- Theta                  : -1.0000
 
  Save Frames            : Yes
  Save Last Frame        : Yes
@@ -25,11 +31,34 @@
  Shift State            : No
  Measure Velocity       : Yes
  Frame Save Rate        : 100
- Number of Threads      : -1
- Restore State Path     : 
  Initial State Mode     : Initial Condition
-=================================================================
 
+ Grid Size (Nx x Ny)    : 201 x 201
+ Domain Size (Lx x Ly)  : 2.00 x 2.00
+ Spatial Step (dx, dy)  : 0.01, 0.01
+ Time Step (dt)         : 0.01
+ Total Time             : 500.00
+ Number of Steps (M)    : 50000
+ Sigma                  : 0.00065
+
+ Stimulus 1:
+   Amplitude  : 100
+   Duration   : 2
+   Start Time : 0
+   X Range    : [0, 0.2]
+   Y Range    : [0, 2]
+
+ Stimulus 2:
+   Amplitude  : 100
+   Duration   : 2
+   Start Time : 340
+   X Range    : [0, 1]
+   Y Range    : [0, 1]
+================================================================
+
+
+
+[i] Starting simulation...
 [+] Frame at time 0.00 ms saved to outputs/test/frames/Vm_00000.vtk
 [+] Frame at time 1.00 ms saved to outputs/test/frames/Vm_00100.vtk
 [+] Frame at time 2.00 ms saved to outputs/test/frames/Vm_00200.vtk
@@ -49,7 +78,7 @@
 [+] Frame at time 16.00 ms saved to outputs/test/frames/Vm_01600.vtk
 [+] Frame at time 17.00 ms saved to outputs/test/frames/Vm_01700.vtk
 [+] Frame at time 18.00 ms saved to outputs/test/frames/Vm_01800.vtk
-[i] Stim velocity (measured from 0.67 to 1.33 cm) is 61.44 cm/s
+[i] Stim velocity (measured from 0.67 to 1.33 cm) is 62.42 cm/s
 [+] Frame at time 19.00 ms saved to outputs/test/frames/Vm_01900.vtk
 [+] Frame at time 20.00 ms saved to outputs/test/frames/Vm_02000.vtk
 [+] Frame at time 21.00 ms saved to outputs/test/frames/Vm_02100.vtk
@@ -531,6 +560,11 @@
 [+] Frame at time 497.00 ms saved to outputs/test/frames/Vm_49700.vtk
 [+] Frame at time 498.00 ms saved to outputs/test/frames/Vm_49800.vtk
 [+] Frame at time 499.00 ms saved to outputs/test/frames/Vm_49900.vtk
+[i] Simulation done!
+
+
 [+] Last frame (time 500.00 ms) saved to outputs/test/frames/Vm_50000.vtk
-[i] Simulation total execution time = 57.763 s
+
+
+[i] Simulation total execution time = 224.83 s
 [+] Simulation infos saved to outputs/test/simulation_infos.txt

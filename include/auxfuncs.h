@@ -10,7 +10,6 @@ void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denom
 const int createDirectories(char *dir_path, bool remove_old_files);
 void initializeTimeArray(real *timeArray, int M, real dt);
 void initializeMeasurement(Measurement *measurement);
-const real rescaleVm(real Vm);
 int populateStimuli(SimulationConfig *config);
 void saveCopyOfSimulationConfig(const char *ini_file_path, const char *output_dir);
 void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result);

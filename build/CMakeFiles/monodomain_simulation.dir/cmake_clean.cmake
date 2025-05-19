@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation.pdb"
   "CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o"
   "CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o.d"
+  "CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o"
+  "CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o.d"
   "CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o"
   "CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o.d"
   "CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o"

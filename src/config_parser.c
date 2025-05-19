@@ -1,5 +1,6 @@
 #include "../include/config_parser.h"
 #include "../external/inih/ini.h"
+#include "../external/tinyexpr/tinyexpr.h"
 
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 
@@ -8,6 +9,35 @@ static void strtolower(char *str)
 {
     for (; *str; ++str)
         *str = tolower(*str);
+}
+
+// Function to evaluate expressions using tinyexpr and not considering inline comments
+static double te_interp_no_comments(const char *expression, int *error)
+{
+    // Remove inline comments beginning with ';' or '#'
+    char *comment_start = strpbrk(expression, ";#");
+    if (comment_start)
+    {
+        size_t length = comment_start - expression;
+        char *clean_expression = (char *)malloc(length + 1);
+        if (!clean_expression)
+        {
+            fprintf(stderr, "Memory allocation error\n");
+            return NAN;
+        }
+        strncpy(clean_expression, expression, length);
+        clean_expression[length] = '\0';
+
+        // Evaluate the expression
+        double result = te_interp(clean_expression, error);
+        free(clean_expression);
+        return result;
+    }
+    else
+    {
+        // No comments found, evaluate the expression directly
+        return te_interp(expression, error);
+    }
 }
 
 static int config_parser_handler(void *user, const char *section, const char *name, const char *value)
@@ -67,25 +97,25 @@ static int config_parser_handler(void *user, const char *section, const char *na
         strncpy(config->file_extension, get_file_extension(config->save_function_name), sizeof(config->file_extension));
     }
     else if (MATCH("simulation", "theta"))
-        config->theta = atof(value);
+        config->theta = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "dt"))
-        config->dt = atof(value);
+        config->dt = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "dx"))
-        config->dx = atof(value);
+        config->dx = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "dy"))
-        config->dy = atof(value);
+        config->dy = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "sigma"))
-        config->sigma = atof(value);
+        config->sigma = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "total_time"))
-        config->total_time = atof(value);
+        config->total_time = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "length_x"))
-        config->Lx = atof(value);
+        config->Lx = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "length_y"))
-        config->Ly = atof(value);
+        config->Ly = te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "save_rate"))
-        config->frame_save_rate = atoi(value);
+        config->frame_save_rate = (int)te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "number_of_threads"))
-        config->number_of_threads = atoi(value);
+        config->number_of_threads = (int)te_interp_no_comments(value, 0);
     else if (MATCH("simulation", "output_dir"))
         strncpy(config->output_dir, value, sizeof(config->output_dir));
     else if (MATCH("simulation", "remove_old_files"))
@@ -137,19 +167,19 @@ static int config_parser_handler(void *user, const char *section, const char *na
         // Set stimulus parameters
         Stimulus *stim = &config->stimuli[stim_index];
         if (strcmp(name, "amplitude") == 0)
-            stim->amplitude = atof(value);
-        else if (strcmp(name, "begin_time") == 0)
-            stim->begin_time = atof(value);
+            stim->amplitude = te_interp_no_comments(value, 0);
+        else if (strcmp(name, "start_time") == 0)
+            stim->start_time = te_interp_no_comments(value, 0);
         else if (strcmp(name, "duration") == 0)
-            stim->duration = atof(value);
+            stim->duration = te_interp_no_comments(value, 0);
         else if (strcmp(name, "x_min") == 0)
-            stim->x_range.min = atof(value);
+            stim->x_range.min = te_interp_no_comments(value, 0);
         else if (strcmp(name, "x_max") == 0)
-            stim->x_range.max = atof(value);
+            stim->x_range.max = te_interp_no_comments(value, 0);
         else if (strcmp(name, "y_min") == 0)
-            stim->y_range.min = atof(value);
+            stim->y_range.min = te_interp_no_comments(value, 0);
         else if (strcmp(name, "y_max") == 0)
-            stim->y_range.max = atof(value);
+            stim->y_range.max = te_interp_no_comments(value, 0);
         else
             printf("Unknown configuration parameter: %s.%s -> IGNORING...\n", section, name);
     }
@@ -293,7 +323,7 @@ bool validate_simulation_config(const SimulationConfig *config)
     }
     for (int i = 0; i < config->stimulus_count; i++)
     {
-        if (config->stimuli[i].begin_time < 0)
+        if (config->stimuli[i].start_time < 0)
         {
             printf("Stimulus begin time must be non-negative\n");
             valid = false;

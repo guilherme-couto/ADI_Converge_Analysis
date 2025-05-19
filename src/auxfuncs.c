@@ -211,12 +211,6 @@ void initializeMeasurement(Measurement *measurement)
     measurement->stimVelocity = 0.0f;
 }
 
-// Rescale Vm -> from Minimal Ventricular paper
-const real rescaleVm(real Vm)
-{
-    return 85.7f * Vm - 84.0f;
-}
-
 int populateStimuli(SimulationConfig *config)
 {
     // Unpack parameters from the config
@@ -341,7 +335,7 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", config->stimulus_count);
     for (int i = 0; i < config->stimulus_count; i++)
     {
-        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, config->stimuli[i].begin_time);
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, config->stimuli[i].start_time);
     }
 
     if (config->measure_velocity)
@@ -376,7 +370,7 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
     fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", config->output_dir);
     fclose(fpInfos);
 
-    printf("\n");
+    SIMPLEMSG("\n");
     INFOMSG("Simulation total execution time = %.5g s\n", measurement->elapsedExecutionTime);
     SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
 

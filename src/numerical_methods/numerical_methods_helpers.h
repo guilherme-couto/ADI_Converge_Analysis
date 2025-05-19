@@ -20,7 +20,7 @@ static inline const real get_stimulus_value(const real actualTime, const int i, 
     {
         const Stimulus *s = &stimuli[k];
 
-        if (actualTime < s->begin_time || actualTime > s->begin_time + s->duration)
+        if (actualTime < s->start_time || actualTime > s->start_time + s->duration)
             continue;
 
         if (j < s->x_discretized.min || j > s->x_discretized.max)
@@ -65,8 +65,7 @@ static inline void handle_frame_saving(const char *pathToSaveData, const char *f
 }
 
 // Function to handle the velocity measurement
-static inline void handle_velocity_measurement(const real *restrict Vm, const int idx_x0, const int idx_x1,
-                                               real *t0, real *t1,
+static inline void handle_velocity_measurement(const real Vm_x0, const real Vm_x1, real *t0, real *t1, const real thereshold,
                                                bool *aux_stim_velocity_flag, bool *stim_velocity_measured,
                                                const real actualTime, const real x0, const real x1, real *stim_velocity)
 {
@@ -76,7 +75,7 @@ static inline void handle_velocity_measurement(const real *restrict Vm, const in
 
     if (!*aux_stim_velocity_flag)
     {
-        if (Vm[idx_x0] > 10.0f)
+        if (Vm_x0 > thereshold)
         {
             *t0 = actualTime;
             *aux_stim_velocity_flag = true;
@@ -84,7 +83,7 @@ static inline void handle_velocity_measurement(const real *restrict Vm, const in
     }
     else
     {
-        if (Vm[idx_x1] > 10.0f)
+        if (Vm_x1 > thereshold)
         {
             *t1 = actualTime;
             *stim_velocity = ((x1 - x0) / (*t1 - *t0)) * 1000.0f; // cm/ms

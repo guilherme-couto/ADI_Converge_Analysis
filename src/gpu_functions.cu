@@ -793,7 +793,7 @@ void runSimulationGPU(const SimulationConfig *config)
     fprintf(fpInfos, "NUMBER OF STIMULI = %d\n", numberOfStimuli);
     for (int i = 0; i < numberOfStimuli; i++)
     {
-        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].begin_time);
+        fprintf(fpInfos, "STIMULUS %d: START TIME = %.5g ms\n", i + 1, stimuli[i].start_time);
     }
 
     fprintf(fpInfos, "\n");

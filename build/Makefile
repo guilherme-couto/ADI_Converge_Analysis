@@ -153,6 +153,30 @@ external/inih/ini.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.s
 .PHONY : external/inih/ini.c.s
 
+external/tinyexpr/tinyexpr.o: external/tinyexpr/tinyexpr.c.o
+.PHONY : external/tinyexpr/tinyexpr.o
+
+# target to build an object file
+external/tinyexpr/tinyexpr.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o
+.PHONY : external/tinyexpr/tinyexpr.c.o
+
+external/tinyexpr/tinyexpr.i: external/tinyexpr/tinyexpr.c.i
+.PHONY : external/tinyexpr/tinyexpr.i
+
+# target to preprocess a source file
+external/tinyexpr/tinyexpr.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.i
+.PHONY : external/tinyexpr/tinyexpr.c.i
+
+external/tinyexpr/tinyexpr.s: external/tinyexpr/tinyexpr.c.s
+.PHONY : external/tinyexpr/tinyexpr.s
+
+# target to generate assembly for a file
+external/tinyexpr/tinyexpr.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.s
+.PHONY : external/tinyexpr/tinyexpr.c.s
+
 src/auxfuncs.o: src/auxfuncs.c.o
 .PHONY : src/auxfuncs.o
 
@@ -525,6 +549,9 @@ help:
 	@echo "... external/inih/ini.o"
 	@echo "... external/inih/ini.i"
 	@echo "... external/inih/ini.s"
+	@echo "... external/tinyexpr/tinyexpr.o"
+	@echo "... external/tinyexpr/tinyexpr.i"
+	@echo "... external/tinyexpr/tinyexpr.s"
 	@echo "... src/auxfuncs.o"
 	@echo "... src/auxfuncs.i"
 	@echo "... src/auxfuncs.s"
