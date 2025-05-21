@@ -16,11 +16,20 @@ extern FILE *log_file;
 #define YELLOW  "\033[33m"
 #define RED     "\033[31m"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void init_logger(const char *filename);
 void close_logger(void);
-void log_message(const char *color, const char *prefix, const char *fmt, ...);
 void log_simulation_header(const SimulationConfig *config, const char *config_filename);
 void log_machine_info(void);
+void log_message(const char *color, const char *prefix, const char *fmt, ...);
+void log_device_info(FILE *log_file);
+
+#ifdef __cplusplus
+}
+#endif
 
 // Macros for logging
 #define INFOMSG(fmt, ...)    log_message(BLUE,   "[i] ", fmt, ##__VA_ARGS__)

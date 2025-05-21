@@ -72,66 +72,10 @@ include CMakeFiles/monodomain_simulation.dir/flags.make
 CMakeFiles/monodomain_simulation.dir/codegen:
 .PHONY : CMakeFiles/monodomain_simulation.dir/codegen
 
-CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/auxfuncs.c
-CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o -MF CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/auxfuncs.c
-
-CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/auxfuncs.c > CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/auxfuncs.c -o CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/config_parser.c
-CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o -MF CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/config_parser.c
-
-CMakeFiles/monodomain_simulation.dir/src/config_parser.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/config_parser.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/config_parser.c > CMakeFiles/monodomain_simulation.dir/src/config_parser.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/config_parser.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/config_parser.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/config_parser.c -o CMakeFiles/monodomain_simulation.dir/src/config_parser.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cpu_functions.c
-CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cpu_functions.c
-
-CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cpu_functions.c > CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cpu_functions.c -o CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/logger.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/logger.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/logger.c
-CMakeFiles/monodomain_simulation.dir/src/logger.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/monodomain_simulation.dir/src/logger.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/logger.c.o -MF CMakeFiles/monodomain_simulation.dir/src/logger.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/logger.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/logger.c
-
-CMakeFiles/monodomain_simulation.dir/src/logger.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/logger.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/logger.c > CMakeFiles/monodomain_simulation.dir/src/logger.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/logger.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/logger.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/logger.c -o CMakeFiles/monodomain_simulation.dir/src/logger.c.s
-
 CMakeFiles/monodomain_simulation.dir/src/main.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
 CMakeFiles/monodomain_simulation.dir/src/main.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/main.c
 CMakeFiles/monodomain_simulation.dir/src/main.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object CMakeFiles/monodomain_simulation.dir/src/main.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/monodomain_simulation.dir/src/main.c.o"
 	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/main.c.o -MF CMakeFiles/monodomain_simulation.dir/src/main.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/main.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/main.c
 
 CMakeFiles/monodomain_simulation.dir/src/main.c.i: cmake_force
@@ -142,219 +86,47 @@ CMakeFiles/monodomain_simulation.dir/src/main.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/main.c.s"
 	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/main.c -o CMakeFiles/monodomain_simulation.dir/src/main.c.s
 
-CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/omp_functions.c
-CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o -MF CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/omp_functions.c
-
-CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/omp_functions.c > CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/omp_functions.c -o CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/save_functions.c
-CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o -MF CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/save_functions.c
-
-CMakeFiles/monodomain_simulation.dir/src/save_functions.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/save_functions.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/save_functions.c > CMakeFiles/monodomain_simulation.dir/src/save_functions.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/save_functions.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/save_functions.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/save_functions.c -o CMakeFiles/monodomain_simulation.dir/src/save_functions.c.s
-
-CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/inih/ini.c
-CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o -MF CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o.d -o CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/inih/ini.c
-
-CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/inih/ini.c > CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.i
-
-CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/inih/ini.c -o CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.s
-
-CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/tinyexpr/tinyexpr.c
-CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o -MF CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o.d -o CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/tinyexpr/tinyexpr.c
-
-CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/tinyexpr/tinyexpr.c > CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.i
-
-CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/external/tinyexpr/tinyexpr.c -o CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/afhn/afhn.c
-CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/afhn/afhn.c
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/afhn/afhn.c > CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/afhn/afhn.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c
-CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c > CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/cell_models.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c
-CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c > CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/minimal_ventricular/mv.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c
-CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o -MF CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c > CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/cell_models/tt2/tt2.c -o CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/fe/fe.c
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building C object CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o -MF CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/fe/fe.c
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/fe/fe.c > CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/fe/fe.c -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/numerical_methods.c
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building C object CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o -MF CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/numerical_methods.c
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/numerical_methods.c > CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/numerical_methods.c -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/osadi/osadi.c
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building C object CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o -MF CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/osadi/osadi.c
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/osadi/osadi.c > CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/osadi/osadi.c -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.s
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o: CMakeFiles/monodomain_simulation.dir/flags.make
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o: /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/ssiadi/ssiadi.c
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o: CMakeFiles/monodomain_simulation.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building C object CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o -MF CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o.d -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o -c /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/ssiadi/ssiadi.c
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.i"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/ssiadi/ssiadi.c > CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.i
-
-CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.s"
-	/home/guilherme-couto/.conda/envs/numerical-env/bin/x86_64-conda-linux-gnu-cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/src/numerical_methods/ssiadi/ssiadi.c -o CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.s
-
 # Object files for target monodomain_simulation
 monodomain_simulation_OBJECTS = \
-"CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/logger.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/main.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o" \
-"CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o" \
-"CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o" \
-"CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o"
+"CMakeFiles/monodomain_simulation.dir/src/main.c.o"
 
 # External object files for target monodomain_simulation
 monodomain_simulation_EXTERNAL_OBJECTS =
 
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/logger.c.o
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: CMakeFiles/monodomain_simulation.dir/src/main.c.o
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: CMakeFiles/monodomain_simulation.dir/build.make
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: libcore_c.a
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: libcore_cuda.a
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: /home/guilherme-couto/.conda/envs/numerical-env/lib/libgomp.so
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: /home/guilherme-couto/.conda/envs/numerical-env/x86_64-conda-linux-gnu/sysroot/usr/lib/libpthread.so
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: CMakeFiles/monodomain_simulation.dir/deviceLinkLibs.rsp
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: CMakeFiles/monodomain_simulation.dir/deviceObjects1.rsp
+CMakeFiles/monodomain_simulation.dir/cmake_device_link.o: CMakeFiles/monodomain_simulation.dir/dlink.txt
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CUDA device code CMakeFiles/monodomain_simulation.dir/cmake_device_link.o"
+	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/monodomain_simulation.dir/dlink.txt --verbose=$(VERBOSE)
+
+# Rule to build all files generated by this target.
+CMakeFiles/monodomain_simulation.dir/build: CMakeFiles/monodomain_simulation.dir/cmake_device_link.o
+.PHONY : CMakeFiles/monodomain_simulation.dir/build
+
+# Object files for target monodomain_simulation
+monodomain_simulation_OBJECTS = \
+"CMakeFiles/monodomain_simulation.dir/src/main.c.o"
+
+# External object files for target monodomain_simulation
+monodomain_simulation_EXTERNAL_OBJECTS =
+
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/main.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o
-/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/build.make
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: libcore_c.a
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: libcore_cuda.a
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: /home/guilherme-couto/.conda/envs/numerical-env/lib/libgomp.so
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: /home/guilherme-couto/.conda/envs/numerical-env/x86_64-conda-linux-gnu/sysroot/usr/lib/libpthread.so
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/cmake_device_link.o
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/linkLibs.rsp
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/objects1.rsp
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation: CMakeFiles/monodomain_simulation.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Linking C executable /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CUDA executable /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/bin/monodomain_simulation"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/monodomain_simulation.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

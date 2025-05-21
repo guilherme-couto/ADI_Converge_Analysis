@@ -1,0 +1,1 @@
+ libcore_c.a -lpthread -lm -lcusparse  -lcudadevrt -lcudart_static -lrt -ldl 

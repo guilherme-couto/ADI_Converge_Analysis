@@ -1,21 +1,19 @@
 #include "../include/config_parser.h"
 #include "../include/core_definitions.h"
 #include "../include/auxfuncs.h"
-#include "../include/cpu_functions.h"
+#include "../include/monodomain.h"
 #include "../include/logger.h"
 #include <signal.h>
-
-#ifdef USE_CUDA
-#include "../include/gpu_functions.h"
-#endif // USE_CUDA
 
 SimulationConfig config;
 bool config_loaded = false;
 
-void handle_sigint(int sig) {
-    ERRORMSG("\nSimulation interrupted by user (SIGINT)\n");
+void handle_sigint(int sig)
+{
+    ERRORMSG("Simulation interrupted by user (SIGINT)\n");
 
-    if (config_loaded) {
+    if (config_loaded)
+    {
         free_simulation_config(&config);
     }
 
@@ -69,17 +67,21 @@ int main(int argc, char *argv[])
 
     // Log the machine info and simulation header
     log_machine_info();
+    #ifdef USE_CUDA
+    log_device_info(log_file);
+    #endif // USE_CUDA
     log_simulation_header(&config, argv[1]);
 
     // Save a copy of the configuration file
     saveCopyOfSimulationConfig(argv[1], config.output_dir);
 
     // Check the execution mode and the equation type to determine the simulation type
+    int simulation_result = -1;
     if (config.exec_mode == EXEC_SERIAL)
     {
         if (config.equation_type == EQUATION_MONODOMAIN)
         {
-            runMonodomainSimulationSerial(&config);
+            simulation_result = runMonodomainSimulationSerial(&config);
         }
         else
         {
@@ -95,7 +97,7 @@ int main(int argc, char *argv[])
     {
         if (config.equation_type == EQUATION_MONODOMAIN)
         {
-            runMonodomainSimulationCUDA(&config);
+            simulation_result = runMonodomainSimulationCUDA(&config);
         }
         else
         {
@@ -106,6 +108,14 @@ int main(int argc, char *argv[])
     }
 
 #endif // USE_CUDA
+
+    // Check if the simulation was successful
+    if (simulation_result != 0)
+    {
+        ERRORMSG("Simulation failed with error code: %d\n", simulation_result);
+        free_simulation_config(&config);
+        return -1;
+    }
 
     // Free the configuration
     free_simulation_config(&config);

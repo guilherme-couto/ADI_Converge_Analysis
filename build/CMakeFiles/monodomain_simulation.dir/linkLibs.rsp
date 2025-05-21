@@ -1,0 +1,1 @@
+ libcore_c.a -lpthread -lm libcore_cuda.a -lcusparse "/home/guilherme-couto/.conda/envs/numerical-env/lib/libgomp.so" -lpthread -lcudadevrt -lcudart_static -lrt -lpthread -ldl 

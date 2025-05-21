@@ -23,23 +23,21 @@ void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real p
 }
 
 // TODO: Correct this function
-void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N)
+void prefactorizeThomas(const real *la, const real *lb, const real *lc, real *c_prime, real *denominator, const int sysSize)
 {
     c_prime[0] = lc[0] / lb[0];
     denominator[0] = 1.0f / lb[0];
 
-    for (int i = 1; i < N; i++)
+    for (int i = 1; i < sysSize; i++)
     {
         real denom = 1.0f / (lb[i] - c_prime[i - 1] * la[i]);
-        if (i < N - 1)
-        {
+        if (i < sysSize - 1)
             c_prime[i] = lc[i] * denom;
-        }
         denominator[i] = denom;
     }
 }
 
-const int createDirectories(char *dir_path, bool remove_old_files)
+int createDirectories(char *dir_path, bool remove_old_files)
 {
     char path[MAX_STRING_SIZE];
     char frames_path[MAX_STRING_SIZE];
@@ -302,7 +300,7 @@ inline void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime,
     }
 }
 
-const int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement)
+int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement)
 {
     // Write infos to file
     char infosFilePath[MAX_STRING_SIZE];
@@ -370,7 +368,7 @@ const int saveSimulationInfos(const SimulationConfig *config, const Measurement 
     fprintf(fpInfos, "OUTPUT DIRECTORY = %s\n", config->output_dir);
     fclose(fpInfos);
 
-    SIMPLEMSG("\n");
+    SIMPLEMSG("");
     INFOMSG("Simulation total execution time = %.5g s\n", measurement->elapsedExecutionTime);
     SUCCESSMSG("Simulation infos saved to %s\n", infosFilePath);
 

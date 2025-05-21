@@ -13,12 +13,15 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <time.h>
-
 #ifdef USE_CUDA
 
 #include <cuda_runtime.h>
 
 #endif // USE_CUDA
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Define path separator based on OS
 #ifdef _WIN32
@@ -35,16 +38,18 @@
 // Define maximum string size
 #define MAX_STRING_SIZE 200
 
-// Define block size for GPU
-#ifdef USE_CUDA
+#if defined(__CUDACC__)
+#define FORCE_INLINE __forceinline__
+#else
+#define FORCE_INLINE inline
+#endif
 
+// Define block size for GPU
 #define FULL_DOMAIN_BLOCK_SIZE_X 16
 #define FULL_DOMAIN_BLOCK_SIZE_Y 16
 #define THOMAS_KERNEL_BLOCK_SIZE 32
 
-#endif // USE_CUDA
-
-#define MAX_SYS_SIZE 10002
+#define MAX_SYS_SIZE 1024
 #define NUMTHREADS 6
 
 // Convert CM to UM
@@ -104,5 +109,9 @@ typedef struct
             return;                                                                                                              \
         }                                                                                                                        \
     } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CORE_DEFINITIONS_H

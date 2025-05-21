@@ -4,6 +4,10 @@
 #include "core_definitions.h"
 #include "save_functions.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Execution modes
 typedef enum
 {
@@ -51,13 +55,16 @@ typedef struct
     real dt;
     real dx;
     real dy;
-    real sigma;
+    real sigma;   // Diffusion coefficient (isotropic context)
+    real sigma_l; // Longitudinal diffusion coefficient
+    real sigma_t; // Transversal diffusion coefficient
+    real sigma_i; // Interleaved diffusion coefficient (anisotropic context)
 
     // Simulation parameters
     real total_time;
     real Lx;
     real Ly;
-    int M; // Number of time steps
+    int M;  // Number of time steps
     int Nx; // Number of spatial steps in x
     int Ny; // Number of spatial steps in y
 
@@ -95,5 +102,9 @@ const char *executionModeToString(ExecutionMode mode);
 const char *equationTypeToString(EquationType type);
 const char *cellModelToString(CellModel model);
 const char *numericalMethodToString(NumericalMethod method);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CONFIG_PARSER_H

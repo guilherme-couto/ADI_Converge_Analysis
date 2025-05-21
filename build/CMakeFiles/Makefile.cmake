@@ -167,5 +167,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/core_c.dir/DependInfo.cmake"
+  "CMakeFiles/core_cuda.dir/DependInfo.cmake"
   "CMakeFiles/monodomain_simulation.dir/DependInfo.cmake"
   )

@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/core_c.dir/external/inih/ini.c.o"
+  "CMakeFiles/core_c.dir/external/inih/ini.c.o.d"
+  "CMakeFiles/core_c.dir/external/tinyexpr/tinyexpr.c.o"
+  "CMakeFiles/core_c.dir/external/tinyexpr/tinyexpr.c.o.d"
+  "CMakeFiles/core_c.dir/src/auxfuncs.c.o"
+  "CMakeFiles/core_c.dir/src/auxfuncs.c.o.d"
+  "CMakeFiles/core_c.dir/src/cell_models/afhn/afhn.c.o"
+  "CMakeFiles/core_c.dir/src/cell_models/afhn/afhn.c.o.d"
+  "CMakeFiles/core_c.dir/src/cell_models/cell_models.c.o"
+  "CMakeFiles/core_c.dir/src/cell_models/cell_models.c.o.d"
+  "CMakeFiles/core_c.dir/src/cell_models/minimal_ventricular/mv.c.o"
+  "CMakeFiles/core_c.dir/src/cell_models/minimal_ventricular/mv.c.o.d"
+  "CMakeFiles/core_c.dir/src/cell_models/tt2/tt2.c.o"
+  "CMakeFiles/core_c.dir/src/cell_models/tt2/tt2.c.o.d"
+  "CMakeFiles/core_c.dir/src/config_parser.c.o"
+  "CMakeFiles/core_c.dir/src/config_parser.c.o.d"
+  "CMakeFiles/core_c.dir/src/logger.c.o"
+  "CMakeFiles/core_c.dir/src/logger.c.o.d"
+  "CMakeFiles/core_c.dir/src/main.c.o"
+  "CMakeFiles/core_c.dir/src/main.c.o.d"
+  "CMakeFiles/core_c.dir/src/monodomain.c.o"
+  "CMakeFiles/core_c.dir/src/monodomain.c.o.d"
+  "CMakeFiles/core_c.dir/src/numerical_methods/fe/fe.c.o"
+  "CMakeFiles/core_c.dir/src/numerical_methods/fe/fe.c.o.d"
+  "CMakeFiles/core_c.dir/src/numerical_methods/numerical_methods.c.o"
+  "CMakeFiles/core_c.dir/src/numerical_methods/numerical_methods.c.o.d"
+  "CMakeFiles/core_c.dir/src/numerical_methods/osadi/osadi.c.o"
+  "CMakeFiles/core_c.dir/src/numerical_methods/osadi/osadi.c.o.d"
+  "CMakeFiles/core_c.dir/src/numerical_methods/ssiadi/ssiadi.c.o"
+  "CMakeFiles/core_c.dir/src/numerical_methods/ssiadi/ssiadi.c.o.d"
+  "CMakeFiles/core_c.dir/src/save_functions.c.o"
+  "CMakeFiles/core_c.dir/src/save_functions.c.o.d"
+  "libcore_c.a"
+  "libcore_c.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/core_c.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

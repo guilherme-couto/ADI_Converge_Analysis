@@ -117,6 +117,32 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named core_c
+
+# Build rule for target.
+core_c: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 core_c
+.PHONY : core_c
+
+# fast build rule for target.
+core_c/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/build
+.PHONY : core_c/fast
+
+#=============================================================================
+# Target rules for targets named core_cuda
+
+# Build rule for target.
+core_cuda: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 core_cuda
+.PHONY : core_cuda
+
+# fast build rule for target.
+core_cuda/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/build
+.PHONY : core_cuda/fast
+
+#=============================================================================
 # Target rules for targets named monodomain_simulation
 
 # Build rule for target.
@@ -134,7 +160,7 @@ external/inih/ini.o: external/inih/ini.c.o
 
 # target to build an object file
 external/inih/ini.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/inih/ini.c.o
 .PHONY : external/inih/ini.c.o
 
 external/inih/ini.i: external/inih/ini.c.i
@@ -142,7 +168,7 @@ external/inih/ini.i: external/inih/ini.c.i
 
 # target to preprocess a source file
 external/inih/ini.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/inih/ini.c.i
 .PHONY : external/inih/ini.c.i
 
 external/inih/ini.s: external/inih/ini.c.s
@@ -150,7 +176,7 @@ external/inih/ini.s: external/inih/ini.c.s
 
 # target to generate assembly for a file
 external/inih/ini.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/inih/ini.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/inih/ini.c.s
 .PHONY : external/inih/ini.c.s
 
 external/tinyexpr/tinyexpr.o: external/tinyexpr/tinyexpr.c.o
@@ -158,7 +184,7 @@ external/tinyexpr/tinyexpr.o: external/tinyexpr/tinyexpr.c.o
 
 # target to build an object file
 external/tinyexpr/tinyexpr.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/tinyexpr/tinyexpr.c.o
 .PHONY : external/tinyexpr/tinyexpr.c.o
 
 external/tinyexpr/tinyexpr.i: external/tinyexpr/tinyexpr.c.i
@@ -166,7 +192,7 @@ external/tinyexpr/tinyexpr.i: external/tinyexpr/tinyexpr.c.i
 
 # target to preprocess a source file
 external/tinyexpr/tinyexpr.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/tinyexpr/tinyexpr.c.i
 .PHONY : external/tinyexpr/tinyexpr.c.i
 
 external/tinyexpr/tinyexpr.s: external/tinyexpr/tinyexpr.c.s
@@ -174,7 +200,7 @@ external/tinyexpr/tinyexpr.s: external/tinyexpr/tinyexpr.c.s
 
 # target to generate assembly for a file
 external/tinyexpr/tinyexpr.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/external/tinyexpr/tinyexpr.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/external/tinyexpr/tinyexpr.c.s
 .PHONY : external/tinyexpr/tinyexpr.c.s
 
 src/auxfuncs.o: src/auxfuncs.c.o
@@ -182,7 +208,7 @@ src/auxfuncs.o: src/auxfuncs.c.o
 
 # target to build an object file
 src/auxfuncs.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/auxfuncs.c.o
 .PHONY : src/auxfuncs.c.o
 
 src/auxfuncs.i: src/auxfuncs.c.i
@@ -190,7 +216,7 @@ src/auxfuncs.i: src/auxfuncs.c.i
 
 # target to preprocess a source file
 src/auxfuncs.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/auxfuncs.c.i
 .PHONY : src/auxfuncs.c.i
 
 src/auxfuncs.s: src/auxfuncs.c.s
@@ -198,7 +224,7 @@ src/auxfuncs.s: src/auxfuncs.c.s
 
 # target to generate assembly for a file
 src/auxfuncs.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/auxfuncs.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/auxfuncs.c.s
 .PHONY : src/auxfuncs.c.s
 
 src/cell_models/afhn/afhn.o: src/cell_models/afhn/afhn.c.o
@@ -206,7 +232,7 @@ src/cell_models/afhn/afhn.o: src/cell_models/afhn/afhn.c.o
 
 # target to build an object file
 src/cell_models/afhn/afhn.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/afhn/afhn.c.o
 .PHONY : src/cell_models/afhn/afhn.c.o
 
 src/cell_models/afhn/afhn.i: src/cell_models/afhn/afhn.c.i
@@ -214,7 +240,7 @@ src/cell_models/afhn/afhn.i: src/cell_models/afhn/afhn.c.i
 
 # target to preprocess a source file
 src/cell_models/afhn/afhn.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/afhn/afhn.c.i
 .PHONY : src/cell_models/afhn/afhn.c.i
 
 src/cell_models/afhn/afhn.s: src/cell_models/afhn/afhn.c.s
@@ -222,15 +248,39 @@ src/cell_models/afhn/afhn.s: src/cell_models/afhn/afhn.c.s
 
 # target to generate assembly for a file
 src/cell_models/afhn/afhn.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/afhn/afhn.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/afhn/afhn.c.s
 .PHONY : src/cell_models/afhn/afhn.c.s
+
+src/cell_models/afhn/afhn.o: src/cell_models/afhn/afhn.cu.o
+.PHONY : src/cell_models/afhn/afhn.o
+
+# target to build an object file
+src/cell_models/afhn/afhn.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/afhn/afhn.cu.o
+.PHONY : src/cell_models/afhn/afhn.cu.o
+
+src/cell_models/afhn/afhn.i: src/cell_models/afhn/afhn.cu.i
+.PHONY : src/cell_models/afhn/afhn.i
+
+# target to preprocess a source file
+src/cell_models/afhn/afhn.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/afhn/afhn.cu.i
+.PHONY : src/cell_models/afhn/afhn.cu.i
+
+src/cell_models/afhn/afhn.s: src/cell_models/afhn/afhn.cu.s
+.PHONY : src/cell_models/afhn/afhn.s
+
+# target to generate assembly for a file
+src/cell_models/afhn/afhn.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/afhn/afhn.cu.s
+.PHONY : src/cell_models/afhn/afhn.cu.s
 
 src/cell_models/cell_models.o: src/cell_models/cell_models.c.o
 .PHONY : src/cell_models/cell_models.o
 
 # target to build an object file
 src/cell_models/cell_models.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/cell_models.c.o
 .PHONY : src/cell_models/cell_models.c.o
 
 src/cell_models/cell_models.i: src/cell_models/cell_models.c.i
@@ -238,7 +288,7 @@ src/cell_models/cell_models.i: src/cell_models/cell_models.c.i
 
 # target to preprocess a source file
 src/cell_models/cell_models.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/cell_models.c.i
 .PHONY : src/cell_models/cell_models.c.i
 
 src/cell_models/cell_models.s: src/cell_models/cell_models.c.s
@@ -246,15 +296,39 @@ src/cell_models/cell_models.s: src/cell_models/cell_models.c.s
 
 # target to generate assembly for a file
 src/cell_models/cell_models.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/cell_models.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/cell_models.c.s
 .PHONY : src/cell_models/cell_models.c.s
+
+src/cell_models/cell_models.o: src/cell_models/cell_models.cu.o
+.PHONY : src/cell_models/cell_models.o
+
+# target to build an object file
+src/cell_models/cell_models.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/cell_models.cu.o
+.PHONY : src/cell_models/cell_models.cu.o
+
+src/cell_models/cell_models.i: src/cell_models/cell_models.cu.i
+.PHONY : src/cell_models/cell_models.i
+
+# target to preprocess a source file
+src/cell_models/cell_models.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/cell_models.cu.i
+.PHONY : src/cell_models/cell_models.cu.i
+
+src/cell_models/cell_models.s: src/cell_models/cell_models.cu.s
+.PHONY : src/cell_models/cell_models.s
+
+# target to generate assembly for a file
+src/cell_models/cell_models.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/cell_models.cu.s
+.PHONY : src/cell_models/cell_models.cu.s
 
 src/cell_models/minimal_ventricular/mv.o: src/cell_models/minimal_ventricular/mv.c.o
 .PHONY : src/cell_models/minimal_ventricular/mv.o
 
 # target to build an object file
 src/cell_models/minimal_ventricular/mv.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/minimal_ventricular/mv.c.o
 .PHONY : src/cell_models/minimal_ventricular/mv.c.o
 
 src/cell_models/minimal_ventricular/mv.i: src/cell_models/minimal_ventricular/mv.c.i
@@ -262,7 +336,7 @@ src/cell_models/minimal_ventricular/mv.i: src/cell_models/minimal_ventricular/mv
 
 # target to preprocess a source file
 src/cell_models/minimal_ventricular/mv.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/minimal_ventricular/mv.c.i
 .PHONY : src/cell_models/minimal_ventricular/mv.c.i
 
 src/cell_models/minimal_ventricular/mv.s: src/cell_models/minimal_ventricular/mv.c.s
@@ -270,15 +344,39 @@ src/cell_models/minimal_ventricular/mv.s: src/cell_models/minimal_ventricular/mv
 
 # target to generate assembly for a file
 src/cell_models/minimal_ventricular/mv.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/minimal_ventricular/mv.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/minimal_ventricular/mv.c.s
 .PHONY : src/cell_models/minimal_ventricular/mv.c.s
+
+src/cell_models/minimal_ventricular/mv.o: src/cell_models/minimal_ventricular/mv.cu.o
+.PHONY : src/cell_models/minimal_ventricular/mv.o
+
+# target to build an object file
+src/cell_models/minimal_ventricular/mv.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/minimal_ventricular/mv.cu.o
+.PHONY : src/cell_models/minimal_ventricular/mv.cu.o
+
+src/cell_models/minimal_ventricular/mv.i: src/cell_models/minimal_ventricular/mv.cu.i
+.PHONY : src/cell_models/minimal_ventricular/mv.i
+
+# target to preprocess a source file
+src/cell_models/minimal_ventricular/mv.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/minimal_ventricular/mv.cu.i
+.PHONY : src/cell_models/minimal_ventricular/mv.cu.i
+
+src/cell_models/minimal_ventricular/mv.s: src/cell_models/minimal_ventricular/mv.cu.s
+.PHONY : src/cell_models/minimal_ventricular/mv.s
+
+# target to generate assembly for a file
+src/cell_models/minimal_ventricular/mv.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/minimal_ventricular/mv.cu.s
+.PHONY : src/cell_models/minimal_ventricular/mv.cu.s
 
 src/cell_models/tt2/tt2.o: src/cell_models/tt2/tt2.c.o
 .PHONY : src/cell_models/tt2/tt2.o
 
 # target to build an object file
 src/cell_models/tt2/tt2.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/tt2/tt2.c.o
 .PHONY : src/cell_models/tt2/tt2.c.o
 
 src/cell_models/tt2/tt2.i: src/cell_models/tt2/tt2.c.i
@@ -286,7 +384,7 @@ src/cell_models/tt2/tt2.i: src/cell_models/tt2/tt2.c.i
 
 # target to preprocess a source file
 src/cell_models/tt2/tt2.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/tt2/tt2.c.i
 .PHONY : src/cell_models/tt2/tt2.c.i
 
 src/cell_models/tt2/tt2.s: src/cell_models/tt2/tt2.c.s
@@ -294,15 +392,39 @@ src/cell_models/tt2/tt2.s: src/cell_models/tt2/tt2.c.s
 
 # target to generate assembly for a file
 src/cell_models/tt2/tt2.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cell_models/tt2/tt2.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/cell_models/tt2/tt2.c.s
 .PHONY : src/cell_models/tt2/tt2.c.s
+
+src/cell_models/tt2/tt2.o: src/cell_models/tt2/tt2.cu.o
+.PHONY : src/cell_models/tt2/tt2.o
+
+# target to build an object file
+src/cell_models/tt2/tt2.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/tt2/tt2.cu.o
+.PHONY : src/cell_models/tt2/tt2.cu.o
+
+src/cell_models/tt2/tt2.i: src/cell_models/tt2/tt2.cu.i
+.PHONY : src/cell_models/tt2/tt2.i
+
+# target to preprocess a source file
+src/cell_models/tt2/tt2.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/tt2/tt2.cu.i
+.PHONY : src/cell_models/tt2/tt2.cu.i
+
+src/cell_models/tt2/tt2.s: src/cell_models/tt2/tt2.cu.s
+.PHONY : src/cell_models/tt2/tt2.s
+
+# target to generate assembly for a file
+src/cell_models/tt2/tt2.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/cell_models/tt2/tt2.cu.s
+.PHONY : src/cell_models/tt2/tt2.cu.s
 
 src/config_parser.o: src/config_parser.c.o
 .PHONY : src/config_parser.o
 
 # target to build an object file
 src/config_parser.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/config_parser.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/config_parser.c.o
 .PHONY : src/config_parser.c.o
 
 src/config_parser.i: src/config_parser.c.i
@@ -310,7 +432,7 @@ src/config_parser.i: src/config_parser.c.i
 
 # target to preprocess a source file
 src/config_parser.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/config_parser.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/config_parser.c.i
 .PHONY : src/config_parser.c.i
 
 src/config_parser.s: src/config_parser.c.s
@@ -318,39 +440,15 @@ src/config_parser.s: src/config_parser.c.s
 
 # target to generate assembly for a file
 src/config_parser.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/config_parser.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/config_parser.c.s
 .PHONY : src/config_parser.c.s
-
-src/cpu_functions.o: src/cpu_functions.c.o
-.PHONY : src/cpu_functions.o
-
-# target to build an object file
-src/cpu_functions.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.o
-.PHONY : src/cpu_functions.c.o
-
-src/cpu_functions.i: src/cpu_functions.c.i
-.PHONY : src/cpu_functions.i
-
-# target to preprocess a source file
-src/cpu_functions.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.i
-.PHONY : src/cpu_functions.c.i
-
-src/cpu_functions.s: src/cpu_functions.c.s
-.PHONY : src/cpu_functions.s
-
-# target to generate assembly for a file
-src/cpu_functions.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/cpu_functions.c.s
-.PHONY : src/cpu_functions.c.s
 
 src/logger.o: src/logger.c.o
 .PHONY : src/logger.o
 
 # target to build an object file
 src/logger.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/logger.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/logger.c.o
 .PHONY : src/logger.c.o
 
 src/logger.i: src/logger.c.i
@@ -358,7 +456,7 @@ src/logger.i: src/logger.c.i
 
 # target to preprocess a source file
 src/logger.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/logger.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/logger.c.i
 .PHONY : src/logger.c.i
 
 src/logger.s: src/logger.c.s
@@ -366,14 +464,39 @@ src/logger.s: src/logger.c.s
 
 # target to generate assembly for a file
 src/logger.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/logger.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/logger.c.s
 .PHONY : src/logger.c.s
+
+src/logger.o: src/logger.cu.o
+.PHONY : src/logger.o
+
+# target to build an object file
+src/logger.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/logger.cu.o
+.PHONY : src/logger.cu.o
+
+src/logger.i: src/logger.cu.i
+.PHONY : src/logger.i
+
+# target to preprocess a source file
+src/logger.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/logger.cu.i
+.PHONY : src/logger.cu.i
+
+src/logger.s: src/logger.cu.s
+.PHONY : src/logger.s
+
+# target to generate assembly for a file
+src/logger.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/logger.cu.s
+.PHONY : src/logger.cu.s
 
 src/main.o: src/main.c.o
 .PHONY : src/main.o
 
 # target to build an object file
 src/main.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/main.c.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/main.c.o
 .PHONY : src/main.c.o
 
@@ -382,6 +505,7 @@ src/main.i: src/main.c.i
 
 # target to preprocess a source file
 src/main.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/main.c.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/main.c.i
 .PHONY : src/main.c.i
 
@@ -390,15 +514,64 @@ src/main.s: src/main.c.s
 
 # target to generate assembly for a file
 src/main.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/main.c.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/main.c.s
 .PHONY : src/main.c.s
+
+src/monodomain.o: src/monodomain.c.o
+.PHONY : src/monodomain.o
+
+# target to build an object file
+src/monodomain.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/monodomain.c.o
+.PHONY : src/monodomain.c.o
+
+src/monodomain.i: src/monodomain.c.i
+.PHONY : src/monodomain.i
+
+# target to preprocess a source file
+src/monodomain.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/monodomain.c.i
+.PHONY : src/monodomain.c.i
+
+src/monodomain.s: src/monodomain.c.s
+.PHONY : src/monodomain.s
+
+# target to generate assembly for a file
+src/monodomain.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/monodomain.c.s
+.PHONY : src/monodomain.c.s
+
+src/monodomain.o: src/monodomain.cu.o
+.PHONY : src/monodomain.o
+
+# target to build an object file
+src/monodomain.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/monodomain.cu.o
+.PHONY : src/monodomain.cu.o
+
+src/monodomain.i: src/monodomain.cu.i
+.PHONY : src/monodomain.i
+
+# target to preprocess a source file
+src/monodomain.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/monodomain.cu.i
+.PHONY : src/monodomain.cu.i
+
+src/monodomain.s: src/monodomain.cu.s
+.PHONY : src/monodomain.s
+
+# target to generate assembly for a file
+src/monodomain.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/monodomain.cu.s
+.PHONY : src/monodomain.cu.s
 
 src/numerical_methods/fe/fe.o: src/numerical_methods/fe/fe.c.o
 .PHONY : src/numerical_methods/fe/fe.o
 
 # target to build an object file
 src/numerical_methods/fe/fe.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/fe/fe.c.o
 .PHONY : src/numerical_methods/fe/fe.c.o
 
 src/numerical_methods/fe/fe.i: src/numerical_methods/fe/fe.c.i
@@ -406,7 +579,7 @@ src/numerical_methods/fe/fe.i: src/numerical_methods/fe/fe.c.i
 
 # target to preprocess a source file
 src/numerical_methods/fe/fe.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/fe/fe.c.i
 .PHONY : src/numerical_methods/fe/fe.c.i
 
 src/numerical_methods/fe/fe.s: src/numerical_methods/fe/fe.c.s
@@ -414,15 +587,39 @@ src/numerical_methods/fe/fe.s: src/numerical_methods/fe/fe.c.s
 
 # target to generate assembly for a file
 src/numerical_methods/fe/fe.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/fe/fe.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/fe/fe.c.s
 .PHONY : src/numerical_methods/fe/fe.c.s
+
+src/numerical_methods/fe/fe.o: src/numerical_methods/fe/fe.cu.o
+.PHONY : src/numerical_methods/fe/fe.o
+
+# target to build an object file
+src/numerical_methods/fe/fe.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/fe/fe.cu.o
+.PHONY : src/numerical_methods/fe/fe.cu.o
+
+src/numerical_methods/fe/fe.i: src/numerical_methods/fe/fe.cu.i
+.PHONY : src/numerical_methods/fe/fe.i
+
+# target to preprocess a source file
+src/numerical_methods/fe/fe.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/fe/fe.cu.i
+.PHONY : src/numerical_methods/fe/fe.cu.i
+
+src/numerical_methods/fe/fe.s: src/numerical_methods/fe/fe.cu.s
+.PHONY : src/numerical_methods/fe/fe.s
+
+# target to generate assembly for a file
+src/numerical_methods/fe/fe.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/fe/fe.cu.s
+.PHONY : src/numerical_methods/fe/fe.cu.s
 
 src/numerical_methods/numerical_methods.o: src/numerical_methods/numerical_methods.c.o
 .PHONY : src/numerical_methods/numerical_methods.o
 
 # target to build an object file
 src/numerical_methods/numerical_methods.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/numerical_methods.c.o
 .PHONY : src/numerical_methods/numerical_methods.c.o
 
 src/numerical_methods/numerical_methods.i: src/numerical_methods/numerical_methods.c.i
@@ -430,7 +627,7 @@ src/numerical_methods/numerical_methods.i: src/numerical_methods/numerical_metho
 
 # target to preprocess a source file
 src/numerical_methods/numerical_methods.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/numerical_methods.c.i
 .PHONY : src/numerical_methods/numerical_methods.c.i
 
 src/numerical_methods/numerical_methods.s: src/numerical_methods/numerical_methods.c.s
@@ -438,7 +635,7 @@ src/numerical_methods/numerical_methods.s: src/numerical_methods/numerical_metho
 
 # target to generate assembly for a file
 src/numerical_methods/numerical_methods.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/numerical_methods.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/numerical_methods.c.s
 .PHONY : src/numerical_methods/numerical_methods.c.s
 
 src/numerical_methods/osadi/osadi.o: src/numerical_methods/osadi/osadi.c.o
@@ -446,7 +643,7 @@ src/numerical_methods/osadi/osadi.o: src/numerical_methods/osadi/osadi.c.o
 
 # target to build an object file
 src/numerical_methods/osadi/osadi.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/osadi/osadi.c.o
 .PHONY : src/numerical_methods/osadi/osadi.c.o
 
 src/numerical_methods/osadi/osadi.i: src/numerical_methods/osadi/osadi.c.i
@@ -454,7 +651,7 @@ src/numerical_methods/osadi/osadi.i: src/numerical_methods/osadi/osadi.c.i
 
 # target to preprocess a source file
 src/numerical_methods/osadi/osadi.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/osadi/osadi.c.i
 .PHONY : src/numerical_methods/osadi/osadi.c.i
 
 src/numerical_methods/osadi/osadi.s: src/numerical_methods/osadi/osadi.c.s
@@ -462,15 +659,39 @@ src/numerical_methods/osadi/osadi.s: src/numerical_methods/osadi/osadi.c.s
 
 # target to generate assembly for a file
 src/numerical_methods/osadi/osadi.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/osadi/osadi.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/osadi/osadi.c.s
 .PHONY : src/numerical_methods/osadi/osadi.c.s
+
+src/numerical_methods/osadi/osadi.o: src/numerical_methods/osadi/osadi.cu.o
+.PHONY : src/numerical_methods/osadi/osadi.o
+
+# target to build an object file
+src/numerical_methods/osadi/osadi.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/osadi/osadi.cu.o
+.PHONY : src/numerical_methods/osadi/osadi.cu.o
+
+src/numerical_methods/osadi/osadi.i: src/numerical_methods/osadi/osadi.cu.i
+.PHONY : src/numerical_methods/osadi/osadi.i
+
+# target to preprocess a source file
+src/numerical_methods/osadi/osadi.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/osadi/osadi.cu.i
+.PHONY : src/numerical_methods/osadi/osadi.cu.i
+
+src/numerical_methods/osadi/osadi.s: src/numerical_methods/osadi/osadi.cu.s
+.PHONY : src/numerical_methods/osadi/osadi.s
+
+# target to generate assembly for a file
+src/numerical_methods/osadi/osadi.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/osadi/osadi.cu.s
+.PHONY : src/numerical_methods/osadi/osadi.cu.s
 
 src/numerical_methods/ssiadi/ssiadi.o: src/numerical_methods/ssiadi/ssiadi.c.o
 .PHONY : src/numerical_methods/ssiadi/ssiadi.o
 
 # target to build an object file
 src/numerical_methods/ssiadi/ssiadi.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/ssiadi/ssiadi.c.o
 .PHONY : src/numerical_methods/ssiadi/ssiadi.c.o
 
 src/numerical_methods/ssiadi/ssiadi.i: src/numerical_methods/ssiadi/ssiadi.c.i
@@ -478,7 +699,7 @@ src/numerical_methods/ssiadi/ssiadi.i: src/numerical_methods/ssiadi/ssiadi.c.i
 
 # target to preprocess a source file
 src/numerical_methods/ssiadi/ssiadi.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/ssiadi/ssiadi.c.i
 .PHONY : src/numerical_methods/ssiadi/ssiadi.c.i
 
 src/numerical_methods/ssiadi/ssiadi.s: src/numerical_methods/ssiadi/ssiadi.c.s
@@ -486,39 +707,39 @@ src/numerical_methods/ssiadi/ssiadi.s: src/numerical_methods/ssiadi/ssiadi.c.s
 
 # target to generate assembly for a file
 src/numerical_methods/ssiadi/ssiadi.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/numerical_methods/ssiadi/ssiadi.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/numerical_methods/ssiadi/ssiadi.c.s
 .PHONY : src/numerical_methods/ssiadi/ssiadi.c.s
 
-src/omp_functions.o: src/omp_functions.c.o
-.PHONY : src/omp_functions.o
+src/numerical_methods/ssiadi/ssiadi.o: src/numerical_methods/ssiadi/ssiadi.cu.o
+.PHONY : src/numerical_methods/ssiadi/ssiadi.o
 
 # target to build an object file
-src/omp_functions.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.o
-.PHONY : src/omp_functions.c.o
+src/numerical_methods/ssiadi/ssiadi.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/ssiadi/ssiadi.cu.o
+.PHONY : src/numerical_methods/ssiadi/ssiadi.cu.o
 
-src/omp_functions.i: src/omp_functions.c.i
-.PHONY : src/omp_functions.i
+src/numerical_methods/ssiadi/ssiadi.i: src/numerical_methods/ssiadi/ssiadi.cu.i
+.PHONY : src/numerical_methods/ssiadi/ssiadi.i
 
 # target to preprocess a source file
-src/omp_functions.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.i
-.PHONY : src/omp_functions.c.i
+src/numerical_methods/ssiadi/ssiadi.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/ssiadi/ssiadi.cu.i
+.PHONY : src/numerical_methods/ssiadi/ssiadi.cu.i
 
-src/omp_functions.s: src/omp_functions.c.s
-.PHONY : src/omp_functions.s
+src/numerical_methods/ssiadi/ssiadi.s: src/numerical_methods/ssiadi/ssiadi.cu.s
+.PHONY : src/numerical_methods/ssiadi/ssiadi.s
 
 # target to generate assembly for a file
-src/omp_functions.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/omp_functions.c.s
-.PHONY : src/omp_functions.c.s
+src/numerical_methods/ssiadi/ssiadi.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_cuda.dir/build.make CMakeFiles/core_cuda.dir/src/numerical_methods/ssiadi/ssiadi.cu.s
+.PHONY : src/numerical_methods/ssiadi/ssiadi.cu.s
 
 src/save_functions.o: src/save_functions.c.o
 .PHONY : src/save_functions.o
 
 # target to build an object file
 src/save_functions.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/save_functions.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/save_functions.c.o
 .PHONY : src/save_functions.c.o
 
 src/save_functions.i: src/save_functions.c.i
@@ -526,7 +747,7 @@ src/save_functions.i: src/save_functions.c.i
 
 # target to preprocess a source file
 src/save_functions.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/save_functions.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/save_functions.c.i
 .PHONY : src/save_functions.c.i
 
 src/save_functions.s: src/save_functions.c.s
@@ -534,7 +755,7 @@ src/save_functions.s: src/save_functions.c.s
 
 # target to generate assembly for a file
 src/save_functions.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/monodomain_simulation.dir/build.make CMakeFiles/monodomain_simulation.dir/src/save_functions.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/core_c.dir/build.make CMakeFiles/core_c.dir/src/save_functions.c.s
 .PHONY : src/save_functions.c.s
 
 # Help Target
@@ -545,6 +766,8 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... core_c"
+	@echo "... core_cuda"
 	@echo "... monodomain_simulation"
 	@echo "... external/inih/ini.o"
 	@echo "... external/inih/ini.i"
@@ -558,27 +781,48 @@ help:
 	@echo "... src/cell_models/afhn/afhn.o"
 	@echo "... src/cell_models/afhn/afhn.i"
 	@echo "... src/cell_models/afhn/afhn.s"
+	@echo "... src/cell_models/afhn/afhn.o"
+	@echo "... src/cell_models/afhn/afhn.i"
+	@echo "... src/cell_models/afhn/afhn.s"
+	@echo "... src/cell_models/cell_models.o"
+	@echo "... src/cell_models/cell_models.i"
+	@echo "... src/cell_models/cell_models.s"
 	@echo "... src/cell_models/cell_models.o"
 	@echo "... src/cell_models/cell_models.i"
 	@echo "... src/cell_models/cell_models.s"
 	@echo "... src/cell_models/minimal_ventricular/mv.o"
 	@echo "... src/cell_models/minimal_ventricular/mv.i"
 	@echo "... src/cell_models/minimal_ventricular/mv.s"
+	@echo "... src/cell_models/minimal_ventricular/mv.o"
+	@echo "... src/cell_models/minimal_ventricular/mv.i"
+	@echo "... src/cell_models/minimal_ventricular/mv.s"
+	@echo "... src/cell_models/tt2/tt2.o"
+	@echo "... src/cell_models/tt2/tt2.i"
+	@echo "... src/cell_models/tt2/tt2.s"
 	@echo "... src/cell_models/tt2/tt2.o"
 	@echo "... src/cell_models/tt2/tt2.i"
 	@echo "... src/cell_models/tt2/tt2.s"
 	@echo "... src/config_parser.o"
 	@echo "... src/config_parser.i"
 	@echo "... src/config_parser.s"
-	@echo "... src/cpu_functions.o"
-	@echo "... src/cpu_functions.i"
-	@echo "... src/cpu_functions.s"
+	@echo "... src/logger.o"
+	@echo "... src/logger.i"
+	@echo "... src/logger.s"
 	@echo "... src/logger.o"
 	@echo "... src/logger.i"
 	@echo "... src/logger.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/monodomain.o"
+	@echo "... src/monodomain.i"
+	@echo "... src/monodomain.s"
+	@echo "... src/monodomain.o"
+	@echo "... src/monodomain.i"
+	@echo "... src/monodomain.s"
+	@echo "... src/numerical_methods/fe/fe.o"
+	@echo "... src/numerical_methods/fe/fe.i"
+	@echo "... src/numerical_methods/fe/fe.s"
 	@echo "... src/numerical_methods/fe/fe.o"
 	@echo "... src/numerical_methods/fe/fe.i"
 	@echo "... src/numerical_methods/fe/fe.s"
@@ -588,12 +832,15 @@ help:
 	@echo "... src/numerical_methods/osadi/osadi.o"
 	@echo "... src/numerical_methods/osadi/osadi.i"
 	@echo "... src/numerical_methods/osadi/osadi.s"
+	@echo "... src/numerical_methods/osadi/osadi.o"
+	@echo "... src/numerical_methods/osadi/osadi.i"
+	@echo "... src/numerical_methods/osadi/osadi.s"
 	@echo "... src/numerical_methods/ssiadi/ssiadi.o"
 	@echo "... src/numerical_methods/ssiadi/ssiadi.i"
 	@echo "... src/numerical_methods/ssiadi/ssiadi.s"
-	@echo "... src/omp_functions.o"
-	@echo "... src/omp_functions.i"
-	@echo "... src/omp_functions.s"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.o"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.i"
+	@echo "... src/numerical_methods/ssiadi/ssiadi.s"
 	@echo "... src/save_functions.o"
 	@echo "... src/save_functions.i"
 	@echo "... src/save_functions.s"

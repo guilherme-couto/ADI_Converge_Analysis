@@ -5,21 +5,29 @@
 #include "config_parser.h"
 #include "logger.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void populateDiagonalThomasAlgorithm(real *la, real *lb, real *lc, int N, real phi);
-void prefactorizeThomas(real *la, real *lb, real *lc, real *c_prime, real *denominator, int N); // TODO: Correct this function
-const int createDirectories(char *dir_path, bool remove_old_files);
+void prefactorizeThomas(const real *la, const real *lb, const real *lc, real *c_prime, real *denominator, const int sysSize);
+int createDirectories(char *dir_path, bool remove_old_files);
 void initializeTimeArray(real *timeArray, int M, real dt);
 void initializeMeasurement(Measurement *measurement);
 int populateStimuli(SimulationConfig *config);
 void saveCopyOfSimulationConfig(const char *ini_file_path, const char *output_dir);
 void tridiagonalSystemSolver(real *la, real *lb, real *lc, real *c_prime, real *d_prime, int N, real *d, real *result);
-const int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement);
+int saveSimulationInfos(const SimulationConfig *config, const Measurement *measurement);
 
 real calculateNorm2Error(real *Vm, real *exact, int Nx, int Ny, real totalTime, real delta_x, real delta_y, real Lx, real Ly);
 void initializeVariableWithExactSolution(real *Var, int Nx, int Ny, real delta_x, real delta_y, real Lx, real Ly);
 void initializeVariableWithValue(real *Var, int Nx, int Ny, real value);
 void initializeVariableFromFile(real *Var, int Nx, int Ny, char *filename, real delta_x, real delta_y, char *varName, real reference_dx, real reference_dy, real Lx, real Ly);
 void shiftVariableToLeft(real *Var, int Nx, int Ny, real length, real delta_x, real delta_y, real initValue, char *varName);
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef CABLEEQ
 

@@ -68,6 +68,7 @@ void log_simulation_header(const SimulationConfig *config, const char *config_fi
     fprintf(log_file, " Equation Type          : %s\n", equationTypeToString(config->equation_type));
     fprintf(log_file, " Cell Model             : %s\n", cellModelToString(config->cell_model));
     fprintf(log_file, " Numerical Method       : %s\n", numericalMethodToString(config->method));
+    fprintf(log_file, " Real Precision         : %s\n", REAL_TYPE);
     fprintf(log_file, "\n");
 
     fprintf(log_file, " Save Frames            : %s\n", config->save_frames ? "Yes" : "No");
@@ -147,12 +148,12 @@ void log_machine_info()
     double total_mem_gb = s_info.totalram / (1024.0 * 1024.0 * 1024.0);
     double free_mem_gb = s_info.freeram / (1024.0 * 1024.0 * 1024.0);
 
-    fprintf(log_file, " Hostname             : %s\n", hostname);
-    fprintf(log_file, " OS                   : %s\n", uname_info.sysname);
-    fprintf(log_file, " Architecture         : %s\n", uname_info.machine);
-    fprintf(log_file, " CPU Cores            : %ld\n", num_cores);
-    fprintf(log_file, " Total Memory (GB)    : %.2f\n", total_mem_gb);
-    fprintf(log_file, " Free Memory (GB)     : %.2f\n", free_mem_gb);
+    fprintf(log_file, " Hostname              : %s\n", hostname);
+    fprintf(log_file, " OS                    : %s\n", uname_info.sysname);
+    fprintf(log_file, " Architecture          : %s\n", uname_info.machine);
+    fprintf(log_file, " CPU Cores             : %ld\n", num_cores);
+    fprintf(log_file, " Total Memory (GB)     : %.2f\n", total_mem_gb);
+    fprintf(log_file, " Free Memory (GB)      : %.2f\n", free_mem_gb);
 #endif
 
 #ifdef USE_OPENMP
@@ -164,29 +165,6 @@ void log_machine_info()
     fprintf(log_file, " Available Threads     : %d\n", num_procs);
     fprintf(log_file, " Max Threads Allowed   : %d\n", max_threads);
     fprintf(log_file, " Nested Parallelism    : %s\n", nested ? "Enabled" : "Disabled");
-#endif
-
-#ifdef USE_CUDA
-    int runtime_version = 0;
-    cudaRuntimeGetVersion(&runtime_version);
-
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-
-    fprintf(log_file, "----------------------------- CUDA ------------------------------\n");
-    fprintf(log_file, " CUDA Runtime Version  : %d.%d\n", runtime_version / 1000, (runtime_version % 1000) / 10);
-    fprintf(log_file, " CUDA Devices Found    : %d\n", device_count);
-
-    for (int i = 0; i < device_count; ++i)
-    {
-        cudaDeviceProp prop;
-        cudaGetDeviceProperties(&prop, i);
-        fprintf(log_file, "  Device %d: %s\n", i, prop.name);
-        fprintf(log_file, "    Compute Capability : %d.%d\n", prop.major, prop.minor);
-        fprintf(log_file, "    Global Memory (GB) : %.2f\n", prop.totalGlobalMem / (1024.0 * 1024.0 * 1024.0));
-        fprintf(log_file, "    Multiprocessors    : %d\n", prop.multiProcessorCount);
-        fprintf(log_file, "    Clock Rate (MHz)   : %.2f\n", prop.clockRate / 1000.0);
-    }
 #endif
 
     fprintf(log_file, "================================================================\n\n");

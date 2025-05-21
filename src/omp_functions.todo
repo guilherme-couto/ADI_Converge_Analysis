@@ -2,7 +2,7 @@
 #include "../include/config_parser.h"
 #include "../include/auxfuncs.h"
 
-#ifdef USE_CUDA
+#ifdef USE_OPENMP
 
 void runSimulationOpenMP(const SimulationConfig *config)
 {

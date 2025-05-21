@@ -1,3 +1,5 @@
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles/core_c.dir
+/home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles/core_cuda.dir
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles/monodomain_simulation.dir
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles/edit_cache.dir
 /home/guilherme-couto/Documentos/Numerical_Methods_Monodomain/build/CMakeFiles/rebuild_cache.dir

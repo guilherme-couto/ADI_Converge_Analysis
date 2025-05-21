@@ -1,12 +1,12 @@
 ================================================================
                          Machine Info
 ----------------------------------------------------------------
- Hostname             : host-10-22-10-114
- OS                   : Linux
- Architecture         : x86_64
- CPU Cores            : 16
- Total Memory (GB)    : 62.63
- Free Memory (GB)     : 30.76
+ Hostname              : host-10-22-10-114
+ OS                    : Linux
+ Architecture          : x86_64
+ CPU Cores             : 16
+ Total Memory (GB)     : 62.63
+ Free Memory (GB)      : 28.18
 ---------------------------- OpenMP -----------------------------
  Available Threads     : 16
  Max Threads Allowed   : 16
@@ -14,16 +14,30 @@
 ================================================================
 
 ================================================================
+                         Device Info
+----------------------------------------------------------------
+----------------------------- CUDA ------------------------------
+ CUDA Runtime Version  : 12.6
+ CUDA Devices Found    : 1
+  Device 0: NVIDIA GeForce RTX 4070 Ti SUPER
+    Compute Capability : 8.9
+    Global Memory (GB) : 15.69
+    Multiprocessors    : 66
+    Clock Rate (MHz)   : 2640.00
+================================================================
+
+================================================================
                          Simulation Log
 ----------------------------------------------------------------
- Start Time             : 2025-05-19 13:04:43
+ Start Time             : 2025-05-21 19:00:30
  Configuration File     : configs/test.ini
  Output Directory       : outputs/test
 
- Execution Mode         : SERIAL
+ Execution Mode         : CUDA
  Equation Type          : MONODOMAIN
  Cell Model             : MV
- Numerical Method       : SSIADI
+ Numerical Method       : FE
+ Real Precision         : double
 
  Save Frames            : Yes
  Save Last Frame        : Yes
@@ -51,14 +65,19 @@
  Stimulus 2:
    Amplitude  : 100
    Duration   : 2
-   Start Time : 340
+   Start Time : 310
    X Range    : [0, 1]
    Y Range    : [0, 1]
 ================================================================
 
 
+[i] Device name: NVIDIA GeForce RTX 4070 Ti SUPER (66 SMs)
 
-[i] Starting simulation...
+[i] For full domain kernels:
+[i] Block size: 16 x 16 threads (total 256 threads per block)
+[i] Grid size: 13 x 13 blocks (total 169 blocks, total 43264 threads)
+
+[i] Starting simulation with FE (CUDA)...
 [+] Frame at time 0.00 ms saved to outputs/test/frames/Vm_00000.vtk
 [+] Frame at time 1.00 ms saved to outputs/test/frames/Vm_00100.vtk
 [+] Frame at time 2.00 ms saved to outputs/test/frames/Vm_00200.vtk
@@ -78,7 +97,7 @@
 [+] Frame at time 16.00 ms saved to outputs/test/frames/Vm_01600.vtk
 [+] Frame at time 17.00 ms saved to outputs/test/frames/Vm_01700.vtk
 [+] Frame at time 18.00 ms saved to outputs/test/frames/Vm_01800.vtk
-[i] Stim velocity (measured from 0.67 to 1.33 cm) is 62.42 cm/s
+[i] Stim velocity (measured from 0.67 to 1.33 cm) is 61.5 cm/s
 [+] Frame at time 19.00 ms saved to outputs/test/frames/Vm_01900.vtk
 [+] Frame at time 20.00 ms saved to outputs/test/frames/Vm_02000.vtk
 [+] Frame at time 21.00 ms saved to outputs/test/frames/Vm_02100.vtk
@@ -562,9 +581,7 @@
 [+] Frame at time 499.00 ms saved to outputs/test/frames/Vm_49900.vtk
 [i] Simulation done!
 
+[+] Last frame (500.00 ms) saved to outputs/test/frames/Vm_50000.vtk
 
-[+] Last frame (time 500.00 ms) saved to outputs/test/frames/Vm_50000.vtk
-
-
-[i] Simulation total execution time = 224.83 s
+[i] Simulation total execution time = 9.4647 s
 [+] Simulation infos saved to outputs/test/simulation_infos.txt

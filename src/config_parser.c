@@ -202,6 +202,9 @@ int load_simulation_config(const char *filename, SimulationConfig *config)
     config->dx = -1.0f;
     config->dy = -1.0f;
     config->sigma = -1.0f;
+    config->sigma_l = -1.0f;
+    config->sigma_t = -1.0f;
+    config->sigma_i = -1.0f;
     config->total_time = -1.0;
     config->Lx = -1.0f;
     config->Ly = -1.0f;
